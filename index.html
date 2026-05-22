@@ -24,8 +24,6 @@
   --sh:0 8px 32px rgba(0,0,0,.6);--sh-lg:0 24px 64px rgba(0,0,0,.8);
 }
 html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
-
-/* ── ORBS ── */
 .orbs{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
 .orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.3;animation:drift 25s ease-in-out infinite}
 .orb1{width:420px;height:420px;background:radial-gradient(circle,#0a84ff,transparent);top:-120px;left:-100px;animation-duration:28s}
@@ -33,147 +31,174 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
 .orb3{width:260px;height:260px;background:radial-gradient(circle,#30d158,transparent);bottom:-60px;left:35%;animation-duration:24s;animation-delay:-6s}
 @keyframes drift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(28px,-22px) scale(1.06)}66%{transform:translate(-22px,28px) scale(.95)}}
 
-/* ── AUTH ── */
+/* AUTH */
 #auth{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px}
 .auth-logo{font-size:58px;font-weight:700;letter-spacing:-3px;margin-bottom:8px;font-family:-apple-system,'SF Pro Display',sans-serif;animation:fadeUp .8s ease both}
 .auth-logo em{font-style:normal;background:linear-gradient(135deg,#0a84ff,#bf5af2);-webkit-background-clip:text;background-clip:text;color:transparent}
 .auth-tagline{font-size:16px;color:var(--text2);margin-bottom:48px;animation:fadeUp .8s .1s ease both}
 .auth-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:22px;overflow:hidden;box-shadow:var(--sh-lg);backdrop-filter:blur(20px);animation:fadeUp .8s .2s ease both}
-.auth-field-wrap{padding:0 24px}
-.auth-field{width:100%;border:none;outline:none;padding:22px 0;font-size:18px;color:var(--text);background:transparent;font-family:inherit;text-align:center;letter-spacing:6px;border-bottom:1px solid var(--border)}
+.auth-field{width:100%;border:none;outline:none;padding:22px 24px;font-size:18px;color:var(--text);background:transparent;font-family:inherit;text-align:center;letter-spacing:6px;border-bottom:1px solid var(--border)}
 .auth-field::placeholder{letter-spacing:.5px;color:var(--text3);font-size:16px}
 .auth-btn{display:block;width:100%;border:none;background:linear-gradient(135deg,#0a84ff,#005fd4);color:#fff;font-size:17px;font-weight:600;padding:20px;cursor:pointer;font-family:inherit;transition:opacity .2s}
-.auth-btn:hover{opacity:.88}
 .auth-btn:active{opacity:.72}
 .auth-err{margin-top:16px;font-size:13px;color:var(--red);min-height:18px;text-align:center}
 
-/* ── APP ── */
+/* APP */
 #app{display:none;height:100%;flex-direction:column;position:relative;z-index:1}
 #app.on{display:flex}
 .screen{display:none;flex:1;flex-direction:column;overflow:hidden}
 .screen.on{display:flex}
 
-/* ── NAVBAR ── */
+/* NAVBAR */
 .navbar{background:rgba(0,0,0,.75);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border-bottom:1px solid var(--border2);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;padding-top:env(safe-area-inset-top,0);flex-shrink:0;z-index:10;position:relative}
 .nav-logo{font-size:20px;font-weight:700;letter-spacing:-.5px;font-family:-apple-system,'SF Pro Display',sans-serif}
 .nav-logo em{font-style:normal;background:linear-gradient(135deg,#0a84ff,#bf5af2);-webkit-background-clip:text;background-clip:text;color:transparent}
 .nav-back{display:flex;align-items:center;gap:3px;color:var(--blue);font-size:16px;background:none;border:none;cursor:pointer;font-family:inherit;padding:8px 0}
-.nav-back-arrow{font-size:22px;line-height:1}
 .nav-title{position:absolute;left:50%;transform:translateX(-50%);font-size:16px;font-weight:600;white-space:nowrap;pointer-events:none}
-.nav-clear{font-size:13px;color:var(--text2);background:none;border:none;cursor:pointer;font-family:inherit;padding:6px 10px;border-radius:8px;transition:background .15s}
-.nav-clear:hover{background:var(--card)}
+.nav-action{font-size:13px;color:var(--text2);background:none;border:none;cursor:pointer;font-family:inherit;padding:6px 10px;border-radius:8px;transition:background .15s}
+.nav-action:hover{background:var(--card)}
 
-/* ── HOME ── */
-#home{background:transparent}
+/* SCROLL */
 .scroll-wrap{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:max(env(safe-area-inset-bottom,0px),24px)}
 .scroll-wrap::-webkit-scrollbar{display:none}
 
-/* Hero */
-.hero{padding:52px 24px 48px;text-align:center;border-bottom:1px solid var(--border2);position:relative}
-.hero-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue);background:var(--blue-bg);padding:6px 14px;border-radius:980px;margin-bottom:20px;border:1px solid rgba(10,132,255,.25)}
-.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 2s infinite;flex-shrink:0}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
-.hero-title{font-size:clamp(36px,9vw,58px);font-weight:700;letter-spacing:-2.5px;line-height:1.04;margin-bottom:18px;font-family:-apple-system,'SF Pro Display',sans-serif}
-.hero-grad{background:linear-gradient(135deg,#0a84ff 0%,#bf5af2 50%,#30d158 100%);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200%;animation:gradShift 5s ease-in-out infinite}
-@keyframes gradShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-.hero-sub{font-size:17px;color:var(--text2);line-height:1.6;max-width:460px;margin:0 auto 32px;letter-spacing:-.2px}
-.hero-cta{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#0a84ff,#005fd4);color:#fff;font-size:15px;font-weight:600;padding:14px 28px;border-radius:980px;cursor:pointer;border:none;font-family:inherit;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 20px rgba(10,132,255,.4)}
-.hero-cta:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(10,132,255,.55)}
-.hero-cta:active{transform:scale(.97)}
+/* ALERT */
+.alert-urgent{background:var(--red-bg);border-bottom:1px solid rgba(255,69,58,.25);padding:14px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.alert-urgent-dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1.5s infinite;flex-shrink:0}
+.alert-urgent-txt{flex:1;font-size:14px;font-weight:500}
+.alert-urgent-cnt{font-size:13px;font-weight:700;color:var(--red);background:rgba(255,69,58,.2);padding:4px 10px;border-radius:8px;flex-shrink:0}
 
-/* Alert */
-.alert-bar{background:var(--red-bg);border-bottom:1px solid rgba(255,69,58,.2);padding:13px 20px;display:flex;align-items:center;gap:10px}
-.alert-chip{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--red);background:rgba(255,69,58,.25);padding:3px 8px;border-radius:5px;flex-shrink:0}
-.alert-msg{font-size:14px;flex:1}
-.alert-count{font-size:14px;color:var(--red);font-weight:700}
-
-/* Stats */
-.stats-grid{border-bottom:1px solid var(--border2);display:grid;grid-template-columns:repeat(3,1fr)}
-.stat{padding:22px 12px;text-align:center;border-right:1px solid var(--border2)}
+/* STATS GRID */
+.stats-grid{border-bottom:1px solid var(--border2);display:grid;grid-template-columns:repeat(3,1fr);flex-shrink:0}
+.stat{padding:18px 10px;text-align:center;border-right:1px solid var(--border2)}
 .stat:last-child{border-right:none}
-.stat-val{font-size:28px;font-weight:700;letter-spacing:-1px;font-family:-apple-system,'SF Pro Display',sans-serif}
-.stat-lbl{font-size:11px;color:var(--text2);margin-top:2px;font-weight:500}
+.stat-val{font-size:24px;font-weight:700;letter-spacing:-1px;font-family:-apple-system,'SF Pro Display',sans-serif}
+.stat-lbl{font-size:10px;color:var(--text2);margin-top:2px;font-weight:500}
 
-/* Sections */
-.section{padding:36px 20px 0}
-.sec-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px}
-.sec-title{font-size:22px;font-weight:700;letter-spacing:-.5px;font-family:-apple-system,'SF Pro Display',sans-serif}
-.sec-sub{font-size:13px;color:var(--text2);margin-bottom:16px}
+/* SECTIONS */
+.section{padding:28px 20px 0}
+.sec-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px}
+.sec-title{font-size:20px;font-weight:700;letter-spacing:-.5px;font-family:-apple-system,'SF Pro Display',sans-serif}
+.sec-sub{font-size:13px;color:var(--text2);margin-bottom:14px}
 
-/* ── PROGRESS DASHBOARD ── */
-.prog-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;backdrop-filter:blur(12px);box-shadow:var(--sh)}
-.prog-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-.prog-label{font-size:13px;color:var(--text2);margin-bottom:2px}
-.prog-pct{font-size:38px;font-weight:700;letter-spacing:-2px;line-height:1;font-family:-apple-system,'SF Pro Display',sans-serif;background:linear-gradient(135deg,#0a84ff,#30d158);-webkit-background-clip:text;background-clip:text;color:transparent}
-.prog-days{font-size:12px;color:var(--text2);margin-top:2px}
-.prog-global-bar-wrap{height:7px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:10px}
-.prog-global-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,#0a84ff,#30d158);box-shadow:0 0 12px rgba(10,132,255,.5);transition:width 1.5s cubic-bezier(.2,.8,.3,1)}
-.prog-dates{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:22px}
-.prog-subjects{display:flex;flex-direction:column;gap:12px}
-.prog-subj{}
-.prog-subj-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
-.prog-subj-name{font-size:13px;color:var(--text2)}
-.prog-subj-pct{font-size:12px;font-weight:700}
+/* PROGRESS CARDS */
+.prog-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;backdrop-filter:blur(12px);box-shadow:var(--sh)}
+.prog-row{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px}
+.prog-label{font-size:12px;color:var(--text2);margin-bottom:3px}
+.prog-pct{font-size:32px;font-weight:700;letter-spacing:-1.5px;font-family:-apple-system,'SF Pro Display',sans-serif}
+.prog-days-txt{font-size:11px;color:var(--text2)}
+.prog-bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.prog-bar{height:100%;border-radius:3px;transition:width 1.5s cubic-bezier(.2,.8,.3,1)}
+.prog-dates{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
+.prog-gap{height:14px}
+.prog-subjects{display:flex;flex-direction:column;gap:11px;margin-top:4px}
+.prog-subj-hd{display:flex;justify-content:space-between;margin-bottom:4px}
+.prog-subj-name{font-size:12px;color:var(--text2)}
+.prog-subj-pct{font-size:11px;font-weight:700}
 .prog-subj-bar-wrap{height:4px;background:var(--border2);border-radius:2px;overflow:hidden;cursor:pointer;transition:height .15s}
 .prog-subj-bar-wrap:hover{height:6px}
-.prog-subj-bar{height:100%;border-radius:2px;transition:width 1.5s .2s cubic-bezier(.2,.8,.3,1)}
-.prog-tap-hint{font-size:11px;color:var(--text3);text-align:center;margin-top:10px}
+.prog-subj-bar{height:100%;border-radius:2px;transition:width 1.2s .1s cubic-bezier(.2,.8,.3,1)}
+.prog-tap-hint{font-size:10px;color:var(--text3);text-align:center;margin-top:10px}
 
-/* ── PLANNING ── */
-.plan-list{display:flex;flex-direction:column;gap:10px;padding-bottom:4px}
-.plan-item{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;gap:14px;align-items:center;backdrop-filter:blur(10px);transition:transform .15s,border-color .15s}
-.plan-item:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.16)}
-.plan-date-box{display:flex;flex-direction:column;align-items:center;min-width:46px;background:var(--bg4);border-radius:10px;padding:6px 4px;border:1px solid var(--border2)}
-.plan-month{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-.plan-day{font-size:22px;font-weight:700;letter-spacing:-1px;line-height:1;font-family:-apple-system,'SF Pro Display',sans-serif}
+/* PLANNING */
+.plan-list{display:flex;flex-direction:column;gap:8px}
+.plan-item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:center;backdrop-filter:blur(10px)}
+.plan-item.urgent{border-color:rgba(255,69,58,.3);background:rgba(255,69,58,.06)}
+.plan-date-box{display:flex;flex-direction:column;align-items:center;min-width:42px;background:var(--bg4);border-radius:9px;padding:5px 4px;border:1px solid var(--border2)}
+.plan-month{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.plan-day{font-size:20px;font-weight:700;letter-spacing:-1px;line-height:1;font-family:-apple-system,'SF Pro Display',sans-serif}
 .plan-body{flex:1;min-width:0}
-.plan-name{font-size:14px;font-weight:600;letter-spacing:-.2px;margin-bottom:3px}
-.plan-type{font-size:12px;color:var(--text2)}
-.plan-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.plan-name{font-size:13px;font-weight:600;letter-spacing:-.2px;margin-bottom:2px}
+.plan-meta{font-size:11px;color:var(--text2)}
+.plan-cd{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;flex-shrink:0}
 
-/* ── MANAGER CARD ── */
+/* MANAGER CARD */
 .mgr-card{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s;backdrop-filter:blur(10px)}
 .mgr-card:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(10,132,255,.2);border-color:rgba(10,132,255,.3)}
 .mgr-card:active{transform:scale(.99)}
-.mgr-inner{display:flex;align-items:center;padding:20px;gap:16px}
-.mgr-icon{width:58px;height:58px;border-radius:15px;background:linear-gradient(145deg,#0a84ff,#0040ff);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;box-shadow:0 4px 20px rgba(10,132,255,.4);animation:iconFloat 4s ease-in-out infinite}
+.mgr-inner{display:flex;align-items:center;padding:18px;gap:14px}
+.mgr-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(145deg,#0a84ff,#0040ff);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;box-shadow:0 4px 20px rgba(10,132,255,.4);animation:iconFloat 4s ease-in-out infinite}
 @keyframes iconFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 .mgr-body{flex:1;min-width:0}
 .mgr-eyebrow{font-size:10px;font-weight:700;color:var(--blue);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
-.mgr-name{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-bottom:3px}
-.mgr-desc{font-size:13px;color:var(--text2);line-height:1.4}
-.mgr-chevron{color:var(--text3);font-size:22px;flex-shrink:0}
+.mgr-name{font-size:16px;font-weight:700;letter-spacing:-.3px;margin-bottom:2px}
+.mgr-desc{font-size:12px;color:var(--text2);line-height:1.4}
+.mgr-chevron{color:var(--text3);font-size:22px}
 
-/* ── AGENTS GRID ── */
-.agents-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-bottom:80px;margin-top:16px}
-.agent-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px 16px;cursor:pointer;position:relative;transition:transform .2s,box-shadow .2s,border-color .2s;backdrop-filter:blur(10px);overflow:hidden}
-.agent-card:hover{transform:translateY(-3px)}
+/* AGENTS GRID */
+.agents-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:80px}
+.agent-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 14px;cursor:pointer;position:relative;transition:transform .2s,box-shadow .2s;backdrop-filter:blur(10px);overflow:hidden}
+.agent-card:hover{transform:translateY(-2px)}
 .agent-card:active{transform:scale(.97)}
 .agent-card.dim{opacity:.35;cursor:default}
-.agent-card.dim:hover,.agent-card.dim:active{transform:none}
-.agent-icon{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:13px}
-.agent-eyebrow{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}
-.agent-name{font-size:15px;font-weight:700;letter-spacing:-.2px;margin-bottom:5px}
-.agent-desc{font-size:12px;color:var(--text2);line-height:1.45}
-.agent-pill{display:inline-block;margin-top:11px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:980px}
-.soon-badge{position:absolute;top:12px;right:12px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text3);background:var(--bg4);padding:3px 8px;border-radius:5px;border:1px solid var(--border2)}
+.agent-card.dim:hover{transform:none}
+.agent-icon{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:11px}
+.agent-eyebrow{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:3px}
+.agent-name{font-size:14px;font-weight:700;letter-spacing:-.2px;margin-bottom:4px}
+.agent-desc{font-size:11px;color:var(--text2);line-height:1.4}
+.agent-pill{display:inline-block;margin-top:10px;font-size:10px;font-weight:600;padding:3px 9px;border-radius:980px}
+.soon-badge{position:absolute;top:10px;right:10px;font-size:9px;font-weight:700;color:var(--text3);background:var(--bg4);padding:2px 6px;border-radius:5px;border:1px solid var(--border2)}
 
-/* ── CHAT ── */
-#chat{background:transparent}
-.chat-msgs{flex:1;overflow-y:auto;padding:20px 16px 8px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+/* PROGRAMME SCREEN */
+.year-tabs{display:flex;gap:0;background:var(--bg3);border-bottom:1px solid var(--border2);flex-shrink:0}
+.year-tab{flex:1;padding:13px 8px;text-align:center;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+.year-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.year-pane{display:none;flex:1;overflow-y:auto;padding:16px 16px 80px;-webkit-overflow-scrolling:touch}
+.year-pane::-webkit-scrollbar{display:none}
+.year-pane.on{display:block}
+.year-header{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.year-header-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.year-header-sub{font-size:12px;color:var(--text2)}
+.year-progress-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+.year-prog-bar-wrap{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.year-prog-bar{height:100%;border-radius:2px;transition:width 1s cubic-bezier(.2,.8,.3,1)}
+.year-prog-lbl{font-size:11px;font-weight:700;min-width:30px;text-align:right}
+.form-item{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:border-color .15s,background .15s}
+.form-item:active{background:var(--card-h)}
+.form-item.done{border-color:rgba(48,209,88,.25);background:rgba(48,209,88,.04)}
+.form-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:background .15s,border-color .15s}
+.form-item.done .form-check{background:var(--green);border-color:var(--green)}
+.form-check-ic{font-size:13px;display:none}
+.form-item.done .form-check-ic{display:block}
+.form-body{flex:1;min-width:0}
+.form-name{font-size:14px;font-weight:600;letter-spacing:-.2px;margin-bottom:3px}
+.form-item.done .form-name{color:var(--text2);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.3)}
+.form-format{font-size:11px;color:var(--text2)}
+.form-meta{margin-top:5px;display:flex;gap:6px;flex-wrap:wrap}
+.form-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px}
+
+/* RAPPORTS SCREEN */
+.rapport-section{padding:20px 16px 0}
+.rapport-title{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-bottom:4px}
+.rapport-sub{font-size:12px;color:var(--text2);margin-bottom:12px}
+.rapport-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
+.rapport-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.rapport-body{flex:1}
+.rapport-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.rapport-date{font-size:11px;color:var(--text2)}
+.rapport-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;flex-shrink:0}
+.fiche-empty{text-align:center;padding:32px 20px;color:var(--text3);font-size:13px}
+
+/* CHAT */
+#s-chat{background:transparent;position:absolute;inset:0;z-index:50;flex-direction:column}
+#s-chat.on{display:flex}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px 14px 8px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
 .chat-msgs::-webkit-scrollbar{display:none}
-.msg{display:flex;animation:msgIn .3s cubic-bezier(.2,.8,.3,1) both}
+.msg{display:flex;animation:msgIn .28s cubic-bezier(.2,.8,.3,1) both}
 .msg.u{justify-content:flex-end}
-@keyframes msgIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.bubble{max-width:80%;padding:12px 16px;font-size:15px;line-height:1.55;word-break:break-word}
-.bubble.a{background:var(--card);color:var(--text);border-radius:18px 18px 18px 5px;border:1px solid var(--border);backdrop-filter:blur(10px)}
-.bubble.u{background:linear-gradient(135deg,#0a84ff,#005fd4);color:#fff;border-radius:18px 18px 5px 18px;box-shadow:0 4px 16px rgba(10,132,255,.35)}
-.dots{display:flex;gap:5px;align-items:center;padding:13px 16px}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--text3);animation:blink 1.4s infinite}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.bubble{max-width:82%;padding:11px 15px;font-size:15px;line-height:1.55;word-break:break-word}
+.bubble.a{background:var(--card);color:var(--text);border-radius:18px 18px 18px 4px;border:1px solid var(--border);backdrop-filter:blur(10px)}
+.bubble.u{background:linear-gradient(135deg,#0a84ff,#005fd4);color:#fff;border-radius:18px 18px 4px 18px;box-shadow:0 4px 16px rgba(10,132,255,.35)}
+.stream-cursor{animation:blink .7s steps(1) infinite;color:var(--blue)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.dots{display:flex;gap:5px;align-items:center;padding:12px 15px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:dotBlink 1.4s infinite}
 .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
-@keyframes blink{0%,100%{opacity:.3;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
-.chat-date{text-align:center;font-size:11px;color:var(--text3);font-weight:500;margin:4px 0;padding:4px 12px;background:rgba(0,0,0,.3);border-radius:10px;display:inline-block;align-self:center}
-.chat-bar{background:rgba(0,0,0,.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border2);padding:10px 14px;padding-bottom:max(env(safe-area-inset-bottom,0px),10px);display:flex;align-items:flex-end;gap:10px;flex-shrink:0}
+@keyframes dotBlink{0%,100%{opacity:.3;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+.chat-date-sep{text-align:center;font-size:11px;color:var(--text3);font-weight:500;margin:2px 0;padding:3px 12px;background:rgba(0,0,0,.3);border-radius:10px;display:inline-block;align-self:center}
+.chat-bar{background:rgba(0,0,0,.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border2);padding:10px 14px;padding-bottom:max(env(safe-area-inset-bottom,0px),10px);display:flex;align-items:flex-end;gap:10px;flex-shrink:0}
 .chat-input{flex:1;border:1px solid var(--border);border-radius:22px;padding:11px 16px;font-size:15px;color:var(--text);background:var(--bg3);font-family:inherit;outline:none;resize:none;min-height:44px;max-height:120px;line-height:1.45;transition:border-color .2s}
 .chat-input:focus{border-color:var(--blue)}
 .chat-input::placeholder{color:var(--text3)}
@@ -181,56 +206,50 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
 .send-btn:active{transform:scale(.9)}
 .send-btn:disabled{opacity:.3;cursor:default;box-shadow:none}
 
-/* ── TAB BAR ── */
-.tabbar{background:rgba(0,0,0,.88);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border-top:1px solid var(--border2);display:flex;padding:6px 0;padding-bottom:max(env(safe-area-inset-bottom,0px),6px);flex-shrink:0}
+/* TAB BAR */
+.tabbar{background:rgba(0,0,0,.9);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border-top:1px solid var(--border2);display:flex;padding:6px 0;padding-bottom:max(env(safe-area-inset-bottom,0px),6px);flex-shrink:0}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--text3);font-size:10px;font-weight:500;padding:4px 0;transition:color .15s;background:none;border:none;font-family:inherit}
 .tab.on{color:var(--blue)}
 .tab-icon{font-size:22px;line-height:1}
 
-/* ── MUSIC ── */
-.music-fab{position:fixed;bottom:86px;right:16px;z-index:200;width:48px;height:48px;border-radius:50%;background:rgba(28,28,36,.92);border:1px solid var(--border);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;box-shadow:var(--sh);transition:transform .2s,box-shadow .2s;color:var(--text2)}
+/* MUSIC */
+.music-fab{position:fixed;bottom:88px;right:16px;z-index:200;width:46px;height:46px;border-radius:50%;background:rgba(28,28,36,.92);border:1px solid var(--border);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;box-shadow:var(--sh);transition:transform .2s;color:var(--text2)}
 .music-fab:hover{transform:scale(1.1)}
 .music-fab.playing{color:var(--blue);animation:musicGlow 2.5s ease-in-out infinite}
 @keyframes musicGlow{0%,100%{box-shadow:var(--sh)}50%{box-shadow:0 0 0 6px rgba(10,132,255,.2),var(--sh)}}
-.music-panel{position:fixed;bottom:148px;right:16px;z-index:199;width:270px;background:rgba(16,16,22,.96);border:1px solid var(--border);border-radius:20px;padding:18px;backdrop-filter:blur(24px);box-shadow:var(--sh-lg);display:none}
+.music-panel{position:fixed;bottom:150px;right:16px;z-index:199;width:260px;background:rgba(16,16,22,.96);border:1px solid var(--border);border-radius:20px;padding:16px;backdrop-filter:blur(24px);box-shadow:var(--sh-lg);display:none}
 .music-panel.on{display:block;animation:slideUp .3s cubic-bezier(.2,.8,.3,1)}
-@keyframes slideUp{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
-.music-now{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.music-art{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#0a84ff,#bf5af2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.music-now{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.music-art{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#0a84ff,#bf5af2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .music-art.playing{animation:spinArt 8s linear infinite}
 @keyframes spinArt{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.music-info-track{font-size:14px;font-weight:600;letter-spacing:-.2px}
-.music-info-type{font-size:12px;color:var(--text2)}
-.music-prog-wrap{height:3px;background:var(--border);border-radius:2px;margin-bottom:14px;overflow:hidden}
+.music-info-track{font-size:13px;font-weight:600}
+.music-info-type{font-size:11px;color:var(--text2)}
+.music-prog-wrap{height:3px;background:var(--border);border-radius:2px;margin-bottom:12px;overflow:hidden}
 .music-prog-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,#0a84ff,#bf5af2);width:0%;transition:width .5s linear}
-.music-ctrls{display:flex;align-items:center;justify-content:space-around;margin-bottom:14px}
-.mc-btn{background:none;border:none;cursor:pointer;color:var(--text2);font-size:24px;padding:6px;transition:color .15s,transform .1s;line-height:1}
+.music-ctrls{display:flex;align-items:center;justify-content:space-around;margin-bottom:12px}
+.mc-btn{background:none;border:none;cursor:pointer;color:var(--text2);font-size:22px;padding:6px;transition:color .15s,transform .1s;line-height:1}
 .mc-btn:hover{color:var(--text)}
-.mc-btn.mc-play{color:var(--blue);font-size:36px}
-.mc-btn.mc-play:hover{color:var(--blue-h)}
+.mc-btn.mc-play{color:var(--blue);font-size:34px}
 .mc-btn:active{transform:scale(.88)}
 .music-vol-row{display:flex;align-items:center;gap:8px}
-.music-vol-ic{font-size:14px;color:var(--text3)}
+.music-vol-ic{font-size:13px;color:var(--text3)}
 .music-vol-sl{flex:1;-webkit-appearance:none;height:3px;border-radius:2px;background:var(--border);outline:none;cursor:pointer}
 .music-vol-sl::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--text);cursor:pointer}
 
-/* ── UTILS ── */
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
-
-<!-- ORBS -->
 <div class="orbs"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
 
 <!-- AUTH -->
 <div id="auth">
   <div class="auth-logo">Mon<em>DEC</em></div>
-  <div class="auth-tagline">Tes agents IA · Expertise Comptable</div>
+  <div class="auth-tagline">Groupe 26007 · Stage DEC · 2025–2028</div>
   <div class="auth-card">
-    <div class="auth-field-wrap">
-      <input id="pwd" class="auth-field" type="password" placeholder="Mot de passe" autocomplete="current-password"/>
-    </div>
+    <input id="pwd" class="auth-field" type="password" placeholder="Mot de passe" autocomplete="current-password"/>
     <button class="auth-btn" onclick="login()">Accéder →</button>
   </div>
   <div class="auth-err" id="auth-err"></div>
@@ -240,90 +259,81 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
 <div id="app">
 
   <!-- HOME -->
-  <div class="screen" id="home">
+  <div class="screen" id="s-home">
     <div class="navbar">
       <div class="nav-logo">Mon<em>DEC</em></div>
-      <div style="width:48px"></div>
+      <div style="width:44px"></div>
     </div>
-    <div class="scroll-wrap" id="home-scroll">
-
-      <div class="hero">
-        <div class="hero-badge"><div class="hero-badge-dot"></div>Expertise Comptable · IA</div>
-        <div class="hero-title">Ton équipe<br><span class="hero-grad">d'agents IA.</span></div>
-        <div class="hero-sub">Prépare ton DEC, suis ta progression et développe ta culture générale avec des agents spécialisés.</div>
-        <button class="hero-cta" onclick="goChat('manager')">Parler au Manager ›</button>
-      </div>
-
-      <div class="alert-bar">
-        <div class="alert-chip">Urgent</div>
-        <div class="alert-msg">Rapport annuel CSOEC</div>
-        <div class="alert-count" id="alert-days">47 jours</div>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat"><div class="stat-val" style="color:var(--blue)">1re</div><div class="stat-lbl">Année de stage</div></div>
-        <div class="stat"><div class="stat-val" style="color:var(--orange)" id="stat-days">47j</div><div class="stat-lbl">Rapport CSOEC</div></div>
-        <div class="stat"><div class="stat-val" style="color:var(--green)">3</div><div class="stat-lbl">Agents actifs</div></div>
-      </div>
-
-      <!-- PROGRESSION -->
+    <div id="alert-bar" class="alert-urgent" style="display:none">
+      <div class="alert-urgent-dot"></div>
+      <div class="alert-urgent-txt" id="alert-txt"></div>
+      <div class="alert-urgent-cnt" id="alert-cnt"></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-val" style="color:var(--blue)" id="s-pct">21%</div><div class="stat-lbl">Stage DEC</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--green)" id="s-days">233j</div><div class="stat-lbl">Jours accomplis</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--orange)" id="s-form">0/34</div><div class="stat-lbl">Jours formation</div></div>
+    </div>
+    <div class="scroll-wrap">
       <div class="section">
-        <div class="sec-hd"><div class="sec-title">Ma Progression</div></div>
-        <div class="sec-sub">DEC · 01/10/2025 → 01/10/2028</div>
+        <div class="sec-hd"><div class="sec-title">Progression stage</div></div>
+        <div class="sec-sub">01/10/2025 → 01/10/2028 · 1 096 jours</div>
         <div class="prog-card">
-          <div class="prog-top">
+          <div class="prog-row">
             <div>
               <div class="prog-label">Parcours global</div>
-              <div class="prog-pct" id="prog-global-pct">0%</div>
-              <div class="prog-days" id="prog-global-days"></div>
+              <div class="prog-pct" id="prog-global-pct" style="background:linear-gradient(135deg,#0a84ff,#30d158);-webkit-background-clip:text;background-clip:text;color:transparent">0%</div>
+            </div>
+            <div style="text-align:right">
+              <div class="prog-label" id="prog-days-left"></div>
+              <div class="prog-label" id="prog-days-elapsed"></div>
             </div>
           </div>
-          <div class="prog-global-bar-wrap"><div class="prog-global-bar" id="prog-global-bar" style="width:0%"></div></div>
-          <div class="prog-dates"><span>01 oct. 2025</span><span>01 oct. 2028</span></div>
+          <div class="prog-bar-wrap"><div class="prog-bar" id="prog-global-bar" style="width:0%;background:linear-gradient(90deg,#0a84ff,#30d158);box-shadow:0 0 10px rgba(10,132,255,.4)"></div></div>
+          <div class="prog-dates"><span>Oct 2025</span><span>Oct 2028</span></div>
+          <div class="prog-gap"></div>
+          <div class="prog-label" style="margin-bottom:12px">Avancement par matière</div>
           <div class="prog-subjects" id="prog-subjects"></div>
-          <div class="prog-tap-hint">Appuie sur une barre pour mettre à jour ton avancement</div>
+          <div class="prog-tap-hint">Appuie sur une barre pour mettre à jour</div>
         </div>
       </div>
 
-      <!-- PLANNING -->
       <div class="section">
-        <div class="sec-hd"><div class="sec-title">Planning</div></div>
-        <div class="sec-sub">Tes prochaines échéances</div>
+        <div class="sec-hd"><div class="sec-title">Journées obligatoires</div></div>
+        <div class="sec-sub">Groupe 26007 · Sup'Expertise Paris 8</div>
         <div class="plan-list" id="plan-list"></div>
       </div>
 
-      <!-- MANAGER -->
       <div class="section">
-        <div class="sec-hd"><div class="sec-title">Ton coordinateur</div></div>
-        <div class="sec-sub">Il orchestre tous tes agents.</div>
-        <div class="mgr-card" onclick="goChat('manager')">
+        <div class="sec-hd"><div class="sec-title">Coordinateur IA</div></div>
+        <div class="sec-sub" style="margin-bottom:10px">Orchestre tous tes agents.</div>
+        <div class="mgr-card" onclick="openChat('manager')">
           <div class="mgr-inner">
             <div class="mgr-icon">🧠</div>
             <div class="mgr-body">
               <div class="mgr-eyebrow">Coordinateur IA</div>
               <div class="mgr-name">Manager DEC</div>
-              <div class="mgr-desc">Priorise tes tâches, coordonne tes agents et te guide au quotidien.</div>
+              <div class="mgr-desc">Priorise tes tâches, coordonne tes agents, t'alerte sur les échéances.</div>
             </div>
             <div class="mgr-chevron">›</div>
           </div>
         </div>
       </div>
 
-      <!-- AGENTS -->
-      <div class="section">
-        <div class="sec-hd"><div class="sec-title">Mes agents</div></div>
+      <div class="section" style="padding-bottom:80px">
+        <div class="sec-hd"><div class="sec-title">Agents spécialisés</div></div>
         <div class="sec-sub">Spécialisés pour chaque besoin.</div>
         <div class="agents-grid">
-          <div class="agent-card" onclick="goChat('prof')" style="border-color:rgba(10,132,255,.2)">
+          <div class="agent-card" onclick="openChat('prof')" style="border-color:rgba(10,132,255,.2)">
             <div class="agent-icon" style="background:var(--blue-bg)">📚</div>
             <div class="agent-eyebrow" style="color:var(--blue)">Révision</div>
             <div class="agent-name">Prof DEC</div>
             <div class="agent-desc">Fiches, QCM et cas pratiques sur mesure.</div>
             <div class="agent-pill" style="color:var(--blue);background:var(--blue-bg)">Actif</div>
           </div>
-          <div class="agent-card" onclick="goChat('culture')" style="border-color:rgba(255,159,10,.2)">
+          <div class="agent-card" onclick="openChat('culture')" style="border-color:rgba(255,159,10,.2)">
             <div class="agent-icon" style="background:var(--orange-bg)">🌍</div>
-            <div class="agent-eyebrow" style="color:var(--orange)">Culture</div>
+            <div class="agent-eyebrow" style="color:var(--orange)">Culture G</div>
             <div class="agent-name">Culture G</div>
             <div class="agent-desc">Actualité EC, quiz et grands auteurs.</div>
             <div class="agent-pill" style="color:var(--orange);background:var(--orange-bg)">Actif</div>
@@ -333,64 +343,256 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
             <div class="agent-icon" style="background:var(--green-bg)">💼</div>
             <div class="agent-eyebrow" style="color:var(--green)">Stage</div>
             <div class="agent-name">Stage DEC</div>
-            <div class="agent-desc">Missions, compétences et rapport CSOEC.</div>
+            <div class="agent-desc">Missions, rapport CSOEC, fiche annuelle.</div>
           </div>
           <div class="agent-card dim">
             <div class="soon-badge">Bientôt</div>
-            <div class="agent-icon" style="background:var(--purple-bg)">🏦</div>
-            <div class="agent-eyebrow" style="color:var(--purple)">Finance</div>
-            <div class="agent-name">PE &amp; Compta</div>
-            <div class="agent-desc">Valorisation et reporting LP.</div>
+            <div class="agent-icon" style="background:var(--purple-bg)">📝</div>
+            <div class="agent-eyebrow" style="color:var(--purple)">Mémoire</div>
+            <div class="agent-name">Mémoire DEC</div>
+            <div class="agent-desc">Choix sujet, rédaction, soutenance.</div>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- CHAT -->
-  <div class="screen" id="chat">
+  <!-- PROGRAMME -->
+  <div class="screen" id="s-programme">
     <div class="navbar">
-      <button class="nav-back" onclick="goHome()"><span class="nav-back-arrow">‹</span> Retour</button>
+      <div class="nav-logo">Mon<em>DEC</em></div>
+      <div style="width:44px"></div>
+    </div>
+    <div class="year-tabs">
+      <button class="year-tab on" id="yt-c1" onclick="switchYear('c1')">C1 — 1ère année</button>
+      <button class="year-tab" id="yt-c2" onclick="switchYear('c2')">C2 — 2ème</button>
+      <button class="year-tab" id="yt-c3" onclick="switchYear('c3')">C3 — 3ème</button>
+    </div>
+
+    <!-- C1 -->
+    <div class="year-pane on" id="yp-c1">
+      <div class="year-header">
+        <div class="year-header-title">Programme 1ère année (C1)</div>
+        <div class="year-header-sub">7 formations obligatoires · Oct 2025 – Oct 2026</div>
+        <div class="year-progress-row">
+          <div class="year-prog-bar-wrap"><div class="year-prog-bar" id="ybar-c1" style="background:var(--blue);width:0%"></div></div>
+          <div class="year-prog-lbl" id="ylbl-c1" style="color:var(--blue)">0/7</div>
+        </div>
+      </div>
+      <div id="forms-c1"></div>
+    </div>
+
+    <!-- C2 -->
+    <div class="year-pane" id="yp-c2">
+      <div class="year-header">
+        <div class="year-header-title">Programme 2ème année (C2)</div>
+        <div class="year-header-sub">6 formations · Oct 2026 – Oct 2027</div>
+        <div class="year-progress-row">
+          <div class="year-prog-bar-wrap"><div class="year-prog-bar" id="ybar-c2" style="background:var(--green);width:0%"></div></div>
+          <div class="year-prog-lbl" id="ylbl-c2" style="color:var(--green)">0/6</div>
+        </div>
+      </div>
+      <div id="forms-c2"></div>
+    </div>
+
+    <!-- C3 -->
+    <div class="year-pane" id="yp-c3">
+      <div class="year-header">
+        <div class="year-header-title">Programme 3ème année (C3)</div>
+        <div class="year-header-sub">7 formations · Oct 2027 – Oct 2028</div>
+        <div class="year-progress-row">
+          <div class="year-prog-bar-wrap"><div class="year-prog-bar" id="ybar-c3" style="background:var(--purple);width:0%"></div></div>
+          <div class="year-prog-lbl" id="ylbl-c3" style="color:var(--purple)">0/7</div>
+        </div>
+      </div>
+      <div id="forms-c3"></div>
+    </div>
+  </div>
+
+  <!-- AGENTS -->
+  <div class="screen" id="s-agents">
+    <div class="navbar">
+      <div class="nav-logo">Mon<em>DEC</em></div>
+      <div style="width:44px"></div>
+    </div>
+    <div class="scroll-wrap">
+      <div class="section">
+        <div class="sec-hd"><div class="sec-title">Coordinateur</div></div>
+        <div class="sec-sub" style="margin-bottom:10px">Pour démarrer une session guidée.</div>
+        <div class="mgr-card" onclick="openChat('manager')">
+          <div class="mgr-inner">
+            <div class="mgr-icon">🧠</div>
+            <div class="mgr-body">
+              <div class="mgr-eyebrow">Coordinateur IA</div>
+              <div class="mgr-name">Manager DEC</div>
+              <div class="mgr-desc">Stage, formations, CSOEC, stratégie DEC.</div>
+            </div>
+            <div class="mgr-chevron">›</div>
+          </div>
+        </div>
+      </div>
+      <div class="section" style="padding-bottom:80px">
+        <div class="sec-hd"><div class="sec-title">Agents spécialisés</div></div>
+        <div class="sec-sub">Actifs 24/7 · Mémoire de conversation</div>
+        <div class="agents-grid">
+          <div class="agent-card" onclick="openChat('prof')" style="border-color:rgba(10,132,255,.2)">
+            <div class="agent-icon" style="background:var(--blue-bg)">📚</div>
+            <div class="agent-eyebrow" style="color:var(--blue)">Révision</div>
+            <div class="agent-name">Prof DEC</div>
+            <div class="agent-desc">Fiches, QCM, cas pratiques UE 1–5.</div>
+            <div class="agent-pill" style="color:var(--blue);background:var(--blue-bg)">Actif</div>
+          </div>
+          <div class="agent-card" onclick="openChat('culture')" style="border-color:rgba(255,159,10,.2)">
+            <div class="agent-icon" style="background:var(--orange-bg)">🌍</div>
+            <div class="agent-eyebrow" style="color:var(--orange)">Culture G</div>
+            <div class="agent-name">Culture G</div>
+            <div class="agent-desc">OEC, CNCC, IFRS, quiz oral DEC.</div>
+            <div class="agent-pill" style="color:var(--orange);background:var(--orange-bg)">Actif</div>
+          </div>
+          <div class="agent-card dim">
+            <div class="soon-badge">Bientôt</div>
+            <div class="agent-icon" style="background:var(--green-bg)">💼</div>
+            <div class="agent-eyebrow" style="color:var(--green)">Stage</div>
+            <div class="agent-name">Stage DEC</div>
+            <div class="agent-desc">Missions, fiche annuelle, rapport CSOEC.</div>
+          </div>
+          <div class="agent-card dim">
+            <div class="soon-badge">Bientôt</div>
+            <div class="agent-icon" style="background:var(--purple-bg)">📝</div>
+            <div class="agent-eyebrow" style="color:var(--purple)">Mémoire</div>
+            <div class="agent-name">Mémoire DEC</div>
+            <div class="agent-desc">Sujet, plan, rédaction, soutenance.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAPPORTS -->
+  <div class="screen" id="s-rapports">
+    <div class="navbar">
+      <div class="nav-logo">Mon<em>DEC</em></div>
+      <div style="width:44px"></div>
+    </div>
+    <div class="scroll-wrap">
+      <div class="rapport-section">
+        <div class="rapport-title">Fiche annuelle d'activité</div>
+        <div class="rapport-sub">Minimum 1 316h/an · Signée par le maître de stage</div>
+        <div class="rapport-card">
+          <div class="rapport-icon" style="background:var(--blue-bg);font-size:20px">📋</div>
+          <div class="rapport-body">
+            <div class="rapport-name">Fiche annuelle 2025–2026</div>
+            <div class="rapport-date">À remettre avant oct. 2026</div>
+          </div>
+          <div class="rapport-status" style="background:var(--orange-bg);color:var(--orange)">En cours</div>
+        </div>
+        <div class="rapport-card">
+          <div class="rapport-icon" style="background:var(--bg4);font-size:20px">📋</div>
+          <div class="rapport-body">
+            <div class="rapport-name">Fiche annuelle 2026–2027</div>
+            <div class="rapport-date">À remettre avant oct. 2027</div>
+          </div>
+          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
+        </div>
+        <div class="rapport-card">
+          <div class="rapport-icon" style="background:var(--bg4);font-size:20px">📋</div>
+          <div class="rapport-body">
+            <div class="rapport-name">Fiche annuelle 2027–2028</div>
+            <div class="rapport-date">À remettre avant oct. 2028</div>
+          </div>
+          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
+        </div>
+      </div>
+
+      <div class="rapport-section">
+        <div class="rapport-title">Rapports semestriels</div>
+        <div class="rapport-sub">C2 et C3 uniquement · 4 rapports au total</div>
+        <div class="rapport-card">
+          <div class="rapport-icon" style="background:var(--bg4)">📄</div>
+          <div class="rapport-body">
+            <div class="rapport-name">Rapport C2 — Semestre 1</div>
+            <div class="rapport-date">2ème année · ~mars 2027</div>
+          </div>
+          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
+        </div>
+        <div class="rapport-card">
+          <div class="rapport-icon" style="background:var(--bg4)">📄</div>
+          <div class="rapport-body">
+            <div class="rapport-name">Rapport C2 — Semestre 2</div>
+            <div class="rapport-date">2ème année · ~sept. 2027</div>
+          </div>
+          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
+        </div>
+        <div class="rapport-card">
+          <div class="rapport-icon" style="background:var(--bg4)">📄</div>
+          <div class="rapport-body">
+            <div class="rapport-name">Rapport C3 — Semestre 1</div>
+            <div class="rapport-date">3ème année · ~mars 2028</div>
+          </div>
+          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
+        </div>
+        <div class="rapport-card">
+          <div class="rapport-icon" style="background:var(--bg4)">📄</div>
+          <div class="rapport-body">
+            <div class="rapport-name">Rapport C3 — Semestre 2</div>
+            <div class="rapport-date">3ème année · ~sept. 2028</div>
+          </div>
+          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
+        </div>
+      </div>
+
+      <div class="rapport-section" style="padding-bottom:80px">
+        <div class="rapport-title">Fiches travaux professionnels</div>
+        <div class="rapport-sub">Missions réalisées en cabinet</div>
+        <div class="fiche-empty">
+          <div style="font-size:32px;margin-bottom:10px">📁</div>
+          <div>Aucune fiche pour l'instant.</div>
+          <div style="margin-top:6px;font-size:11px">Demande à ton Manager DEC de t'aider à en créer une.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT (overlay) -->
+  <div class="screen" id="s-chat">
+    <div class="navbar">
+      <button class="nav-back" onclick="closeChat()"><span style="font-size:22px">‹</span> Retour</button>
       <div class="nav-title" id="c-name"></div>
-      <button class="nav-clear" onclick="clearHistory()">Effacer</button>
+      <button class="nav-action" onclick="clearHistory()">Effacer</button>
     </div>
     <div class="chat-msgs" id="c-msgs"></div>
     <div class="chat-bar">
       <textarea id="c-inp" class="chat-input" placeholder="Message…" rows="1"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"
-        oninput="resize(this)"></textarea>
+        oninput="resizeInp(this)"></textarea>
       <button class="send-btn" id="c-btn" onclick="send()">↑</button>
     </div>
   </div>
 
   <!-- TAB BAR -->
-  <div class="tabbar">
-    <button class="tab on" id="t-home" onclick="goHome()"><span class="tab-icon">⊞</span><span>Accueil</span></button>
-    <button class="tab" id="t-manager" onclick="goChat('manager')"><span class="tab-icon">🧠</span><span>Manager</span></button>
-    <button class="tab" id="t-prof" onclick="goChat('prof')"><span class="tab-icon">📚</span><span>Prof DEC</span></button>
-    <button class="tab" id="t-culture" onclick="goChat('culture')"><span class="tab-icon">🌍</span><span>Culture G</span></button>
+  <div class="tabbar" id="tabbar">
+    <button class="tab on" id="t-home" onclick="goScreen('home')"><span class="tab-icon">⊞</span><span>Accueil</span></button>
+    <button class="tab" id="t-programme" onclick="goScreen('programme')"><span class="tab-icon">📋</span><span>Programme</span></button>
+    <button class="tab" id="t-agents" onclick="goScreen('agents')"><span class="tab-icon">🤖</span><span>Agents</span></button>
+    <button class="tab" id="t-rapports" onclick="goScreen('rapports')"><span class="tab-icon">📄</span><span>Rapports</span></button>
   </div>
-
 </div>
 
-<!-- MUSIC FAB -->
-<button class="music-fab" id="music-fab" onclick="toggleMusic()" title="Ambiance sonore">♪</button>
-
-<!-- MUSIC PANEL -->
+<!-- MUSIC -->
+<button class="music-fab" id="music-fab" onclick="toggleMusicPanel()">♪</button>
 <div class="music-panel" id="music-panel">
   <div class="music-now">
     <div class="music-art" id="music-art">🎵</div>
     <div>
       <div class="music-info-track" id="music-track">Ambiance Focus</div>
-      <div class="music-info-type" id="music-type">Lo-fi · Étude</div>
+      <div class="music-info-type" id="music-type">Drones · Étude</div>
     </div>
   </div>
   <div class="music-prog-wrap"><div class="music-prog-bar" id="music-prog"></div></div>
   <div class="music-ctrls">
-    <button class="mc-btn" onclick="prevTrack()" title="Précédent">⏮</button>
+    <button class="mc-btn" onclick="prevTrack()">⏮</button>
     <button class="mc-btn mc-play" id="mc-play" onclick="togglePlay()">▶</button>
-    <button class="mc-btn" onclick="nextTrack()" title="Suivant">⏭</button>
+    <button class="mc-btn" onclick="nextTrack()">⏭</button>
   </div>
   <div class="music-vol-row">
     <span class="music-vol-ic">🔈</span>
@@ -400,27 +602,27 @@ html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSys
 </div>
 
 <script>
-/* ─── CONSTANTS ─── */
+/* ─── DATA ─── */
 const PWD = 'mondec2026';
 const START_DATE = new Date('2025-10-01');
 const END_DATE   = new Date('2028-10-01');
-const CSOEC_DUE  = new Date('2026-07-08'); // ~47 days from May 22
+const MONTHS_FR  = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sep.','oct.','nov.','déc.'];
 
 const AGENTS = {
   manager: {
-    name: 'Manager DEC', tab: 't-manager',
-    url: 'https://mh0707.app.n8n.cloud/webhook/manager-dec',
-    welcome: 'Bonjour ! Je suis ton **Manager DEC**.\n\nJe coordonne tous tes agents et t\'oriente vers le bon expert selon ta question. Comment puis-je t\'aider ?'
+    name:'Manager DEC', tab:'t-manager',
+    url:'https://mh0707.app.n8n.cloud/webhook/manager-dec',
+    welcome:"Bonjour ! Je suis ton **Manager DEC**.\n\nJe coordonne ta progression : 233 jours accomplis (21%), prochaine journée le **27 mai à Courbevoie** (Découverte de la profession). Je gère le Prof DEC, Culture G, et tes échéances CSOEC.\n\nQue puis-je prioriser pour toi aujourd'hui ?"
   },
   prof: {
-    name: 'Prof DEC', tab: 't-prof',
-    url: 'https://mh0707.app.n8n.cloud/webhook/prof-dec',
-    welcome: 'Bonjour ! Je suis ton **Prof DEC**.\n\nFiches de révision, QCM, cas pratiques — par quelle matière commence-t-on ?'
+    name:'Prof DEC', tab:'t-prof',
+    url:'https://mh0707.app.n8n.cloud/webhook/prof-dec',
+    welcome:"Bonjour ! Je suis ton **Prof DEC**.\n\nJe couvre toutes les matières : Comptabilité, Fiscalité, Droit, Audit, Management, Finance. Je génère des fiches ultra-structurées, QCM avec corrections et cas pratiques corrigés.\n\nPar quelle matière on commence ?"
   },
   culture: {
-    name: 'Culture G', tab: 't-culture',
-    url: 'https://mh0707.app.n8n.cloud/webhook/culture-g',
-    welcome: 'Bonjour ! Je suis ton agent **Culture G**.\n\nActualité EC, quiz, grands auteurs… On commence par un quiz ou une actu du jour ?'
+    name:'Culture G', tab:'t-culture',
+    url:'https://mh0707.app.n8n.cloud/webhook/culture-g',
+    welcome:"Bonjour ! Je suis ton agent **Culture G**.\n\nActualité OEC/CNCC/AMF, normes IFRS, quiz type oral DEC, grands auteurs (Keynes, Piketty, Porter…)\n\nUn quiz pour démarrer ou une actu du jour ?"
   }
 };
 
@@ -431,195 +633,137 @@ const SUBJECTS = [
   { id:'ue4', name:'UE 4 — Comptabilité & audit', color:'#bf5af2' },
   { id:'ue5', name:'UE 5 — Systèmes d\'information', color:'#ff453a' },
   { id:'stage', name:'Stage DEC (3 ans)', color:'#ffd60a' },
-  { id:'memo',  name:'Mémoire DEC', color:'#64d2ff' },
+  { id:'memo', name:'Mémoire DEC', color:'#64d2ff' },
 ];
 
 const PLANNING = [
-  { date:'2026-06-08', name:'Rapport annuel CSOEC', type:'Urgent', color:'var(--red)' },
-  { date:'2026-09-15', name:'Examen DSCG — UE 4', type:'Examen', color:'var(--blue)' },
-  { date:'2026-10-01', name:'Fin 1ère année de stage', type:'Étape', color:'var(--green)' },
-  { date:'2027-03-01', name:'Rendu intermédiaire mémoire', type:'Deadline', color:'var(--orange)' },
-  { date:'2027-09-15', name:'Examens DSCG — UE 1, 2, 3', type:'Examen', color:'var(--purple)' },
-  { date:'2028-06-30', name:'Soutenance du Mémoire DEC', type:'Final', color:'var(--green)' },
+  { date:'2026-05-27', name:'Découverte de la profession comptable', lieu:'Campus Courbevoie', type:'Formation', color:'var(--red)', urgent:true },
+  { date:'2026-07-01', name:'Communication', lieu:"Sup'Expertise Paris 8", type:'Formation', color:'var(--blue)' },
+  { date:'2026-07-08', name:'Rapport annuel CSOEC à rendre', lieu:'En ligne', type:'Admin', color:'var(--orange)' },
+  { date:'2026-09-07', name:'Missions comptes annuels', lieu:"Sup'Expertise Paris 8", type:'Formation', color:'var(--blue)' },
+  { date:'2026-10-01', name:'Fin 1ère année de stage', lieu:'', type:'Étape', color:'var(--green)' },
+  { date:'2026-10-16', name:'Autres prestations EC', lieu:"Sup'Expertise Paris 8", type:'Formation', color:'var(--blue)' },
+  { date:'2026-11-25', name:'Présentation des 3 épreuves DEC', lieu:"Sup'Expertise Paris 8", type:'Formation', color:'var(--purple)' },
+  { date:'2028-06-30', name:'Soutenance du Mémoire DEC', lieu:'', type:'Final', color:'var(--green)' },
 ];
 
+const FORMATIONS = {
+  c1: [
+    { id:'c1f1', name:'Découverte de la profession comptable', desc:'Organisation EC/CAC, déontologie, missions, révolution numérique, stage et après-stage', format:'7h EL + 1j présentiel', days:2, date:'2026-05-27', lieu:'Campus Courbevoie', urgent:true },
+    { id:'c1f2', name:'Communication', desc:'Techniques de communication orale, entretien professionnel, négociation', format:'7h EL + 1j présentiel', days:2, date:'2026-07-01', lieu:"Sup'Expertise Paris 8" },
+    { id:'c1f3', name:"Audit 1 : Découvrir la mission d'audit", desc:"Démarche d'audit, techniques, documentation, savoir-être professionnel", format:'1j présentiel + 7h EL + 1j présentiel', days:3, date:null, lieu:"Sup'Expertise Paris 8" },
+    { id:'c1f4', name:'Missions comptes annuels : approche normative', desc:'Missions avec/sans assurance, mission de présentation, formalisation des travaux', format:'7h EL + 1j présentiel', days:2, date:'2026-09-07', lieu:"Sup'Expertise Paris 8" },
+    { id:'c1f5', name:"Autres prestations récurrentes de l'EC", desc:'Missions administratives, fiscales, paie, juridiques, patrimoniales', format:'7h EL + 1j présentiel', days:2, date:'2026-10-16', lieu:"Sup'Expertise Paris 8" },
+    { id:'c1f6', name:'Présentation des 3 épreuves du DEC', desc:'Structure du diplôme, conditions, préparation épreuves 1, 2 et mémoire', format:'1j présentiel', days:1, date:'2026-11-25', lieu:"Sup'Expertise Paris 8" },
+    { id:'c1f7', name:'Confirmation des tiers et assistance inventaires physiques', desc:'Délégable à un tiers — à programmer', format:'1j présentiel (délégable)', days:1, date:null, lieu:'À confirmer' },
+  ],
+  c2: [
+    { id:'c2f1', name:'Démarche et contrôle qualité — Communication et négociation', desc:'', format:'7h EL + 1j', days:2 },
+    { id:'c2f2', name:"Audit 2 : Mettre en œuvre la mission d'audit", desc:'', format:'7h EL + 2j', days:2 },
+    { id:'c2f3', name:'Autres missions comptes annuels, attestations et missions légales', desc:'', format:'7h EL + 1j', days:2 },
+    { id:'c2f4', name:"DEC : Se préparer à l'épreuve 2 et choisir un sujet de mémoire", desc:'', format:'7h EL + 1j', days:2 },
+    { id:'c2f5', name:'Procédures analytiques CAC', desc:'', format:'1j', days:1 },
+    { id:'c2f6', name:'Lutte contre le blanchiment et financement du terrorisme', desc:'', format:'1j', days:1 },
+  ],
+  c3: [
+    { id:'c3f1', name:'Déontologie et responsabilité', desc:'', format:'7h EL + 1j', days:2 },
+    { id:'c3f2', name:'Management des équipes et choix professionnels', desc:'', format:'7h EL + 1j', days:2 },
+    { id:'c3f3', name:"Audit 3 : Piloter la mission d'audit", desc:'', format:'7h EL + 2j', days:3 },
+    { id:'c3f4', name:'Missions comptes annuels et autres prestations : gestion des missions', desc:'', format:'7h EL + 1j', days:2 },
+    { id:'c3f5', name:"DEC : Demande d'agrément du sujet et rédaction du mémoire", desc:'', format:'7h EL + 1j', days:2 },
+    { id:'c3f6', name:'Participation à un évènement institutionnel', desc:'', format:'1j', days:0 },
+    { id:'c3f7', name:'Axe prioritaire : Accompagnement au changement', desc:'', format:'1j', days:0 },
+  ]
+};
+const FORM_TOTAL_DAYS = 34;
+
 /* ─── STATE ─── */
-let cur = null, busy = false;
+let curScreen = 'home', curAgent = null, busy = false;
 
 /* ─── INIT ─── */
-document.getElementById('pwd').addEventListener('keydown', e => { if (e.key==='Enter') login(); });
+document.getElementById('pwd').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
 window.addEventListener('load', () => {
   buildProgress();
   buildPlanning();
-  updateAlertDays();
-  setTimeout(() => animateBars(), 300);
+  buildFormations();
+  updateAlert();
+  updateFormStats();
+  setTimeout(() => animateBars(), 400);
 });
 
 /* ─── AUTH ─── */
 function login() {
-  if (document.getElementById('pwd').value === PWD) {
+  if(document.getElementById('pwd').value === PWD) {
     document.getElementById('auth').style.display = 'none';
     document.getElementById('app').classList.add('on');
-    document.getElementById('home').classList.add('on');
+    showScreen('home');
   } else {
     const err = document.getElementById('auth-err');
     err.textContent = 'Mot de passe incorrect.';
     document.getElementById('pwd').value = '';
-    document.getElementById('pwd').focus();
     setTimeout(() => err.textContent = '', 3000);
   }
 }
 
 /* ─── NAVIGATION ─── */
-function goHome() {
-  document.getElementById('chat').classList.remove('on');
-  document.getElementById('home').classList.add('on');
-  setTab('t-home');
-  cur = null;
-  setTimeout(() => animateBars(), 200);
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  const el = document.getElementById('s-' + id);
+  if(el) el.classList.add('on');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  const tab = document.getElementById('t-' + id);
+  if(tab) tab.classList.add('on');
+  const tb = document.getElementById('tabbar');
+  if(id === 'chat') {
+    tb.style.display = 'none';
+    document.getElementById('music-fab').style.display = 'none';
+  } else {
+    tb.style.display = 'flex';
+    document.getElementById('music-fab').style.display = 'flex';
+  }
+  curScreen = id;
 }
 
-function goChat(id) {
-  const a = AGENTS[id]; if (!a) return;
-  cur = a;
+function goScreen(id) {
+  showScreen(id);
+  if(id === 'home') setTimeout(() => animateBars(), 200);
+}
+
+function openChat(agentId) {
+  const a = AGENTS[agentId]; if(!a) return;
+  curAgent = { id: agentId, ...a };
   document.getElementById('c-name').textContent = a.name;
-  renderHistory(id);
-  document.getElementById('home').classList.remove('on');
-  document.getElementById('chat').classList.add('on');
-  setTab(a.tab);
+  renderHistory(agentId);
+  showScreen('chat');
   setTimeout(() => document.getElementById('c-inp').focus(), 300);
 }
 
-function setTab(id) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  document.getElementById(id)?.classList.add('on');
+function closeChat() {
+  showScreen(curScreen === 'chat' ? 'agents' : curScreen);
+  goScreen('agents');
 }
 
-/* ─── CHAT + HISTORY ─── */
-function historyKey(id) { return 'mondec_hist_' + id; }
-
-function loadHistory(id) {
-  try { return JSON.parse(localStorage.getItem(historyKey(id))) || []; } catch { return []; }
-}
-
-function saveHistory(id, msgs) {
-  try { localStorage.setItem(historyKey(id), JSON.stringify(msgs.slice(-200))); } catch {}
-}
-
-function renderHistory(id) {
-  const msgs = document.getElementById('c-msgs');
-  msgs.innerHTML = '';
-  const hist = loadHistory(id);
-  if (hist.length === 0) {
-    addMsg('a', AGENTS[id].welcome, false);
-  } else {
-    let lastDate = '';
-    hist.forEach(m => {
-      const d = new Date(m.ts).toLocaleDateString('fr-FR', {day:'numeric',month:'long'});
-      if (d !== lastDate) {
-        const sep = document.createElement('div');
-        sep.className = 'chat-date';
-        sep.textContent = d;
-        msgs.appendChild(sep);
-        lastDate = d;
-      }
-      addMsg(m.type, m.text, false);
-    });
-  }
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-function clearHistory() {
-  if (!cur) return;
-  const id = Object.keys(AGENTS).find(k => AGENTS[k] === cur);
-  if (!id) return;
-  localStorage.removeItem(historyKey(id));
-  renderHistory(id);
-}
-
-function addMsg(type, text, save = true) {
-  const msgs = document.getElementById('c-msgs');
-  const row = document.createElement('div');
-  row.className = 'msg' + (type==='u' ? ' u' : '');
-  const b = document.createElement('div');
-  b.className = 'bubble ' + type;
-  b.innerHTML = text
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\n/g,'<br>');
-  row.appendChild(b);
-  msgs.appendChild(row);
-  msgs.scrollTop = msgs.scrollHeight;
-
-  if (save && cur) {
-    const id = Object.keys(AGENTS).find(k => AGENTS[k] === cur);
-    if (id) {
-      const hist = loadHistory(id);
-      hist.push({ type, text, ts: Date.now() });
-      saveHistory(id, hist);
-    }
-  }
-}
-
-function showTyping() {
-  const msgs = document.getElementById('c-msgs');
-  const row = document.createElement('div');
-  row.className = 'msg'; row.id = 'typing';
-  row.innerHTML = '<div class="bubble a"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>';
-  msgs.appendChild(row);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-async function send() {
-  if (busy || !cur) return;
-  const inp = document.getElementById('c-inp');
-  const txt = inp.value.trim(); if (!txt) return;
-  inp.value = ''; inp.style.height = 'auto';
-  busy = true; document.getElementById('c-btn').disabled = true;
-  addMsg('u', txt);
-  showTyping();
-  try {
-    const r = await fetch(cur.url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: txt })
-    });
-    const text = await r.text();
-    document.getElementById('typing')?.remove();
-    let reply = '';
-    if (text) {
-      try {
-        const d = JSON.parse(text);
-        reply = d.response || d.message || d.output || d.text || d.answer || JSON.stringify(d);
-      } catch { reply = text; }
-    }
-    addMsg('a', reply || '⚠️ Le workflow n8n n\'a renvoyé aucune réponse.');
-  } catch {
-    document.getElementById('typing')?.remove();
-    addMsg('a', '⚠️ Erreur de connexion. Vérifie que ton workflow n8n est bien actif.');
-  }
-  busy = false;
-  document.getElementById('c-btn').disabled = false;
-  inp.focus();
-}
-
-function resize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+function switchYear(year) {
+  document.querySelectorAll('.year-tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.year-pane').forEach(p => p.classList.remove('on'));
+  document.getElementById('yt-' + year).classList.add('on');
+  document.getElementById('yp-' + year).classList.add('on');
 }
 
 /* ─── PROGRESS ─── */
 function buildProgress() {
   const today = new Date();
-  const total = (END_DATE - START_DATE);
+  const total = END_DATE - START_DATE;
   const elapsed = Math.max(0, today - START_DATE);
   const pct = Math.min(100, (elapsed / total) * 100).toFixed(1);
-  const daysLeft = Math.ceil((END_DATE - today) / 86400000);
   const daysElapsed = Math.floor(elapsed / 86400000);
+  const daysLeft = Math.ceil((END_DATE - today) / 86400000);
 
   document.getElementById('prog-global-pct').textContent = pct + '%';
-  document.getElementById('prog-global-days').textContent =
-    daysElapsed > 0 ? daysElapsed + ' jours · ' + daysLeft + ' restants' : daysLeft + ' jours restants';
+  document.getElementById('prog-days-elapsed').textContent = daysElapsed + ' jours accomplis';
+  document.getElementById('prog-days-left').textContent = daysLeft + ' restants';
+  document.getElementById('s-pct').textContent = Math.floor(pct) + '%';
+  document.getElementById('s-days').textContent = daysElapsed + 'j';
 
   const container = document.getElementById('prog-subjects');
   container.innerHTML = '';
@@ -641,47 +785,47 @@ function buildProgress() {
 
 function animateBars() {
   const today = new Date();
-  const total = END_DATE - START_DATE;
-  const elapsed = Math.max(0, today - START_DATE);
-  const pct = Math.min(100, (elapsed / total) * 100);
+  const pct = Math.min(100, ((today - START_DATE) / (END_DATE - START_DATE)) * 100);
   const bar = document.getElementById('prog-global-bar');
-  if (bar) bar.style.width = pct + '%';
-
+  if(bar) bar.style.width = pct + '%';
   SUBJECTS.forEach(s => {
     const saved = parseInt(localStorage.getItem('mondec_subj_' + s.id) || '0');
     const b = document.getElementById('bar-' + s.id);
-    if (b) b.style.width = saved + '%';
+    if(b) b.style.width = saved + '%';
   });
 }
 
 function updateSubject(id, color) {
-  const current = parseInt(localStorage.getItem('mondec_subj_' + id) || '0');
-  const val = prompt('Avancement pour cette matière (0-100) :', current);
-  if (val === null) return;
+  const cur = parseInt(localStorage.getItem('mondec_subj_' + id) || '0');
+  const val = prompt('Avancement pour cette matière (0-100) :', cur);
+  if(val === null) return;
   const n = Math.max(0, Math.min(100, parseInt(val) || 0));
   localStorage.setItem('mondec_subj_' + id, n);
   const pctEl = document.getElementById('pct-' + id);
   const barEl = document.getElementById('bar-' + id);
-  if (pctEl) pctEl.textContent = n + '%';
-  if (barEl) barEl.style.width = n + '%';
+  if(pctEl) pctEl.textContent = n + '%';
+  if(barEl) { barEl.style.width = '0%'; setTimeout(() => barEl.style.width = n + '%', 50); }
 }
 
 /* ─── PLANNING ─── */
-const MONTHS_FR = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sep.','oct.','nov.','déc.'];
-
 function buildPlanning() {
-  const today = new Date();
+  const today = new Date(); today.setHours(0,0,0,0);
   const list = document.getElementById('plan-list');
   list.innerHTML = '';
   const future = PLANNING
     .map(p => ({ ...p, d: new Date(p.date) }))
     .filter(p => p.d >= today)
     .sort((a,b) => a.d - b.d)
-    .slice(0, 5);
+    .slice(0, 6);
 
   future.forEach(p => {
+    const daysLeft = Math.ceil((p.d - today) / 86400000);
+    const isUrgent = p.urgent || daysLeft <= 14;
     const item = document.createElement('div');
-    item.className = 'plan-item';
+    item.className = 'plan-item' + (isUrgent ? ' urgent' : '');
+    const cdColor = daysLeft <= 7 ? 'var(--red)' : daysLeft <= 30 ? 'var(--orange)' : 'var(--text3)';
+    const cdBg = daysLeft <= 7 ? 'var(--red-bg)' : daysLeft <= 30 ? 'var(--orange-bg)' : 'var(--bg4)';
+    const cdTxt = daysLeft === 0 ? "Aujourd'hui !" : daysLeft === 1 ? 'Demain !' : `dans ${daysLeft}j`;
     item.innerHTML = `
       <div class="plan-date-box">
         <div class="plan-month" style="color:${p.color}">${MONTHS_FR[p.d.getMonth()]}</div>
@@ -689,158 +833,322 @@ function buildPlanning() {
       </div>
       <div class="plan-body">
         <div class="plan-name">${p.name}</div>
-        <div class="plan-type">${p.d.getFullYear()}</div>
+        <div class="plan-meta">${p.lieu || p.d.getFullYear()}</div>
       </div>
-      <div class="plan-chip" style="background:${p.color}22;color:${p.color}">${p.type}</div>`;
+      <div class="plan-cd" style="color:${cdColor};background:${cdBg}">${cdTxt}</div>`;
     list.appendChild(item);
   });
 }
 
-function updateAlertDays() {
-  const today = new Date();
-  const days = Math.ceil((CSOEC_DUE - today) / 86400000);
-  if (days > 0) {
-    document.getElementById('alert-days').textContent = days + ' jours';
-    document.getElementById('stat-days').textContent = days + 'j';
+function updateAlert() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const next = PLANNING
+    .map(p => ({ ...p, d: new Date(p.date) }))
+    .filter(p => p.d >= today)
+    .sort((a,b) => a.d - b.d)[0];
+  if(!next) return;
+  const daysLeft = Math.ceil((next.d - today) / 86400000);
+  if(daysLeft <= 30) {
+    const bar = document.getElementById('alert-bar');
+    const txt = document.getElementById('alert-txt');
+    const cnt = document.getElementById('alert-cnt');
+    bar.style.display = 'flex';
+    txt.textContent = next.name + (next.lieu ? ' · ' + next.lieu : '');
+    cnt.textContent = daysLeft <= 1 ? (daysLeft===0?"Aujourd'hui !":"Demain !") : `dans ${daysLeft} jours`;
   }
 }
 
-/* ─── MUSIC (Web Audio API) ─── */
-let audioCtx = null, masterGain = null, musicPlaying = false;
-let progInterval = null, progValue = 0;
-let currentTrack = 0;
+/* ─── FORMATIONS ─── */
+function buildFormations() {
+  ['c1','c2','c3'].forEach(year => {
+    const container = document.getElementById('forms-' + year);
+    container.innerHTML = '';
+    FORMATIONS[year].forEach(f => {
+      const done = localStorage.getItem('mondec_form_' + f.id) === '1';
+      const item = document.createElement('div');
+      item.className = 'form-item' + (done ? ' done' : '');
+      item.onclick = () => toggleFormation(f.id);
+      let tags = `<div class="form-meta">`;
+      tags += `<span class="form-tag" style="background:var(--bg4);color:var(--text2)">${f.format}</span>`;
+      if(f.date) {
+        const d = new Date(f.date);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const dl = Math.ceil((d - today) / 86400000);
+        const col = dl <= 7 ? 'var(--red)' : dl <= 30 ? 'var(--orange)' : 'var(--text3)';
+        const bg = dl <= 7 ? 'var(--red-bg)' : dl <= 30 ? 'var(--orange-bg)' : 'var(--bg4)';
+        const txt = dl < 0 ? 'Passé' : dl === 0 ? "Aujourd'hui" : dl === 1 ? 'Demain' : `${d.getDate()} ${MONTHS_FR[d.getMonth()]}`;
+        tags += `<span class="form-tag" style="background:${bg};color:${col}">${txt}</span>`;
+      }
+      if(f.lieu) tags += `<span class="form-tag" style="background:var(--bg4);color:var(--text3)">${f.lieu}</span>`;
+      tags += `</div>`;
+      item.innerHTML = `
+        <div class="form-check"><span class="form-check-ic">✓</span></div>
+        <div class="form-body">
+          <div class="form-name">${f.name}</div>
+          ${f.desc ? `<div class="form-format">${f.desc}</div>` : ''}
+          ${tags}
+        </div>`;
+      container.appendChild(item);
+    });
+  });
+  updateYearProgress();
+}
+
+function toggleFormation(id) {
+  const current = localStorage.getItem('mondec_form_' + id) === '1';
+  localStorage.setItem('mondec_form_' + id, current ? '0' : '1');
+  buildFormations();
+  updateFormStats();
+}
+
+function updateYearProgress() {
+  ['c1','c2','c3'].forEach(year => {
+    const forms = FORMATIONS[year];
+    const done = forms.filter(f => localStorage.getItem('mondec_form_' + f.id) === '1').length;
+    const total = forms.length;
+    const pct = total > 0 ? (done/total)*100 : 0;
+    const bar = document.getElementById('ybar-' + year);
+    const lbl = document.getElementById('ylbl-' + year);
+    if(bar) bar.style.width = pct + '%';
+    if(lbl) lbl.textContent = done + '/' + total;
+  });
+}
+
+function updateFormStats() {
+  const allForms = [...FORMATIONS.c1, ...FORMATIONS.c2, ...FORMATIONS.c3];
+  const completedDays = allForms
+    .filter(f => localStorage.getItem('mondec_form_' + f.id) === '1')
+    .reduce((sum, f) => sum + f.days, 0);
+  document.getElementById('s-form').textContent = completedDays + '/' + FORM_TOTAL_DAYS;
+}
+
+/* ─── CHAT + HISTORY ─── */
+function hKey(id) { return 'mondec_hist_' + id; }
+function loadHist(id) { try { return JSON.parse(localStorage.getItem(hKey(id))) || []; } catch { return []; } }
+function saveHist(id, msgs) { try { localStorage.setItem(hKey(id), JSON.stringify(msgs.slice(-200))); } catch {} }
+
+function renderHistory(id) {
+  const msgs = document.getElementById('c-msgs');
+  msgs.innerHTML = '';
+  const hist = loadHist(id);
+  if(hist.length === 0) {
+    appendMsg('a', AGENTS[id].welcome, false);
+  } else {
+    let lastDate = '';
+    hist.forEach(m => {
+      const d = new Date(m.ts).toLocaleDateString('fr-FR', {day:'numeric',month:'long'});
+      if(d !== lastDate) { appendDateSep(msgs, d); lastDate = d; }
+      appendMsg(m.type, m.text, false);
+    });
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function clearHistory() {
+  if(!curAgent) return;
+  if(!confirm('Effacer la conversation ?')) return;
+  localStorage.removeItem(hKey(curAgent.id));
+  renderHistory(curAgent.id);
+}
+
+function appendDateSep(container, text) {
+  const sep = document.createElement('div');
+  sep.className = 'chat-date-sep';
+  sep.textContent = text;
+  container.appendChild(sep);
+}
+
+function renderMd(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\n/g,'<br>');
+}
+
+function appendMsg(type, text, save = true) {
+  const msgs = document.getElementById('c-msgs');
+  const row = document.createElement('div');
+  row.className = 'msg' + (type==='u' ? ' u' : '');
+  const b = document.createElement('div');
+  b.className = 'bubble ' + type;
+  b.innerHTML = renderMd(text);
+  row.appendChild(b);
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+  if(save && curAgent) {
+    const hist = loadHist(curAgent.id);
+    hist.push({ type, text, ts: Date.now() });
+    saveHist(curAgent.id, hist);
+  }
+}
+
+async function streamMsg(text) {
+  const msgs = document.getElementById('c-msgs');
+  const row = document.createElement('div');
+  row.className = 'msg';
+  const b = document.createElement('div');
+  b.className = 'bubble a';
+  row.appendChild(b);
+  msgs.appendChild(row);
+
+  let shown = 0;
+  await new Promise(resolve => {
+    const step = () => {
+      if(shown >= text.length) {
+        b.innerHTML = renderMd(text);
+        msgs.scrollTop = msgs.scrollHeight;
+        resolve();
+        return;
+      }
+      shown = Math.min(shown + Math.floor(Math.random() * 5 + 3), text.length);
+      b.innerHTML = renderMd(text.slice(0, shown)) + '<span class="stream-cursor">▋</span>';
+      msgs.scrollTop = msgs.scrollHeight;
+      setTimeout(step, 14);
+    };
+    setTimeout(step, 80);
+  });
+
+  if(curAgent) {
+    const hist = loadHist(curAgent.id);
+    hist.push({ type:'a', text, ts: Date.now() });
+    saveHist(curAgent.id, hist);
+  }
+}
+
+function showTyping() {
+  const msgs = document.getElementById('c-msgs');
+  const row = document.createElement('div');
+  row.className = 'msg'; row.id = 'typing-indicator';
+  row.innerHTML = '<div class="bubble a"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>';
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function send() {
+  if(busy || !curAgent) return;
+  const inp = document.getElementById('c-inp');
+  const txt = inp.value.trim(); if(!txt) return;
+  inp.value = ''; inp.style.height = 'auto';
+  busy = true; document.getElementById('c-btn').disabled = true;
+  appendMsg('u', txt);
+  showTyping();
+  try {
+    const r = await fetch(curAgent.url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ message: txt })
+    });
+    const raw = await r.text();
+    document.getElementById('typing-indicator')?.remove();
+    let reply = '';
+    if(raw) {
+      try {
+        const d = JSON.parse(raw);
+        reply = d.response || d.message || d.output || d.text || d.answer || JSON.stringify(d);
+      } catch { reply = raw; }
+    }
+    await streamMsg(reply || "⚠️ Le workflow n8n n'a renvoyé aucune réponse. Vérifie que le workflow est actif.");
+  } catch {
+    document.getElementById('typing-indicator')?.remove();
+    await streamMsg('⚠️ Erreur de connexion. Vérifie que ton workflow n8n est bien actif.');
+  }
+  busy = false;
+  document.getElementById('c-btn').disabled = false;
+  inp.focus();
+}
+
+function resizeInp(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+/* ─── MUSIC ─── */
+let audioCtx=null, masterGain=null, musicPlaying=false;
+let progInterval=null, progValue=0, currentTrack=0;
+let oscillators=[], noiseSrc=null;
 
 const TRACKS = [
-  { name: 'Ambiance Focus', type: 'Drones · Étude', freqs: [110,220,330,440], icon: '🎵' },
-  { name: 'Deep Work', type: 'Basses · Concentration', freqs: [55,110,165,220], icon: '🌊' },
-  { name: 'Calm Mind', type: 'Harmoniques · Détente', freqs: [174,285,396,528], icon: '🧘' },
+  { name:'Ambiance Focus', type:'Drones · Étude', freqs:[110,220,330,440], icon:'🎵' },
+  { name:'Deep Work', type:'Basses · Concentration', freqs:[55,110,165,220], icon:'🌊' },
+  { name:'Calm Mind', type:'Harmoniques · Détente', freqs:[174,285,396,528], icon:'🧘' },
 ];
 
-let oscillators = [], noiseSrc = null;
-
 function initAudio() {
-  if (audioCtx) return;
+  if(audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 0;
   masterGain.connect(audioCtx.destination);
 }
-
-function buildTrack(trackIndex) {
+function buildTrack(idx) {
   stopNodes();
-  const track = TRACKS[trackIndex];
+  const track = TRACKS[idx];
   track.freqs.forEach((freq, i) => {
     const osc = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    osc.frequency.value = freq;
-    osc.type = 'sine';
-    gainNode.gain.value = 0.18 / (i + 1);
+    const g = audioCtx.createGain();
+    osc.frequency.value = freq; osc.type = 'sine';
+    g.gain.value = 0.18 / (i + 1);
     const lfo = audioCtx.createOscillator();
-    const lfoGain = audioCtx.createGain();
-    lfo.frequency.value = 0.07 + i * 0.02;
-    lfoGain.gain.value = 0.04;
-    lfo.connect(lfoGain);
-    lfoGain.connect(gainNode.gain);
-    osc.connect(gainNode);
-    gainNode.connect(masterGain);
+    const lg = audioCtx.createGain();
+    lfo.frequency.value = 0.07 + i * 0.02; lg.gain.value = 0.04;
+    lfo.connect(lg); lg.connect(g.gain);
+    osc.connect(g); g.connect(masterGain);
     osc.start(); lfo.start();
     oscillators.push(osc, lfo);
   });
-  // Brown noise
-  const bufSize = audioCtx.sampleRate * 3;
-  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-  const data = buf.getChannelData(0);
-  let last = 0;
-  for (let i = 0; i < bufSize; i++) {
-    const w = (Math.random() * 2 - 1) * 0.04;
-    data[i] = (last + w) / 1.002;
-    last = data[i];
-    data[i] *= 3.5;
-  }
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*3, audioCtx.sampleRate);
+  const data = buf.getChannelData(0); let last=0;
+  for(let i=0;i<data.length;i++){const w=(Math.random()*2-1)*.04;data[i]=(last+w)/1.002;last=data[i];data[i]*=3.5;}
   noiseSrc = audioCtx.createBufferSource();
   noiseSrc.buffer = buf; noiseSrc.loop = true;
-  const filt = audioCtx.createBiquadFilter();
-  filt.type = 'lowpass'; filt.frequency.value = 180;
-  const ng = audioCtx.createGain(); ng.gain.value = 0.06;
+  const filt = audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=180;
+  const ng = audioCtx.createGain(); ng.gain.value=0.06;
   noiseSrc.connect(filt); filt.connect(ng); ng.connect(masterGain);
   noiseSrc.start();
 }
-
 function stopNodes() {
-  oscillators.forEach(o => { try { o.stop(); } catch {} });
-  oscillators = [];
-  if (noiseSrc) { try { noiseSrc.stop(); } catch {} noiseSrc = null; }
+  oscillators.forEach(o => { try{o.stop();}catch{} }); oscillators=[];
+  if(noiseSrc){try{noiseSrc.stop();}catch{} noiseSrc=null;}
 }
-
 function startMusic() {
   initAudio();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if(audioCtx.state==='suspended') audioCtx.resume();
   buildTrack(currentTrack);
-  const vol = parseInt(document.getElementById('music-vol').value) / 100;
-  masterGain.gain.setTargetAtTime(vol * 0.35, audioCtx.currentTime, 0.5);
-  musicPlaying = true;
-  document.getElementById('mc-play').textContent = '⏸';
+  const vol = parseInt(document.getElementById('music-vol').value)/100;
+  masterGain.gain.setTargetAtTime(vol*.35, audioCtx.currentTime, 0.5);
+  musicPlaying=true;
+  document.getElementById('mc-play').textContent='⏸';
   document.getElementById('music-fab').classList.add('playing');
   document.getElementById('music-art').classList.add('playing');
   startProgBar();
 }
-
 function stopMusic() {
-  if (masterGain) masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.4);
-  setTimeout(() => { if (audioCtx) audioCtx.suspend(); }, 500);
-  musicPlaying = false;
-  document.getElementById('mc-play').textContent = '▶';
+  if(masterGain) masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.4);
+  setTimeout(() => { if(audioCtx) audioCtx.suspend(); }, 500);
+  musicPlaying=false;
+  document.getElementById('mc-play').textContent='▶';
   document.getElementById('music-fab').classList.remove('playing');
   document.getElementById('music-art').classList.remove('playing');
   stopProgBar();
 }
-
-function togglePlay() {
-  if (musicPlaying) stopMusic(); else startMusic();
-}
-
-function toggleMusic() {
-  const panel = document.getElementById('music-panel');
-  panel.classList.toggle('on');
-}
-
-function prevTrack() {
-  currentTrack = (currentTrack - 1 + TRACKS.length) % TRACKS.length;
-  switchTrack();
-}
-function nextTrack() {
-  currentTrack = (currentTrack + 1) % TRACKS.length;
-  switchTrack();
-}
+function togglePlay() { if(musicPlaying) stopMusic(); else startMusic(); }
+function toggleMusicPanel() { document.getElementById('music-panel').classList.toggle('on'); }
+function prevTrack() { currentTrack=(currentTrack-1+TRACKS.length)%TRACKS.length; switchTrack(); }
+function nextTrack() { currentTrack=(currentTrack+1)%TRACKS.length; switchTrack(); }
 function switchTrack() {
-  const t = TRACKS[currentTrack];
-  document.getElementById('music-track').textContent = t.name;
-  document.getElementById('music-type').textContent = t.type;
-  document.getElementById('music-art').textContent = t.icon;
-  progValue = 0;
-  document.getElementById('music-prog').style.width = '0%';
-  if (musicPlaying) { buildTrack(currentTrack); }
+  const t=TRACKS[currentTrack];
+  document.getElementById('music-track').textContent=t.name;
+  document.getElementById('music-type').textContent=t.type;
+  document.getElementById('music-art').textContent=t.icon;
+  progValue=0; document.getElementById('music-prog').style.width='0%';
+  if(musicPlaying) buildTrack(currentTrack);
 }
-
-function setVolume(v) {
-  if (masterGain && musicPlaying) {
-    masterGain.gain.setTargetAtTime((v / 100) * 0.35, audioCtx.currentTime, 0.1);
-  }
-}
-
+function setVolume(v) { if(masterGain&&musicPlaying) masterGain.gain.setTargetAtTime((v/100)*.35, audioCtx.currentTime, 0.1); }
 function startProgBar() {
-  stopProgBar();
-  progValue = 0;
-  progInterval = setInterval(() => {
-    progValue = (progValue + 0.04) % 100;
-    const el = document.getElementById('music-prog');
-    if (el) el.style.width = progValue + '%';
-  }, 1000);
+  stopProgBar(); progValue=0;
+  progInterval=setInterval(()=>{ progValue=(progValue+.04)%100; const el=document.getElementById('music-prog'); if(el) el.style.width=progValue+'%'; },1000);
 }
-
-function stopProgBar() {
-  if (progInterval) { clearInterval(progInterval); progInterval = null; }
-}
+function stopProgBar() { if(progInterval){clearInterval(progInterval);progInterval=null;} }
 </script>
 </body>
 </html>
