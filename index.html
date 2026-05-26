@@ -45,6 +45,7 @@ nav{flex:1;padding:12px 8px}
 .live-dot{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:.6rem;font-weight:600;color:var(--blue)}
 .live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .section-label{font-size:.625rem;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:16px 10px 6px}
 .agent-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:.8rem;color:var(--text2);transition:background .15s}
 .agent-item:hover{background:var(--border2)}
@@ -565,70 +566,27 @@ nav{flex:1;padding:12px 8px}
       <div>
         <div class="page-label">Flash Info</div>
         <div class="page-title">L'actualité du métier.</div>
-        <div class="page-sub" style="margin-bottom:0">Synthèse Aïka — actualisée chaque heure. Résumé + avis critique + sources indicatives.</div>
+        <div class="page-sub" style="margin-bottom:0">Flux RSS en direct — Compta Online, BOFIP, Village Justice. Actualisé toutes les heures.</div>
       </div>
-      <button class="refresh-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><polyline points="1,20 1,14 7,14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <button class="refresh-btn" id="flash-refresh-btn" onclick="loadFlash(true)">
+        <svg id="flash-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><polyline points="1,20 1,14 7,14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         Rafraîchir
       </button>
     </div>
-    <div style="display:flex;align-items:center;margin-bottom:20px;margin-top:24px">
-      <div class="flash-tabs">
-        <button class="flash-tab active">Aujourd'hui <strong>5</strong></button>
-        <button class="flash-tab">Historique <strong>0</strong></button>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:20px;margin-bottom:16px;flex-wrap:wrap">
+      <div id="flash-count-badge" style="display:inline-flex;align-items:center;gap:6px;background:var(--text);color:#fff;font-size:.8rem;font-weight:600;padding:6px 14px;border-radius:20px">
+        <span id="flash-count">…</span> articles
       </div>
-      <span class="flash-updated" style="margin-left:auto">Mis à jour à 17:22</span>
+      <div id="flash-sources-row" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      <span id="flash-updated-label" style="margin-left:auto;font-size:.75rem;color:var(--text3)"></span>
     </div>
-    <div class="flash-date-label">Mardi 26 mai 2026</div>
-
-    <div class="flash-article">
-      <div class="article-meta">
-        <div class="article-tags">
-          <span class="tag fiscal">Fiscal</span>
-          <span class="tag new">NEW</span>
-        </div>
-        <span class="article-time">17:22</span>
+    <div id="flash-date-label" class="flash-date-label"></div>
+    <div id="flash-articles-container">
+      <!-- Articles dynamiques chargés ici -->
+      <div id="flash-loading" style="text-align:center;padding:48px;color:var(--text2)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px;margin:0 auto 12px;animation:spin 1s linear infinite"><polyline points="23,4 23,10 17,10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <p>Chargement des flux RSS…</p>
       </div>
-      <div class="article-title">Extension du dispositif de facturation électronique B2B au 1er septembre 2026</div>
-      <div class="article-section">Résumé</div>
-      <div class="article-body">Le gouvernement confirme le calendrier définitif de la réforme de facturation électronique obligatoire pour toutes les entreprises assujetties à la TVA. Les grandes entreprises devront émettre et recevoir des factures électroniques dès le 1er septembre 2026, tandis que les PME et ETI bénéficient d'un délai jusqu'en 2027. Les cabinets comptables multiplient les formations pour accompagner leurs clients dans cette transition technique et organisationnelle majeure.</div>
-      <div class="article-critique-label">Avis critique Aïka</div>
-      <div class="article-critique">Cette réforme représente une opportunité de modernisation des processus pour les cabinets et leurs clients, avec une automatisation accrue des flux. Néanmoins, la complexité technique du dispositif (plateforme de dématérialisation partenaire, normes sémantiques) et l'hétérogénéité de maturité digitale des TPE risquent de créer des difficultés d'accompagnement dans les prochains mois.</div>
-      <div class="sources-label">Sources indicatives</div>
-      <span class="source-chip">Bulletin Officiel des Finances Publiques</span>
-      <span class="source-chip">CSOEC</span>
-      <span class="source-chip">Compta Online</span>
-    </div>
-
-    <div class="flash-article">
-      <div class="article-meta">
-        <div class="article-tags"><span class="tag audit">Audit</span></div>
-        <span class="article-time">14:45</span>
-      </div>
-      <div class="article-title">Modification des NEP relatives à la documentation des missions d'audit</div>
-      <div class="article-section">Résumé</div>
-      <div class="article-body">Le Haut Conseil du Commissariat aux Comptes a publié une mise à jour des normes d'exercice professionnel (NEP) portant sur la documentation des missions d'audit légal. Cette modification impacte directement les modules C2M2 et C3M3 du parcours DECCAC. Les stagiaires doivent en prendre connaissance avant leurs prochaines sessions de formation.</div>
-      <div class="article-critique-label">Avis critique Aïka</div>
-      <div class="article-critique">Ces modifications renforcent les exigences de traçabilité et de documentation, un point fondamental pour la qualité des missions d'audit. Pour les stagiaires DEC, c'est une occasion de se familiariser avec les nouvelles pratiques avant d'entrer dans la profession active.</div>
-      <div class="sources-label">Sources indicatives</div>
-      <span class="source-chip">H3C</span>
-      <span class="source-chip">CNCC</span>
-      <span class="source-chip">Revue Française de Comptabilité</span>
-    </div>
-
-    <div class="flash-article">
-      <div class="article-meta">
-        <div class="article-tags"><span class="tag social">CSOEC</span></div>
-        <span class="article-time">11:10</span>
-      </div>
-      <div class="article-title">Nouvelle version du guide stagiaire publiée par le CSOEC</div>
-      <div class="article-section">Résumé</div>
-      <div class="article-body">Le Conseil Supérieur de l'Ordre des Experts-Comptables a mis en ligne la version 2026 du guide du stagiaire DEC. Ce document mis à jour inclut les nouvelles procédures de dépôt des fiches de travaux, les modalités de validation des formations DECCAC et les conditions d'éligibilité aux épreuves du DEC.</div>
-      <div class="article-critique-label">Avis critique Aïka</div>
-      <div class="article-critique">À télécharger et lire attentivement. La mise à jour des procédures de dépôt des fiches peut avoir un impact direct sur ton organisation des prochains mois.</div>
-      <div class="sources-label">Sources indicatives</div>
-      <span class="source-chip">CSOEC</span>
-      <span class="source-chip">Plateforme CSOEC</span>
     </div>
   </div>
 
@@ -1358,6 +1316,187 @@ document.querySelectorAll('.theme-btn').forEach((btn,i)=>{
     btn.classList.add('active');
   });
 });
+
+// ---- FLASH INFO RSS ----
+const CATEGORY_STYLES = {
+  'FISCAL':      {bg:'#FFF1DC',color:'#D97706'},
+  'COMPTABILITÉ':  {bg:'#EEF1FE',color:'#3F5BCE'},
+  'AUDIT':       {bg:'#EEF1FE',color:'#3F5BCE'},
+  'JURIDIQUE':   {bg:'#ECE6FF',color:'#7C3AED'},
+  'DROIT':       {bg:'#ECE6FF',color:'#7C3AED'},
+  'CSOEC':       {bg:'#E2F7EE',color:'#1F9479'},
+  'SOCIAL':      {bg:'#E2F7EE',color:'#1F9479'},
+  'ACTUALITÉ':   {bg:'#F3F4F6',color:'#6B7280'},
+  'DEFAULT':     {bg:'#F3F4F6',color:'#6B7280'},
+};
+
+let flashLoaded = false;
+let flashAutoInterval = null;
+
+function getCategoryStyle(cat) {
+  cat = (cat||'').toUpperCase().trim();
+  for (const key of Object.keys(CATEGORY_STYLES)) {
+    if (cat.includes(key)) return CATEGORY_STYLES[key];
+  }
+  return CATEGORY_STYLES['DEFAULT'];
+}
+
+function formatFlashDate(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 3600000) return `il y a ${Math.round(diff/60000)} min`;
+    if (diff < 86400000) return `il y a ${Math.round(diff/3600000)}h`;
+    return d.toLocaleDateString('fr-FR', {day:'numeric',month:'short'});
+  } catch { return ''; }
+}
+
+function renderFlashArticles(items) {
+  const container = document.getElementById('flash-articles-container');
+  if (!items || items.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:48px;color:var(--text2)">
+      <p>Aucun article disponible pour le moment.</p>
+      <p style="margin-top:6px;font-size:.8rem">Vérifiez votre connexion ou réessayez.</p>
+    </div>`;
+    return;
+  }
+
+  const html = items.map((item, i) => {
+    const style = getCategoryStyle(item.category);
+    const timeStr = formatFlashDate(item.pubDate);
+    const isNew = item.pubDate && (new Date() - new Date(item.pubDate)) < 7200000;
+    const link = item.link ? `href="${item.link}" target="_blank" rel="noopener"` : '';
+
+    return `<div class="flash-article" style="${i===0?'border-color:#D1D5DB':''}">
+      <div class="article-meta">
+        <div class="article-tags">
+          <span class="tag" style="background:${style.bg};color:${style.color}">${item.category||'ACTUALITÉ'}</span>
+          ${isNew ? '<span class="tag new">NEW</span>' : ''}
+        </div>
+        <span class="article-time">${timeStr}</span>
+      </div>
+      <div class="article-title">
+        ${link ? `<a ${link} style="color:inherit;text-decoration:none;hover:underline">${item.title}</a>` : item.title}
+      </div>
+      ${item.description ? `
+      <div class="article-section">Résumé</div>
+      <div class="article-body">${item.description}</div>` : ''}
+      <div class="sources-label" style="margin-top:12px">Source</div>
+      <span class="source-chip">${item.source||'RSS'}</span>
+      ${link ? `<a ${link} class="source-chip" style="text-decoration:none;color:var(--blue)">Lire l'article →</a>` : ''}
+    </div>`;
+  }).join('');
+
+  container.innerHTML = html;
+}
+
+async function loadFlash(force = false) {
+  if (!force && flashLoaded) return;
+
+  const btn = document.getElementById('flash-refresh-btn');
+  const icon = document.getElementById('flash-refresh-icon');
+  if (btn) btn.disabled = true;
+  if (icon) icon.style.animation = 'spin 1s linear infinite';
+
+  // Show loading only on first load
+  if (!flashLoaded) {
+    document.getElementById('flash-loading') && (document.getElementById('flash-articles-container').innerHTML =
+      `<div id="flash-loading" style="text-align:center;padding:48px;color:var(--text2)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px;margin:0 auto 12px;animation:spin 1s linear infinite"><polyline points="23,4 23,10 17,10"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <p>Chargement des flux RSS…</p>
+      </div>`);
+  }
+
+  try {
+    const res = await fetch('/api/flash');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    flashLoaded = true;
+
+    // Update count badge
+    const countEl = document.getElementById('flash-count');
+    if (countEl) countEl.textContent = data.count || data.items?.length || 0;
+
+    // Update sources
+    const sourcesEl = document.getElementById('flash-sources-row');
+    if (sourcesEl && data.sources) {
+      sourcesEl.innerHTML = data.sources
+        .filter(s => s.ok)
+        .map(s => `<span style="font-size:.7rem;background:var(--green-bg);color:var(--green-dark);padding:3px 8px;border-radius:6px;font-weight:500">${s.name}</span>`)
+        .join('');
+    }
+
+    // Update timestamp
+    const updatedEl = document.getElementById('flash-updated-label');
+    if (updatedEl && data.updatedAt) {
+      const t = new Date(data.updatedAt);
+      updatedEl.textContent = `Mis à jour à ${t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
+    }
+
+    // Update date label
+    const dateEl = document.getElementById('flash-date-label');
+    if (dateEl) {
+      const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+      const months = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+      const now = new Date();
+      dateEl.textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    }
+
+    renderFlashArticles(data.items || []);
+
+  } catch (err) {
+    console.error('Flash RSS error:', err);
+    // Fallback to static articles
+    document.getElementById('flash-articles-container').innerHTML = `
+      <div style="background:#FFF5F4;border:1px solid #FFD9D2;border-radius:12px;padding:16px;margin-bottom:16px;font-size:.875rem;color:var(--text2)">
+        <strong style="color:var(--red)">Flux RSS indisponible</strong> — Vérifiez que le site est déployé sur Vercel (l'API /api/flash nécessite l'environnement serverless).
+      </div>
+      <div class="flash-article">
+        <div class="article-meta"><div class="article-tags"><span class="tag fiscal">Fiscal</span></div><span class="article-time">17:22</span></div>
+        <div class="article-title">Extension du dispositif de facturation électronique B2B au 1er septembre 2026</div>
+        <div class="article-section">Résumé</div>
+        <div class="article-body">Le gouvernement confirme le calendrier définitif de la réforme de facturation électronique obligatoire pour toutes les entreprises assujetties à la TVA.</div>
+        <div class="sources-label">Source</div><span class="source-chip">BOFIP</span>
+      </div>
+      <div class="flash-article">
+        <div class="article-meta"><div class="article-tags"><span class="tag audit">Audit</span></div><span class="article-time">14:45</span></div>
+        <div class="article-title">Modification des NEP relatives à la documentation des missions d'audit</div>
+        <div class="article-section">Résumé</div>
+        <div class="article-body">Le H3C a publié une mise à jour des NEP portant sur la documentation des missions d'audit légal. Impact direct sur les modules C2M2 et C3M3.</div>
+        <div class="sources-label">Source</div><span class="source-chip">H3C</span>
+      </div>`;
+    const updatedEl = document.getElementById('flash-updated-label');
+    if (updatedEl) updatedEl.textContent = 'Mode hors-ligne';
+  } finally {
+    if (btn) btn.disabled = false;
+    if (icon) icon.style.animation = '';
+  }
+}
+
+// Auto-refresh every hour
+function startFlashAutoRefresh() {
+  if (flashAutoInterval) clearInterval(flashAutoInterval);
+  flashAutoInterval = setInterval(() => loadFlash(true), 3600000);
+}
+
+// Load when navigating to flash page
+const _origNavigate = navigate;
+window.navigate = function(page) {
+  _origNavigate(page);
+  if (page === 'flash') {
+    loadFlash(false);
+    startFlashAutoRefresh();
+  }
+};
+
+// If flash is the initial page, load immediately
+if (location.pathname === '/app/flash') {
+  loadFlash(false);
+  startFlashAutoRefresh();
+}
 </script>
 </body>
 </html>
