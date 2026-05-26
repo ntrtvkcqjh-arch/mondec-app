@@ -2,1153 +2,1362 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="MonDEC"/>
-<meta name="theme-color" content="#000000"/>
-<title>MonDEC</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PHDDEC — Plateforme de stage DEC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#000;--bg2:#0a0a0f;--bg3:#111118;--bg4:#18181f;
-  --card:rgba(255,255,255,.07);--card-h:rgba(255,255,255,.11);
-  --border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.06);
-  --text:#f5f5f7;--text2:#98989f;--text3:#48484a;
-  --blue:#0a84ff;--blue-h:#409cff;--blue-bg:rgba(10,132,255,.15);
-  --green:#30d158;--green-bg:rgba(48,209,88,.15);
-  --orange:#ff9f0a;--orange-bg:rgba(255,159,10,.15);
-  --purple:#bf5af2;--purple-bg:rgba(191,90,242,.15);
-  --red:#ff453a;--red-bg:rgba(255,69,58,.15);
-  --yellow:#ffd60a;--yellow-bg:rgba(255,214,10,.15);
-  --sh:0 8px 32px rgba(0,0,0,.6);--sh-lg:0 24px 64px rgba(0,0,0,.8);
+  --sidebar-w:240px;
+  --blue:#5B7CFA;--blue-dark:#3F5BCE;--blue-bg:#EEF1FE;
+  --green:#22C09F;--green-dark:#1F9479;--green-bg:#E2F7EE;
+  --orange:#F0A53C;--orange-bg:#FFF1DC;
+  --red:#E64A4A;--red-bg:#FFE9E6;
+  --purple:#9E7FFB;--purple-bg:#ECE6FF;
+  --teal:#0EA5BF;--teal-bg:#E0F5F9;
+  --text:#111827;--text2:#6B7280;--text3:#9CA3AF;
+  --border:#E5E7EB;--border2:#F3F4F6;
+  --sidebar-bg:#FAFAFB;--card-bg:#FFFFFF;
+  --bg-from:#FFF5F3;--bg-to:#F5F7FF;
 }
-html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
-.orbs{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
-.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.3;animation:drift 25s ease-in-out infinite}
-.orb1{width:420px;height:420px;background:radial-gradient(circle,#0a84ff,transparent);top:-120px;left:-100px;animation-duration:28s}
-.orb2{width:320px;height:320px;background:radial-gradient(circle,#bf5af2,transparent);top:35%;right:-80px;animation-duration:33s;animation-delay:-12s}
-.orb3{width:260px;height:260px;background:radial-gradient(circle,#30d158,transparent);bottom:-60px;left:35%;animation-duration:24s;animation-delay:-6s}
-@keyframes drift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(28px,-22px) scale(1.06)}66%{transform:translate(-22px,28px) scale(.95)}}
+html,body{height:100%;font-family:'Inter',system-ui,sans-serif;color:var(--text);background:#f5f5f7}
+body{display:flex;height:100vh;overflow:hidden}
 
-/* AUTH */
-#auth{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px}
-.auth-logo{font-size:58px;font-weight:700;letter-spacing:-3px;margin-bottom:8px;font-family:-apple-system,'SF Pro Display',sans-serif;animation:fadeUp .8s ease both}
-.auth-logo em{font-style:normal;background:linear-gradient(135deg,#0a84ff,#bf5af2);-webkit-background-clip:text;background-clip:text;color:transparent}
-.auth-tagline{font-size:16px;color:var(--text2);margin-bottom:48px;animation:fadeUp .8s .1s ease both}
-.auth-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:22px;overflow:hidden;box-shadow:var(--sh-lg);backdrop-filter:blur(20px);animation:fadeUp .8s .2s ease both}
-.auth-field{width:100%;border:none;outline:none;padding:22px 24px;font-size:18px;color:var(--text);background:transparent;font-family:inherit;text-align:center;letter-spacing:6px;border-bottom:1px solid var(--border)}
-.auth-field::placeholder{letter-spacing:.5px;color:var(--text3);font-size:16px}
-.auth-btn{display:block;width:100%;border:none;background:linear-gradient(135deg,#0a84ff,#005fd4);color:#fff;font-size:17px;font-weight:600;padding:20px;cursor:pointer;font-family:inherit;transition:opacity .2s}
-.auth-btn:active{opacity:.72}
-.auth-err{margin-top:16px;font-size:13px;color:var(--red);min-height:18px;text-align:center}
+/* SIDEBAR */
+#sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);height:100vh;
+  background:var(--sidebar-bg);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;
+}
+.logo{display:flex;align-items:center;gap:10px;padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.logo-icon{width:36px;height:36px;background:var(--blue-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-icon svg{width:18px;height:18px;color:var(--blue)}
+.logo-text{overflow:hidden}
+.logo-name{font-size:.875rem;font-weight:700;color:var(--text);white-space:nowrap}
+.logo-sub{font-size:.7rem;color:var(--text2)}
+nav{flex:1;padding:12px 8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text2);font-size:.8125rem;font-weight:500;transition:background .15s,color .15s;position:relative;text-decoration:none;user-select:none}
+.nav-item:hover{background:var(--border2);color:var(--text)}
+.nav-item.active{background:var(--blue-bg);color:var(--blue)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:.6rem;font-weight:600;background:var(--blue);color:#fff;border-radius:10px;padding:1px 6px;white-space:nowrap}
+.live-dot{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:.6rem;font-weight:600;color:var(--blue)}
+.live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.section-label{font-size:.625rem;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:16px 10px 6px}
+.agent-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:.8rem;color:var(--text2);transition:background .15s}
+.agent-item:hover{background:var(--border2)}
+.agent-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.agent-count{margin-left:auto;font-size:.7rem;font-weight:600;color:var(--text3)}
+.agent-online{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.appearance-row{display:flex;align-items:center;justify-content:space-between;padding:6px 10px}
+.appearance-label{font-size:.625rem;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase}
+.theme-toggle{display:flex;background:var(--border2);border-radius:20px;padding:2px;gap:1px}
+.theme-btn{width:26px;height:22px;border:none;background:transparent;border-radius:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;color:var(--text2)}
+.theme-btn.active{background:#fff;color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.theme-btn svg{width:12px;height:12px}
+.user-row{display:flex;align-items:center;gap:8px;padding:12px 10px 8px;border-top:1px solid var(--border);margin-top:auto}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;font-size:.8rem;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:.8rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:.7rem;color:var(--text2)}
+.logout-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:4px}
+.logout-btn:hover{color:var(--text)}
+.logout-btn svg{width:14px;height:14px}
+.core-item{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;font-size:.8125rem;font-weight:500;color:var(--text2);transition:background .15s;border-radius:8px;margin:0 8px 8px}
+.core-item:hover{background:var(--border2)}
+.core-item.active{background:var(--blue-bg);color:var(--blue)}
+.core-dot{width:10px;height:10px;border-radius:50%;background:#0B0B10;flex-shrink:0}
+.core-ia{margin-left:auto;font-size:.6rem;font-weight:600;color:var(--text3);background:var(--border2);padding:1px 5px;border-radius:4px}
 
-/* APP */
-#app{display:none;height:100%;flex-direction:column;position:relative;z-index:1}
-#app.on{display:flex}
-.screen{display:none;flex:1;flex-direction:column;overflow:hidden}
-.screen.on{display:flex}
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:linear-gradient(135deg,var(--bg-from) 0%,#fff 50%,var(--bg-to) 100%)}
+.page{display:none;height:100%;overflow-y:auto;padding:32px 40px 40px}
+.page.active{display:block}
+.page-label{font-size:.625rem;font-weight:600;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.page-title{font-size:2.25rem;font-weight:400;color:var(--text);line-height:1.2;margin-bottom:8px}
+.page-sub{font-size:.875rem;color:var(--text2);margin-bottom:32px;line-height:1.6}
 
-/* NAVBAR */
-.navbar{background:rgba(0,0,0,.75);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border-bottom:1px solid var(--border2);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;padding-top:env(safe-area-inset-top,0);flex-shrink:0;z-index:10;position:relative}
-.nav-logo{font-size:20px;font-weight:700;letter-spacing:-.5px;font-family:-apple-system,'SF Pro Display',sans-serif}
-.nav-logo em{font-style:normal;background:linear-gradient(135deg,#0a84ff,#bf5af2);-webkit-background-clip:text;background-clip:text;color:transparent}
-.nav-back{display:flex;align-items:center;gap:3px;color:var(--blue);font-size:16px;background:none;border:none;cursor:pointer;font-family:inherit;padding:8px 0}
-.nav-title{position:absolute;left:50%;transform:translateX(-50%);font-size:16px;font-weight:600;white-space:nowrap;pointer-events:none}
-.nav-action{font-size:13px;color:var(--text2);background:none;border:none;cursor:pointer;font-family:inherit;padding:6px 10px;border-radius:8px;transition:background .15s}
-.nav-action:hover{background:var(--card)}
+/* ACCUEIL */
+.accueil-hero{text-align:center;padding:32px 0 24px}
+.accueil-date{font-size:.625rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);margin-bottom:16px}
+.clock-time{font-size:6rem;font-weight:300;letter-spacing:-.02em;line-height:1;color:var(--text)}
+.clock-secs{font-size:2rem;font-weight:300;color:var(--text3);margin-top:4px}
+.accueil-greeting{margin-top:28px;font-size:1.75rem;font-weight:400;color:var(--text)}
+.accueil-greeting strong{font-weight:700}
+.accueil-progress{font-size:.875rem;color:var(--text2);margin-top:6px}
+.accueil-cards{display:grid;gap:12px;margin-top:28px;max-width:680px;margin-left:auto;margin-right:auto}
+.weather-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:16px}
+.weather-icon{width:48px;height:48px;background:var(--blue-bg);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.weather-icon svg{width:24px;height:24px;color:var(--orange)}
+.weather-loc{font-size:.625rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:4px;margin-bottom:4px}
+.weather-temp{font-size:1.5rem;font-weight:500;color:var(--text)}
+.weather-temp sup{font-size:.875rem;font-weight:400}
+.weather-desc{font-size:.8rem;color:var(--text2)}
+.deadline-card{background:#FFF5F4;border:1px solid #FFD9D2;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:16px}
+.deadline-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.deadline-icon svg{width:22px;height:22px;color:var(--orange)}
+.deadline-info{flex:1}
+.deadline-tag{font-size:.625rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:4px}
+.deadline-title{font-size:.9375rem;font-weight:600;color:var(--text)}
+.deadline-meta{font-size:.75rem;color:var(--text2);margin-top:2px}
+.deadline-days{background:#fff;border:1px solid #FFD9D2;color:var(--red);font-size:.75rem;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap;margin-left:auto}
 
-/* SCROLL */
-.scroll-wrap{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:max(env(safe-area-inset-bottom,0px),24px)}
-.scroll-wrap::-webkit-scrollbar{display:none}
+/* DASHBOARD */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px}
+.stat-label{font-size:.625rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
+.stat-value{font-size:2rem;font-weight:600;line-height:1}
+.stat-value.blue{color:var(--blue)}
+.stat-value.green{color:var(--green)}
+.stat-value.orange{color:var(--orange)}
+.stat-value.red{color:var(--red)}
+.stat-sub{font-size:.75rem;color:var(--text2);margin-top:4px}
+.dashboard-grid{display:grid;grid-template-columns:1fr 280px;gap:20px}
+.formations-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px}
+.formations-header{display:flex;align-items:center;gap:6px;font-size:.625rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:20px}
+.formation-row{display:flex;align-items:center;padding:12px 0;border-bottom:1px solid var(--border2)}
+.formation-row:last-child{border-bottom:none}
+.formation-name{font-size:.875rem;color:var(--text);flex:1}
+.formation-sub{font-size:.75rem;color:var(--text2)}
+.formation-pct{font-size:.875rem;font-weight:600;color:var(--text2);margin-left:16px}
+.prog-bar{height:4px;background:var(--border2);border-radius:2px;margin-top:6px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;background:var(--blue);transition:width .5s}
+.side-cards{display:flex;flex-direction:column;gap:16px}
+.report-card{background:var(--purple-bg);border:1px solid #D8D0FF;border-radius:16px;padding:20px}
+.report-tag{font-size:.625rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--purple);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.report-title{font-size:1.0625rem;font-weight:600;color:var(--text);margin-bottom:4px}
+.report-obj{font-size:.8rem;color:var(--text2)}
+.report-date{font-size:.8rem;color:var(--text2);margin-top:12px;padding-top:12px;border-top:1px solid #D8D0FF}
+.days-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px}
+.days-tag{font-size:.625rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.days-value{font-size:2.5rem;font-weight:300;color:var(--text);line-height:1}
+.days-unit{font-size:1.25rem;font-weight:400;color:var(--text2)}
+.days-sub{font-size:.75rem;color:var(--text2);margin-top:4px}
 
-/* ALERT */
-.alert-urgent{background:var(--red-bg);border-bottom:1px solid rgba(255,69,58,.25);padding:14px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0}
-.alert-urgent-dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1.5s infinite;flex-shrink:0}
-.alert-urgent-txt{flex:1;font-size:14px;font-weight:500}
-.alert-urgent-cnt{font-size:13px;font-weight:700;color:var(--red);background:rgba(255,69,58,.2);padding:4px 10px;border-radius:8px;flex-shrink:0}
+/* FLASH INFO */
+.flash-header-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px}
+.refresh-btn{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:.8125rem;font-weight:500;color:var(--text);cursor:pointer;transition:background .15s}
+.refresh-btn:hover{background:var(--border2)}
+.refresh-btn svg{width:14px;height:14px}
+.flash-tabs{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+.flash-tab{padding:8px 16px;border-radius:20px;font-size:.8125rem;font-weight:500;cursor:pointer;transition:background .15s,color .15s;color:var(--text2);background:transparent;border:none}
+.flash-tab.active{background:var(--text);color:#fff}
+.flash-date-label{font-size:.625rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:16px}
+.flash-updated{font-size:.75rem;color:var(--text3);margin-left:auto}
+.flash-article{background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px}
+.article-meta{display:flex;align-items:center;gap:8px;margin-bottom:12px;justify-content:space-between}
+.article-tags{display:flex;gap:6px}
+.tag{font-size:.625rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:4px}
+.tag.fiscal{background:#FFF1DC;color:var(--orange)}
+.tag.audit{background:var(--blue-bg);color:var(--blue)}
+.tag.new{background:var(--red);color:#fff}
+.tag.social{background:var(--green-bg);color:var(--green-dark)}
+.tag.juridique{background:var(--purple-bg);color:var(--purple)}
+.article-time{font-size:.75rem;color:var(--text3)}
+.article-title{font-size:1.0625rem;font-weight:600;color:var(--text);margin-bottom:12px}
+.article-section{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:6px}
+.article-body{font-size:.875rem;color:var(--text2);line-height:1.7;margin-bottom:16px}
+.article-critique{font-size:.875rem;color:var(--text);line-height:1.7;font-style:italic;margin-bottom:12px}
+.article-critique-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin-bottom:6px}
+.sources-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
+.source-chip{display:inline-flex;background:var(--border2);color:var(--text);font-size:.75rem;padding:4px 10px;border-radius:6px;margin-right:6px;margin-bottom:6px}
 
-/* STATS GRID */
-.stats-grid{border-bottom:1px solid var(--border2);display:grid;grid-template-columns:repeat(3,1fr);flex-shrink:0}
-.stat{padding:18px 10px;text-align:center;border-right:1px solid var(--border2)}
-.stat:last-child{border-right:none}
-.stat-val{font-size:24px;font-weight:700;letter-spacing:-1px;font-family:-apple-system,'SF Pro Display',sans-serif}
-.stat-lbl{font-size:10px;color:var(--text2);margin-top:2px;font-weight:500}
+/* CALENDRIER */
+.cal-next{background:#FFF5F4;border:1px solid #FFD9D2;border-radius:16px;padding:20px;margin-bottom:28px}
+.cal-next-tag{font-size:.625rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.cal-next-title{font-size:1.125rem;font-weight:600;color:var(--text)}
+.cal-next-date{font-size:.875rem;color:var(--text2);margin-top:4px}
+.cal-month{font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin:28px 0 12px;display:flex;align-items:center;gap:8px}
+.cal-month-dot{width:8px;height:8px;border-radius:50%;background:var(--red)}
+.cal-event{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:16px}
+.cal-event.upcoming{background:#FFF7F6;border-color:#FFD9D2}
+.cal-event.validated{background:var(--green-bg);border-color:#B6E9D8}
+.cal-date-box{width:48px;height:48px;border-radius:10px;background:var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.cal-date-day{font-size:.625rem;font-weight:600;text-transform:uppercase;color:var(--text2)}
+.cal-date-num{font-size:1.25rem;font-weight:700;color:var(--text);line-height:1}
+.cal-event-info{flex:1}
+.cal-event-meta{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.cal-event-type{font-size:.625rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+.cal-event-badge{font-size:.625rem;font-weight:600;padding:2px 6px;border-radius:4px}
+.cal-event-badge.passe{background:var(--border2);color:var(--text2)}
+.cal-event-badge.j2{background:var(--red);color:#fff}
+.cal-event-title{font-size:.9375rem;font-weight:600;color:var(--text)}
+.cal-event-details{font-size:.75rem;color:var(--text2);margin-top:2px}
 
-/* SECTIONS */
-.section{padding:28px 20px 0}
-.sec-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:2px}
-.sec-title{font-size:20px;font-weight:700;letter-spacing:-.5px;font-family:-apple-system,'SF Pro Display',sans-serif}
-.sec-sub{font-size:13px;color:var(--text2);margin-bottom:14px}
+/* PROGRAMME */
+.prog-stats{background:var(--blue-bg);border-radius:16px;padding:20px 24px;margin-bottom:24px}
+.prog-year-num{font-size:3rem;font-weight:300;color:var(--blue);line-height:1}
+.prog-year-label{font-size:.875rem;color:var(--blue-dark)}
+.prog-bar2{height:6px;background:rgba(91,124,250,.2);border-radius:3px;margin-top:12px;overflow:hidden}
+.prog-fill2{height:100%;border-radius:3px;background:var(--blue)}
+.prog-tabs{display:flex;gap:6px;margin-bottom:24px}
+.prog-tab{padding:7px 14px;border-radius:20px;font-size:.8125rem;font-weight:500;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text2);transition:all .15s}
+.prog-tab.active{background:var(--text);color:#fff;border-color:var(--text)}
+.formations-section-label{display:flex;align-items:center;gap:8px;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:12px}
+.formation-item{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:background .15s}
+.formation-item:hover{background:var(--border2)}
+.formation-checkbox{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;background:#fff}
+.formation-checkbox.checked{background:var(--blue);border-color:var(--blue)}
+.formation-checkbox.checked svg{display:block}
+.formation-checkbox svg{display:none;width:12px;height:12px;color:#fff}
+.formation-details{flex:1}
+.formation-code{font-size:.7rem;font-weight:600;color:var(--text2);letter-spacing:.04em;margin-bottom:2px}
+.formation-name-text{font-size:.875rem;font-weight:500;color:var(--text)}
+.formation-type-badge{font-size:.7rem;font-weight:500;color:var(--text2);background:var(--border2);padding:3px 8px;border-radius:6px;margin-left:auto;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.formation-validated{background:var(--green-bg);border-color:#B6E9D8}
+.validated-badge{font-size:.625rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green-dark);background:#C8F0E2;padding:2px 7px;border-radius:4px}
+.reinit-btn{background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--text2);display:flex;align-items:center;gap:4px;padding:0}
+.reinit-btn:hover{color:var(--text)}
+.reinit-btn svg{width:12px;height:12px}
+.prog-stats-header{display:flex;align-items:flex-end;justify-content:space-between}
 
-/* PROGRESS CARDS */
-.prog-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;backdrop-filter:blur(12px);box-shadow:var(--sh)}
-.prog-row{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px}
-.prog-label{font-size:12px;color:var(--text2);margin-bottom:3px}
-.prog-pct{font-size:32px;font-weight:700;letter-spacing:-1.5px;font-family:-apple-system,'SF Pro Display',sans-serif}
-.prog-days-txt{font-size:11px;color:var(--text2)}
-.prog-bar-wrap{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:6px}
-.prog-bar{height:100%;border-radius:3px;transition:width 1.5s cubic-bezier(.2,.8,.3,1)}
-.prog-dates{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
-.prog-gap{height:14px}
-.prog-subjects{display:flex;flex-direction:column;gap:11px;margin-top:4px}
-.prog-subj-hd{display:flex;justify-content:space-between;margin-bottom:4px}
-.prog-subj-name{font-size:12px;color:var(--text2)}
-.prog-subj-pct{font-size:11px;font-weight:700}
-.prog-subj-bar-wrap{height:4px;background:var(--border2);border-radius:2px;overflow:hidden;cursor:pointer;transition:height .15s}
-.prog-subj-bar-wrap:hover{height:6px}
-.prog-subj-bar{height:100%;border-radius:2px;transition:width 1.2s .1s cubic-bezier(.2,.8,.3,1)}
-.prog-tap-hint{font-size:10px;color:var(--text3);text-align:center;margin-top:10px}
+/* AGENTS */
+.agents-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.agent-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px;transition:box-shadow .15s}
+.agent-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.agent-card-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px}
+.agent-avatar{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.25rem}
+.agent-avatar.blue{background:var(--blue-bg)}
+.agent-avatar.green{background:var(--green-bg)}
+.agent-avatar.purple{background:var(--purple-bg)}
+.agent-avatar.orange{background:var(--orange-bg)}
+.agent-avatar.teal{background:var(--teal-bg)}
+.agent-avatar.red{background:var(--red-bg)}
+.agent-info{flex:1}
+.agent-name-row{display:flex;align-items:center;gap:8px}
+.agent-card-name{font-size:1.0625rem;font-weight:600;color:var(--text)}
+.agent-status-dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.agent-badge{background:var(--blue);color:#fff;font-size:.7rem;font-weight:600;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.agent-specialty{font-size:.75rem;color:var(--text2);margin-top:2px}
+.agent-desc{font-size:.8125rem;color:var(--text2);line-height:1.6;margin-bottom:16px}
+.agent-link{display:flex;align-items:center;gap:6px;font-size:.8125rem;font-weight:500;color:var(--blue);cursor:pointer;text-decoration:none;background:none;border:none;padding:0}
+.agent-link:hover{text-decoration:underline}
+.agent-link svg{width:14px;height:14px}
 
-/* PLANNING */
-.plan-list{display:flex;flex-direction:column;gap:8px}
-.plan-item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:center;backdrop-filter:blur(10px)}
-.plan-item.urgent{border-color:rgba(255,69,58,.3);background:rgba(255,69,58,.06)}
-.plan-date-box{display:flex;flex-direction:column;align-items:center;min-width:42px;background:var(--bg4);border-radius:9px;padding:5px 4px;border:1px solid var(--border2)}
-.plan-month{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-.plan-day{font-size:20px;font-weight:700;letter-spacing:-1px;line-height:1;font-family:-apple-system,'SF Pro Display',sans-serif}
-.plan-body{flex:1;min-width:0}
-.plan-name{font-size:13px;font-weight:600;letter-spacing:-.2px;margin-bottom:2px}
-.plan-meta{font-size:11px;color:var(--text2)}
-.plan-cd{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;flex-shrink:0}
+/* MEMOIRE */
+.memoire-hero{text-align:center;padding:40px 0;max-width:600px;margin:0 auto}
+.memoire-hero p{font-size:.9375rem;color:var(--text2);line-height:1.7;margin-bottom:24px}
+.memoire-status{display:inline-flex;align-items:center;gap:8px;background:var(--orange-bg);color:var(--orange);font-size:.8125rem;font-weight:600;padding:10px 20px;border-radius:20px}
+.timeline-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px;margin-top:32px}
+.timeline-title{font-size:.875rem;font-weight:600;color:var(--text);margin-bottom:20px}
+.timeline-item{display:flex;gap:16px;margin-bottom:20px}
+.timeline-item:last-child{margin-bottom:0}
+.timeline-dot-col{display:flex;flex-direction:column;align-items:center}
+.timeline-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.timeline-dot.done{background:var(--green)}
+.timeline-dot.upcoming{background:var(--border)}
+.timeline-dot.current{background:var(--blue);box-shadow:0 0 0 3px var(--blue-bg)}
+.timeline-line{width:2px;background:var(--border2);flex:1;margin-top:6px}
+.timeline-info{flex:1;padding-bottom:4px}
+.timeline-event{font-size:.875rem;font-weight:500;color:var(--text)}
+.timeline-date{font-size:.75rem;color:var(--text2);margin-top:2px}
 
-/* MANAGER CARD */
-.mgr-card{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s;backdrop-filter:blur(10px)}
-.mgr-card:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(10,132,255,.2);border-color:rgba(10,132,255,.3)}
-.mgr-card:active{transform:scale(.99)}
-.mgr-inner{display:flex;align-items:center;padding:18px;gap:14px}
-.mgr-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(145deg,#0a84ff,#0040ff);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;box-shadow:0 4px 20px rgba(10,132,255,.4);animation:iconFloat 4s ease-in-out infinite}
-@keyframes iconFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-.mgr-body{flex:1;min-width:0}
-.mgr-eyebrow{font-size:10px;font-weight:700;color:var(--blue);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
-.mgr-name{font-size:16px;font-weight:700;letter-spacing:-.3px;margin-bottom:2px}
-.mgr-desc{font-size:12px;color:var(--text2);line-height:1.4}
-.mgr-chevron{color:var(--text3);font-size:22px}
+/* FICHES */
+.fiches-toprow{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.new-btn{display:flex;align-items:center;gap:6px;background:var(--text);color:#fff;border:none;border-radius:20px;padding:10px 18px;font-size:.8125rem;font-weight:600;cursor:pointer;transition:background .15s}
+.new-btn:hover{background:#1f2937}
+.new-btn svg{width:14px;height:14px}
+.table-header{display:grid;grid-template-columns:120px 1fr 1fr 80px 100px;gap:12px;padding:10px 16px;font-size:.625rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}
+.small-stat{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px}
+.small-stat-label{font-size:.625rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.small-stat-label svg{width:12px;height:12px}
+.small-stat-value{font-size:2rem;font-weight:600;color:var(--text)}
+.small-stat-value span{font-size:1rem;font-weight:400;color:var(--text2)}
+.empty-state{text-align:center;padding:48px;color:var(--text2);font-size:.875rem}
 
-/* AGENTS GRID */
-.agents-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:80px}
-.agent-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 14px;cursor:pointer;position:relative;transition:transform .2s,box-shadow .2s;backdrop-filter:blur(10px);overflow:hidden}
-.agent-card:hover{transform:translateY(-2px)}
-.agent-card:active{transform:scale(.97)}
-.agent-card.dim{opacity:.35;cursor:default}
-.agent-card.dim:hover{transform:none}
-.agent-icon{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:11px}
-.agent-eyebrow{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:3px}
-.agent-name{font-size:14px;font-weight:700;letter-spacing:-.2px;margin-bottom:4px}
-.agent-desc{font-size:11px;color:var(--text2);line-height:1.4}
-.agent-pill{display:inline-block;margin-top:10px;font-size:10px;font-weight:600;padding:3px 9px;border-radius:980px}
-.soon-badge{position:absolute;top:10px;right:10px;font-size:9px;font-weight:700;color:var(--text3);background:var(--bg4);padding:2px 6px;border-radius:5px;border:1px solid var(--border2)}
+/* RAPPORTS */
+.rapport-item{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px;display:flex;align-items:center;gap:16px}
+.rapport-icon{width:44px;height:44px;border-radius:12px;background:var(--purple-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rapport-icon svg{width:22px;height:22px;color:var(--purple)}
+.rapport-info{flex:1}
+.rapport-tag{font-size:.625rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);margin-bottom:4px}
+.rapport-title2{font-size:.9375rem;font-weight:600;color:var(--text)}
+.rapport-date{font-size:.8rem;color:var(--text2);margin-top:2px}
+.rapport-export{display:flex;align-items:center;gap:6px;background:none;border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:.8125rem;color:var(--text2);cursor:pointer;transition:background .15s;white-space:nowrap}
+.rapport-export:hover{background:var(--border2)}
+.rapport-export svg{width:14px;height:14px}
 
-/* PROGRAMME SCREEN */
-.year-tabs{display:flex;gap:0;background:var(--bg3);border-bottom:1px solid var(--border2);flex-shrink:0}
-.year-tab{flex:1;padding:13px 8px;text-align:center;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
-.year-tab.on{color:var(--blue);border-bottom-color:var(--blue)}
-.year-pane{display:none;flex:1;overflow-y:auto;padding:16px 16px 80px;-webkit-overflow-scrolling:touch}
-.year-pane::-webkit-scrollbar{display:none}
-.year-pane.on{display:block}
-.year-header{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:14px}
-.year-header-title{font-size:15px;font-weight:700;margin-bottom:4px}
-.year-header-sub{font-size:12px;color:var(--text2)}
-.year-progress-row{display:flex;align-items:center;gap:10px;margin-top:10px}
-.year-prog-bar-wrap{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
-.year-prog-bar{height:100%;border-radius:2px;transition:width 1s cubic-bezier(.2,.8,.3,1)}
-.year-prog-lbl{font-size:11px;font-weight:700;min-width:30px;text-align:right}
-.form-item{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:border-color .15s,background .15s}
-.form-item:active{background:var(--card-h)}
-.form-item.done{border-color:rgba(48,209,88,.25);background:rgba(48,209,88,.04)}
-.form-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:background .15s,border-color .15s}
-.form-item.done .form-check{background:var(--green);border-color:var(--green)}
-.form-check-ic{font-size:13px;display:none}
-.form-item.done .form-check-ic{display:block}
-.form-body{flex:1;min-width:0}
-.form-name{font-size:14px;font-weight:600;letter-spacing:-.2px;margin-bottom:3px}
-.form-item.done .form-name{color:var(--text2);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.3)}
-.form-format{font-size:11px;color:var(--text2)}
-.form-meta{margin-top:5px;display:flex;gap:6px;flex-wrap:wrap}
-.form-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px}
+/* CORE chat */
+.page.active.core-page{display:flex;flex-direction:column;height:100%;padding:0}
+.core-header{padding:24px 40px 20px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.8);backdrop-filter:blur(8px)}
+.core-agent-row{display:flex;align-items:center;gap:12px}
+.core-avatar{width:40px;height:40px;border-radius:50%;background:#0B0B10;display:flex;align-items:center;justify-content:center}
+.core-avatar-dot{width:10px;height:10px;border-radius:50%;background:#fff}
+.core-agent-name{font-size:1.0625rem;font-weight:600;color:var(--text)}
+.core-agent-desc{font-size:.8rem;color:var(--text2)}
+.core-messages{flex:1;overflow-y:auto;padding:24px 40px}
+.core-msg{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;max-width:720px}
+.core-msg-label{font-size:.625rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:10px}
+.core-msg-text{font-size:.875rem;color:var(--text);line-height:1.7}
+.core-prompts{display:flex;flex-wrap:wrap;gap:8px;padding:0 40px 12px}
+.prompt-chip{background:#fff;border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:.8125rem;color:var(--text);cursor:pointer;transition:background .15s}
+.prompt-chip:hover{background:var(--border2)}
+.core-input-row{padding:12px 40px 20px;display:flex;gap:10px}
+.core-input{flex:1;background:#fff;border:1px solid var(--border);border-radius:24px;padding:12px 20px;font-size:.875rem;color:var(--text);outline:none;font-family:inherit;transition:border .15s}
+.core-input:focus{border-color:var(--blue)}
+.core-send{width:40px;height:40px;border-radius:50%;background:var(--text);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-top:auto;transition:background .15s}
+.core-send:hover{background:var(--blue)}
+.core-send svg{width:16px;height:16px;color:#fff}
 
-/* RAPPORTS SCREEN */
-.rapport-section{padding:20px 16px 0}
-.rapport-title{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-bottom:4px}
-.rapport-sub{font-size:12px;color:var(--text2);margin-bottom:12px}
-.rapport-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
-.rapport-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.rapport-body{flex:1}
-.rapport-name{font-size:14px;font-weight:600;margin-bottom:2px}
-.rapport-date{font-size:11px;color:var(--text2)}
-.rapport-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;flex-shrink:0}
-.fiche-empty{text-align:center;padding:32px 20px;color:var(--text3);font-size:13px}
+/* Agent chat modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;width:100%;max-width:600px;border-radius:24px 24px 0 0;height:80vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:1rem;font-weight:600;color:var(--text)}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text2);padding:4px}
+.modal-close:hover{color:var(--text)}
+.modal-messages{flex:1;overflow-y:auto;padding:20px 24px}
+.modal-agent-msg{background:var(--border2);border-radius:16px;border-bottom-left-radius:4px;padding:14px 16px;margin-bottom:12px;max-width:85%;font-size:.875rem;color:var(--text);line-height:1.6}
+.modal-user-msg{background:var(--blue);border-radius:16px;border-bottom-right-radius:4px;padding:14px 16px;margin-bottom:12px;max-width:85%;margin-left:auto;font-size:.875rem;color:#fff;line-height:1.6}
+.modal-input-row{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px}
+.modal-input{flex:1;background:var(--border2);border:none;border-radius:20px;padding:10px 16px;font-size:.875rem;color:var(--text);outline:none;font-family:inherit}
+.modal-send{width:36px;height:36px;border-radius:50%;background:var(--blue);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.modal-send svg{width:14px;height:14px;color:#fff}
 
-/* CHAT */
-#s-chat{background:transparent;position:absolute;inset:0;z-index:50;flex-direction:column}
-#s-chat.on{display:flex}
-.chat-msgs{flex:1;overflow-y:auto;padding:16px 14px 8px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
-.chat-msgs::-webkit-scrollbar{display:none}
-.msg{display:flex;animation:msgIn .28s cubic-bezier(.2,.8,.3,1) both}
-.msg.u{justify-content:flex-end}
-@keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.bubble{max-width:82%;padding:11px 15px;font-size:15px;line-height:1.55;word-break:break-word}
-.bubble.a{background:var(--card);color:var(--text);border-radius:18px 18px 18px 4px;border:1px solid var(--border);backdrop-filter:blur(10px)}
-.bubble.u{background:linear-gradient(135deg,#0a84ff,#005fd4);color:#fff;border-radius:18px 18px 4px 18px;box-shadow:0 4px 16px rgba(10,132,255,.35)}
-.stream-cursor{animation:blink .7s steps(1) infinite;color:var(--blue)}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.dots{display:flex;gap:5px;align-items:center;padding:12px 15px}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:dotBlink 1.4s infinite}
-.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
-@keyframes dotBlink{0%,100%{opacity:.3;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
-.chat-date-sep{text-align:center;font-size:11px;color:var(--text3);font-weight:500;margin:2px 0;padding:3px 12px;background:rgba(0,0,0,.3);border-radius:10px;display:inline-block;align-self:center}
-.chat-bar{background:rgba(0,0,0,.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border2);padding:10px 14px;padding-bottom:max(env(safe-area-inset-bottom,0px),10px);display:flex;align-items:flex-end;gap:10px;flex-shrink:0}
-.chat-input{flex:1;border:1px solid var(--border);border-radius:22px;padding:11px 16px;font-size:15px;color:var(--text);background:var(--bg3);font-family:inherit;outline:none;resize:none;min-height:44px;max-height:120px;line-height:1.45;transition:border-color .2s}
-.chat-input:focus{border-color:var(--blue)}
-.chat-input::placeholder{color:var(--text3)}
-.send-btn{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0a84ff,#005fd4);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:18px;transition:opacity .15s,transform .1s;box-shadow:0 2px 10px rgba(10,132,255,.4)}
-.send-btn:active{transform:scale(.9)}
-.send-btn:disabled{opacity:.3;cursor:default;box-shadow:none}
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
-/* TAB BAR */
-.tabbar{background:rgba(0,0,0,.9);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border-top:1px solid var(--border2);display:flex;padding:6px 0;padding-bottom:max(env(safe-area-inset-bottom,0px),6px);flex-shrink:0}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--text3);font-size:10px;font-weight:500;padding:4px 0;transition:color .15s;background:none;border:none;font-family:inherit}
-.tab.on{color:var(--blue)}
-.tab-icon{font-size:22px;line-height:1}
-
-/* MUSIC */
-.music-fab{position:fixed;bottom:88px;right:16px;z-index:200;width:46px;height:46px;border-radius:50%;background:rgba(28,28,36,.92);border:1px solid var(--border);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;box-shadow:var(--sh);transition:transform .2s;color:var(--text2)}
-.music-fab:hover{transform:scale(1.1)}
-.music-fab.playing{color:var(--blue);animation:musicGlow 2.5s ease-in-out infinite}
-@keyframes musicGlow{0%,100%{box-shadow:var(--sh)}50%{box-shadow:0 0 0 6px rgba(10,132,255,.2),var(--sh)}}
-.music-panel{position:fixed;bottom:150px;right:16px;z-index:199;width:260px;background:rgba(16,16,22,.96);border:1px solid var(--border);border-radius:20px;padding:16px;backdrop-filter:blur(24px);box-shadow:var(--sh-lg);display:none}
-.music-panel.on{display:block;animation:slideUp .3s cubic-bezier(.2,.8,.3,1)}
-@keyframes slideUp{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
-.music-now{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.music-art{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#0a84ff,#bf5af2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.music-art.playing{animation:spinArt 8s linear infinite}
-@keyframes spinArt{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.music-info-track{font-size:13px;font-weight:600}
-.music-info-type{font-size:11px;color:var(--text2)}
-.music-prog-wrap{height:3px;background:var(--border);border-radius:2px;margin-bottom:12px;overflow:hidden}
-.music-prog-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,#0a84ff,#bf5af2);width:0%;transition:width .5s linear}
-.music-ctrls{display:flex;align-items:center;justify-content:space-around;margin-bottom:12px}
-.mc-btn{background:none;border:none;cursor:pointer;color:var(--text2);font-size:22px;padding:6px;transition:color .15s,transform .1s;line-height:1}
-.mc-btn:hover{color:var(--text)}
-.mc-btn.mc-play{color:var(--blue);font-size:34px}
-.mc-btn:active{transform:scale(.88)}
-.music-vol-row{display:flex;align-items:center;gap:8px}
-.music-vol-ic{font-size:13px;color:var(--text3)}
-.music-vol-sl{flex:1;-webkit-appearance:none;height:3px;border-radius:2px;background:var(--border);outline:none;cursor:pointer}
-.music-vol-sl::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--text);cursor:pointer}
-
-@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){
+  :root{--sidebar-w:200px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .dashboard-grid{grid-template-columns:1fr}
+  .agents-grid{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  :root{--sidebar-w:56px}
+  .logo-text,.nav-item span,.section-label,.agent-item span,.user-info,.core-ia{display:none}
+  .logo-icon{margin:auto}
+  .live-dot,.nav-badge,.agent-count,.agent-online{display:none}
+  .user-row{justify-content:center}
+  .page{padding:20px}
+}
 </style>
 </head>
 <body>
-<div class="orbs"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
 
-<!-- AUTH -->
-<div id="auth">
-  <div class="auth-logo">Mon<em>DEC</em></div>
-  <div class="auth-tagline">Groupe 26007 · Stage DEC · 2025–2028</div>
-  <div class="auth-card">
-    <input id="pwd" class="auth-field" type="password" placeholder="Mot de passe" autocomplete="current-password"/>
-    <button class="auth-btn" onclick="login()">Accéder →</button>
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="12" width="4" height="9" rx="1"/><rect x="9" y="7" width="4" height="14" rx="1"/><rect x="16" y="3" width="4" height="18" rx="1"/></svg>
+    </div>
+    <div class="logo-text">
+      <div class="logo-name">PHDDEC</div>
+      <div class="logo-sub">Groupe 26007</div>
+    </div>
   </div>
-  <div class="auth-err" id="auth-err"></div>
-</div>
+  <nav>
+    <a class="nav-item active" data-page="accueil" onclick="navigate('accueil')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+      <span>Accueil</span>
+    </a>
+    <a class="nav-item" data-page="dashboard" onclick="navigate('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Tableau de bord</span>
+    </a>
+    <a class="nav-item" data-page="flash" onclick="navigate('flash')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/></svg>
+      <span>Flash Info</span>
+      <span class="live-dot">LIVE</span>
+    </a>
+    <a class="nav-item" data-page="calendrier" onclick="navigate('calendrier')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span>Calendrier CSOEC</span>
+    </a>
+    <a class="nav-item" data-page="programme" onclick="navigate('programme')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+      <span>Programme de stage</span>
+    </a>
+    <a class="nav-item" data-page="agents" onclick="navigate('agents')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4"/><path d="M2 20c0-4 4-7 10-7s10 3 10 7"/><path d="M17 11l2-2 2 2M19 9v5"/></svg>
+      <span>Mes Agents IA</span>
+    </a>
+    <a class="nav-item" data-page="memoire" onclick="navigate('memoire')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span>Mémoire</span>
+    </a>
+    <a class="nav-item" data-page="fiches" onclick="navigate('fiches')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+      <span>Fiches de travail</span>
+    </a>
+    <a class="nav-item" data-page="rapports" onclick="navigate('rapports')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+      <span>Rapports semestriels</span>
+    </a>
 
-<!-- APP -->
-<div id="app">
+    <div class="section-label">Agents IA</div>
+    <div class="agent-item" onclick="openAgent('leon')">
+      <div class="agent-dot"></div>
+      <span>Léon</span>
+      <span class="agent-count">2</span>
+      <div class="agent-online"></div>
+    </div>
+    <div class="agent-item" onclick="openAgent('iris')">
+      <div class="agent-dot"></div>
+      <span>Iris</span>
+      <span class="agent-count">2</span>
+      <div class="agent-online"></div>
+    </div>
+    <div class="agent-item" onclick="openAgent('octave')">
+      <div class="agent-dot"></div>
+      <span>Octave</span>
+      <div class="agent-online"></div>
+    </div>
 
-  <!-- HOME -->
-  <div class="screen" id="s-home">
-    <div class="navbar">
-      <div class="nav-logo">Mon<em>DEC</em></div>
-      <div style="width:44px"></div>
+    <div class="appearance-row">
+      <span class="appearance-label">Apparence</span>
+      <div class="theme-toggle">
+        <button class="theme-btn active" title="Clair">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <button class="theme-btn" title="Auto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <button class="theme-btn" title="Sombre">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
     </div>
-    <div id="alert-bar" class="alert-urgent" style="display:none">
-      <div class="alert-urgent-dot"></div>
-      <div class="alert-urgent-txt" id="alert-txt"></div>
-      <div class="alert-urgent-cnt" id="alert-cnt"></div>
+  </nav>
+
+  <div class="user-row">
+    <div class="user-avatar">M</div>
+    <div class="user-info">
+      <div class="user-name">Marjana</div>
+      <div class="user-role">Stagiaire DEC</div>
     </div>
+    <button class="logout-btn" title="Déconnexion">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+  <div class="core-item" data-page="core" onclick="navigate('core')">
+    <div class="core-dot"></div>
+    <span>CORE</span>
+    <span class="core-ia">IA</span>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+  <!-- ACCUEIL -->
+  <div class="page active" id="page-accueil">
+    <div class="accueil-hero">
+      <div class="accueil-date" id="accueil-date">MARDI 26 MAI 2026</div>
+      <div class="clock-time" id="clock-time">18:31</div>
+      <div class="clock-secs" id="clock-secs">00</div>
+      <div class="accueil-greeting">Bonjour, <strong>Marjana</strong>.</div>
+      <div class="accueil-progress" id="accueil-progress">Stage DEC · Jour 238 · 22% accompli</div>
+    </div>
+    <div class="accueil-cards">
+      <div class="weather-card">
+        <div class="weather-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </div>
+        <div>
+          <div class="weather-loc">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            PARIS
+          </div>
+          <div class="weather-temp">32 <sup>°C</sup></div>
+          <div class="weather-desc">Ciel dégagé</div>
+        </div>
+      </div>
+      <div class="deadline-card">
+        <div class="deadline-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="deadline-info">
+          <div class="deadline-tag">Échéance fiche</div>
+          <div class="deadline-title">Fiche de travaux professionnels n°1</div>
+          <div class="deadline-meta">Plateforme CSOEC · 23h59</div>
+        </div>
+        <div class="deadline-days">Dans 158 jours</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page" id="page-dashboard">
+    <div class="page-label">Tableau de bord</div>
+    <div class="page-title">Vue d'ensemble du stage</div>
+    <div class="page-sub">36 mois · 4 rapports semestriels · 34 formations. Tu es à 22% du parcours.</div>
     <div class="stats-grid">
-      <div class="stat"><div class="stat-val" style="color:var(--blue)" id="s-pct">21%</div><div class="stat-lbl">Stage DEC</div></div>
-      <div class="stat"><div class="stat-val" style="color:var(--green)" id="s-days">233j</div><div class="stat-lbl">Jours accomplis</div></div>
-      <div class="stat"><div class="stat-val" style="color:var(--orange)" id="s-form">0/34</div><div class="stat-lbl">Jours formation</div></div>
+      <div class="stat-card">
+        <div class="stat-label">Progression</div>
+        <div class="stat-value blue">22%</div>
+        <div class="stat-sub">238 / 1096 jours</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Formations</div>
+        <div class="stat-value green" id="dash-formations">1/34</div>
+        <div class="stat-sub">DECCAC obligatoires</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Rapports</div>
+        <div class="stat-value orange">0/4</div>
+        <div class="stat-sub">rapports semestriels</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Prochaine échéance</div>
+        <div class="stat-value red">158j</div>
+        <div class="stat-sub">Fiche de travaux professionnels n°1</div>
+      </div>
     </div>
-    <div class="scroll-wrap">
-      <div class="section">
-        <div class="sec-hd"><div class="sec-title">Progression stage</div></div>
-        <div class="sec-sub">01/10/2025 → 01/10/2028 · 1 096 jours</div>
-        <div class="prog-card">
-          <div class="prog-row">
-            <div>
-              <div class="prog-label">Parcours global</div>
-              <div class="prog-pct" id="prog-global-pct" style="background:linear-gradient(135deg,#0a84ff,#30d158);-webkit-background-clip:text;background-clip:text;color:transparent">0%</div>
-            </div>
-            <div style="text-align:right">
-              <div class="prog-label" id="prog-days-left"></div>
-              <div class="prog-label" id="prog-days-elapsed"></div>
-            </div>
+    <div class="dashboard-grid">
+      <div class="formations-card">
+        <div class="formations-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+          Avancement formations
+        </div>
+        <div class="formation-row">
+          <div><div class="formation-name">Année 1</div><div class="formation-sub">1 / 12</div></div>
+          <span class="formation-pct" id="pct-y1">8%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" id="fill-y1" style="width:8%"></div></div>
+        <div class="formation-row" style="margin-top:12px">
+          <div><div class="formation-name">Année 2</div><div class="formation-sub">0 / 10</div></div>
+          <span class="formation-pct">0%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:0%"></div></div>
+        <div class="formation-row" style="margin-top:12px">
+          <div><div class="formation-name">Année 3</div><div class="formation-sub">0 / 11</div></div>
+          <span class="formation-pct">0%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:0%"></div></div>
+        <div class="formation-row" style="margin-top:12px">
+          <div><div class="formation-name">Axe institutionnel</div><div class="formation-sub">0 / 1</div></div>
+          <span class="formation-pct">0%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="side-cards">
+        <div class="report-card">
+          <div class="report-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+            Prochain rapport
           </div>
-          <div class="prog-bar-wrap"><div class="prog-bar" id="prog-global-bar" style="width:0%;background:linear-gradient(90deg,#0a84ff,#30d158);box-shadow:0 0 10px rgba(10,132,255,.4)"></div></div>
-          <div class="prog-dates"><span>Oct 2025</span><span>Oct 2028</span></div>
-          <div class="prog-gap"></div>
-          <div class="prog-label" style="margin-bottom:12px">Avancement par matière</div>
-          <div class="prog-subjects" id="prog-subjects"></div>
-          <div class="prog-tap-hint">Appuie sur une barre pour mettre à jour</div>
+          <div class="report-title">Rapport semestriel n°1</div>
+          <div class="report-obj">Objectif : 12 000 mots</div>
+          <div class="report-date">Deadline : 30 avril 2027</div>
+        </div>
+        <div class="days-card">
+          <div class="days-tag">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+            Jours restants
+          </div>
+          <div class="days-value">858<span>j</span></div>
+          <div class="days-sub">avant le 01/10/2028</div>
         </div>
       </div>
+    </div>
+  </div>
 
-      <div class="section">
-        <div class="sec-hd"><div class="sec-title">Journées obligatoires</div></div>
-        <div class="sec-sub">Groupe 26007 · Sup'Expertise Paris 8</div>
-        <div class="plan-list" id="plan-list"></div>
+  <!-- FLASH INFO -->
+  <div class="page" id="page-flash">
+    <div class="flash-header-row">
+      <div>
+        <div class="page-label">Flash Info</div>
+        <div class="page-title">L'actualité du métier.</div>
+        <div class="page-sub" style="margin-bottom:0">Synthèse Aïka — actualisée chaque heure. Résumé + avis critique + sources indicatives.</div>
       </div>
-
-      <div class="section">
-        <div class="sec-hd"><div class="sec-title">Coordinateur IA</div></div>
-        <div class="sec-sub" style="margin-bottom:10px">Orchestre tous tes agents.</div>
-        <div class="mgr-card" onclick="openChat('manager')">
-          <div class="mgr-inner">
-            <div class="mgr-icon">🧠</div>
-            <div class="mgr-body">
-              <div class="mgr-eyebrow">Coordinateur IA</div>
-              <div class="mgr-name">Manager DEC</div>
-              <div class="mgr-desc">Priorise tes tâches, coordonne tes agents, t'alerte sur les échéances.</div>
-            </div>
-            <div class="mgr-chevron">›</div>
-          </div>
-        </div>
+      <button class="refresh-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><polyline points="1,20 1,14 7,14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Rafraîchir
+      </button>
+    </div>
+    <div style="display:flex;align-items:center;margin-bottom:20px;margin-top:24px">
+      <div class="flash-tabs">
+        <button class="flash-tab active">Aujourd'hui <strong>5</strong></button>
+        <button class="flash-tab">Historique <strong>0</strong></button>
       </div>
+      <span class="flash-updated" style="margin-left:auto">Mis à jour à 17:22</span>
+    </div>
+    <div class="flash-date-label">Mardi 26 mai 2026</div>
 
-      <div class="section" style="padding-bottom:80px">
-        <div class="sec-hd"><div class="sec-title">Agents spécialisés</div></div>
-        <div class="sec-sub">Spécialisés pour chaque besoin.</div>
-        <div class="agents-grid">
-          <div class="agent-card" onclick="openChat('prof')" style="border-color:rgba(10,132,255,.2)">
-            <div class="agent-icon" style="background:var(--blue-bg)">📚</div>
-            <div class="agent-eyebrow" style="color:var(--blue)">Révision</div>
-            <div class="agent-name">Prof DEC</div>
-            <div class="agent-desc">Fiches, QCM et cas pratiques sur mesure.</div>
-            <div class="agent-pill" style="color:var(--blue);background:var(--blue-bg)">Actif</div>
-          </div>
-          <div class="agent-card" onclick="openChat('culture')" style="border-color:rgba(255,159,10,.2)">
-            <div class="agent-icon" style="background:var(--orange-bg)">🌍</div>
-            <div class="agent-eyebrow" style="color:var(--orange)">Culture G</div>
-            <div class="agent-name">Culture G</div>
-            <div class="agent-desc">Actualité EC, quiz et grands auteurs.</div>
-            <div class="agent-pill" style="color:var(--orange);background:var(--orange-bg)">Actif</div>
-          </div>
-          <div class="agent-card dim">
-            <div class="soon-badge">Bientôt</div>
-            <div class="agent-icon" style="background:var(--green-bg)">💼</div>
-            <div class="agent-eyebrow" style="color:var(--green)">Stage</div>
-            <div class="agent-name">Stage DEC</div>
-            <div class="agent-desc">Missions, rapport CSOEC, fiche annuelle.</div>
-          </div>
-          <div class="agent-card dim">
-            <div class="soon-badge">Bientôt</div>
-            <div class="agent-icon" style="background:var(--purple-bg)">📝</div>
-            <div class="agent-eyebrow" style="color:var(--purple)">Mémoire</div>
-            <div class="agent-name">Mémoire DEC</div>
-            <div class="agent-desc">Choix sujet, rédaction, soutenance.</div>
-          </div>
+    <div class="flash-article">
+      <div class="article-meta">
+        <div class="article-tags">
+          <span class="tag fiscal">Fiscal</span>
+          <span class="tag new">NEW</span>
         </div>
+        <span class="article-time">17:22</span>
+      </div>
+      <div class="article-title">Extension du dispositif de facturation électronique B2B au 1er septembre 2026</div>
+      <div class="article-section">Résumé</div>
+      <div class="article-body">Le gouvernement confirme le calendrier définitif de la réforme de facturation électronique obligatoire pour toutes les entreprises assujetties à la TVA. Les grandes entreprises devront émettre et recevoir des factures électroniques dès le 1er septembre 2026, tandis que les PME et ETI bénéficient d'un délai jusqu'en 2027. Les cabinets comptables multiplient les formations pour accompagner leurs clients dans cette transition technique et organisationnelle majeure.</div>
+      <div class="article-critique-label">Avis critique Aïka</div>
+      <div class="article-critique">Cette réforme représente une opportunité de modernisation des processus pour les cabinets et leurs clients, avec une automatisation accrue des flux. Néanmoins, la complexité technique du dispositif (plateforme de dématérialisation partenaire, normes sémantiques) et l'hétérogénéité de maturité digitale des TPE risquent de créer des difficultés d'accompagnement dans les prochains mois.</div>
+      <div class="sources-label">Sources indicatives</div>
+      <span class="source-chip">Bulletin Officiel des Finances Publiques</span>
+      <span class="source-chip">CSOEC</span>
+      <span class="source-chip">Compta Online</span>
+    </div>
+
+    <div class="flash-article">
+      <div class="article-meta">
+        <div class="article-tags"><span class="tag audit">Audit</span></div>
+        <span class="article-time">14:45</span>
+      </div>
+      <div class="article-title">Modification des NEP relatives à la documentation des missions d'audit</div>
+      <div class="article-section">Résumé</div>
+      <div class="article-body">Le Haut Conseil du Commissariat aux Comptes a publié une mise à jour des normes d'exercice professionnel (NEP) portant sur la documentation des missions d'audit légal. Cette modification impacte directement les modules C2M2 et C3M3 du parcours DECCAC. Les stagiaires doivent en prendre connaissance avant leurs prochaines sessions de formation.</div>
+      <div class="article-critique-label">Avis critique Aïka</div>
+      <div class="article-critique">Ces modifications renforcent les exigences de traçabilité et de documentation, un point fondamental pour la qualité des missions d'audit. Pour les stagiaires DEC, c'est une occasion de se familiariser avec les nouvelles pratiques avant d'entrer dans la profession active.</div>
+      <div class="sources-label">Sources indicatives</div>
+      <span class="source-chip">H3C</span>
+      <span class="source-chip">CNCC</span>
+      <span class="source-chip">Revue Française de Comptabilité</span>
+    </div>
+
+    <div class="flash-article">
+      <div class="article-meta">
+        <div class="article-tags"><span class="tag social">CSOEC</span></div>
+        <span class="article-time">11:10</span>
+      </div>
+      <div class="article-title">Nouvelle version du guide stagiaire publiée par le CSOEC</div>
+      <div class="article-section">Résumé</div>
+      <div class="article-body">Le Conseil Supérieur de l'Ordre des Experts-Comptables a mis en ligne la version 2026 du guide du stagiaire DEC. Ce document mis à jour inclut les nouvelles procédures de dépôt des fiches de travaux, les modalités de validation des formations DECCAC et les conditions d'éligibilité aux épreuves du DEC.</div>
+      <div class="article-critique-label">Avis critique Aïka</div>
+      <div class="article-critique">À télécharger et lire attentivement. La mise à jour des procédures de dépôt des fiches peut avoir un impact direct sur ton organisation des prochains mois.</div>
+      <div class="sources-label">Sources indicatives</div>
+      <span class="source-chip">CSOEC</span>
+      <span class="source-chip">Plateforme CSOEC</span>
+    </div>
+  </div>
+
+  <!-- CALENDRIER -->
+  <div class="page" id="page-calendrier">
+    <div class="page-label">Calendrier CSOEC</div>
+    <div class="page-title">Ton agenda réglementaire.</div>
+    <div class="page-sub">Du 01/10/2025 au 01/10/2028 — fiches de travaux, rapports semestriels, formations CSOEC (groupe 26007) et jalons clés.</div>
+
+    <div class="cal-next">
+      <div class="cal-next-tag">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+        Prochaine échéance · J-2
+      </div>
+      <div class="cal-next-title">ME110 — Découverte de la profession comptable</div>
+      <div class="cal-next-date">mercredi 27 mai 2026 · 09h00 — 17h30</div>
+    </div>
+
+    <div class="cal-month">OCTOBRE 2025</div>
+    <div class="cal-event validated">
+      <div class="cal-date-box" style="background:var(--green-bg)">
+        <div class="cal-date-day">MER</div>
+        <div class="cal-date-num">1</div>
+      </div>
+      <div class="cal-event-info">
+        <div class="cal-event-meta">
+          <span class="cal-event-type">Jalon de stage</span>
+          <span class="cal-event-badge passe">Passé</span>
+        </div>
+        <div class="cal-event-title">Début du stage DEC (36 mois)</div>
+        <div class="cal-event-details">— · Cabinet</div>
+      </div>
+    </div>
+
+    <div class="cal-month">NOVEMBRE 2025</div>
+    <div class="cal-event">
+      <div class="cal-date-box">
+        <div class="cal-date-day">SAM</div>
+        <div class="cal-date-num">15</div>
+      </div>
+      <div class="cal-event-info">
+        <div class="cal-event-meta">
+          <span class="cal-event-type">Formation e-learning</span>
+          <span class="cal-event-badge passe">Passé</span>
+        </div>
+        <div class="cal-event-title">C1M1 — Découverte de la profession comptable</div>
+        <div class="cal-event-details">E-learning CSOEC · Groupe 26007</div>
+      </div>
+    </div>
+
+    <div class="cal-month">MAI 2026 <div class="cal-month-dot"></div></div>
+    <div class="cal-event upcoming">
+      <div class="cal-date-box" style="background:#FFF5F4">
+        <div class="cal-date-day">MER</div>
+        <div class="cal-date-num" style="color:var(--red)">27</div>
+      </div>
+      <div class="cal-event-info">
+        <div class="cal-event-meta">
+          <span class="cal-event-type">Formation présentielle</span>
+          <span class="cal-event-badge j2">J-2</span>
+        </div>
+        <div class="cal-event-title">ME110 — Découverte de la profession comptable</div>
+        <div class="cal-event-details">09h00 — 17h30 · Présentiel · Groupe 26007</div>
+      </div>
+    </div>
+
+    <div class="cal-month">JUILLET 2026</div>
+    <div class="cal-event">
+      <div class="cal-date-box">
+        <div class="cal-date-day">LUN</div>
+        <div class="cal-date-num">6</div>
+      </div>
+      <div class="cal-event-info">
+        <div class="cal-event-meta">
+          <span class="cal-event-type">Formation présentielle</span>
+        </div>
+        <div class="cal-event-title">ME150 — Communication et relation client</div>
+        <div class="cal-event-details">09h00 — 17h30 · Présentiel · Groupe 26007</div>
+      </div>
+    </div>
+
+    <div class="cal-month">OCTOBRE 2026</div>
+    <div class="cal-event">
+      <div class="cal-date-box">
+        <div class="cal-date-day">JEU</div>
+        <div class="cal-date-num">1</div>
+      </div>
+      <div class="cal-event-info">
+        <div class="cal-event-meta"><span class="cal-event-type">Jalon administratif</span></div>
+        <div class="cal-event-title">Fin de la 1ère année de stage</div>
+        <div class="cal-event-details">— · Plateforme CSOEC</div>
+      </div>
+    </div>
+
+    <div class="cal-month">AVRIL 2027</div>
+    <div class="cal-event">
+      <div class="cal-date-box">
+        <div class="cal-date-day">MER</div>
+        <div class="cal-date-num">30</div>
+      </div>
+      <div class="cal-event-info">
+        <div class="cal-event-meta"><span class="cal-event-type">Rapport semestriel</span></div>
+        <div class="cal-event-title">Dépôt Rapport semestriel n°1 — Fiche de travaux professionnels n°1</div>
+        <div class="cal-event-details">Deadline 23h59 · Plateforme CSOEC</div>
       </div>
     </div>
   </div>
 
   <!-- PROGRAMME -->
-  <div class="screen" id="s-programme">
-    <div class="navbar">
-      <div class="nav-logo">Mon<em>DEC</em></div>
-      <div style="width:44px"></div>
-    </div>
-    <div class="year-tabs">
-      <button class="year-tab on" id="yt-c1" onclick="switchYear('c1')">C1 — 1ère année</button>
-      <button class="year-tab" id="yt-c2" onclick="switchYear('c2')">C2 — 2ème</button>
-      <button class="year-tab" id="yt-c3" onclick="switchYear('c3')">C3 — 3ème</button>
+  <div class="page" id="page-programme">
+    <div class="page-label">Formations obligatoires</div>
+    <div class="page-title">34 formations DECCAC.</div>
+    <div class="page-sub">Organisées en 3 années, e-learning et présentiel. Programme officiel CSOEC. Coche au fur et à mesure.</div>
+
+    <div class="prog-stats" id="prog-stats-box">
+      <div class="prog-stats-header">
+        <div>
+          <div class="prog-year-num" id="prog-year-num">1</div>
+          <div class="prog-year-label" id="prog-year-label">/ 12 formations</div>
+        </div>
+        <button class="reinit-btn" onclick="resetYear()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-.18-3.36"/></svg>
+          Réinitialiser
+        </button>
+      </div>
+      <div class="prog-bar2"><div class="prog-fill2" id="prog-fill2" style="width:8%"></div></div>
     </div>
 
-    <!-- C1 -->
-    <div class="year-pane on" id="yp-c1">
-      <div class="year-header">
-        <div class="year-header-title">Programme 1ère année (C1)</div>
-        <div class="year-header-sub">7 formations obligatoires · Oct 2025 – Oct 2026</div>
-        <div class="year-progress-row">
-          <div class="year-prog-bar-wrap"><div class="year-prog-bar" id="ybar-c1" style="background:var(--blue);width:0%"></div></div>
-          <div class="year-prog-lbl" id="ylbl-c1" style="color:var(--blue)">0/7</div>
-        </div>
-      </div>
-      <div id="forms-c1"></div>
+    <div class="prog-tabs">
+      <button class="prog-tab active" onclick="switchYear(0)">Année 1 <span id="tab-y1">1/12</span></button>
+      <button class="prog-tab" onclick="switchYear(1)">Année 2 <span id="tab-y2">0/10</span></button>
+      <button class="prog-tab" onclick="switchYear(2)">Année 3 <span id="tab-y3">0/11</span></button>
+      <button class="prog-tab" onclick="switchYear(3)">Axe institutionnel <span id="tab-y4">0/1</span></button>
     </div>
 
-    <!-- C2 -->
-    <div class="year-pane" id="yp-c2">
-      <div class="year-header">
-        <div class="year-header-title">Programme 2ème année (C2)</div>
-        <div class="year-header-sub">6 formations · Oct 2026 – Oct 2027</div>
-        <div class="year-progress-row">
-          <div class="year-prog-bar-wrap"><div class="year-prog-bar" id="ybar-c2" style="background:var(--green);width:0%"></div></div>
-          <div class="year-prog-lbl" id="ylbl-c2" style="color:var(--green)">0/6</div>
-        </div>
-      </div>
-      <div id="forms-c2"></div>
+    <div class="formations-section-label" id="formations-section-label">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Formations · Année 1
     </div>
-
-    <!-- C3 -->
-    <div class="year-pane" id="yp-c3">
-      <div class="year-header">
-        <div class="year-header-title">Programme 3ème année (C3)</div>
-        <div class="year-header-sub">7 formations · Oct 2027 – Oct 2028</div>
-        <div class="year-progress-row">
-          <div class="year-prog-bar-wrap"><div class="year-prog-bar" id="ybar-c3" style="background:var(--purple);width:0%"></div></div>
-          <div class="year-prog-lbl" id="ylbl-c3" style="color:var(--purple)">0/7</div>
-        </div>
-      </div>
-      <div id="forms-c3"></div>
-    </div>
+    <div id="formations-list"></div>
   </div>
 
   <!-- AGENTS -->
-  <div class="screen" id="s-agents">
-    <div class="navbar">
-      <div class="nav-logo">Mon<em>DEC</em></div>
-      <div style="width:44px"></div>
-    </div>
-    <div class="scroll-wrap">
-      <div class="section">
-        <div class="sec-hd"><div class="sec-title">Coordinateur</div></div>
-        <div class="sec-sub" style="margin-bottom:10px">Pour démarrer une session guidée.</div>
-        <div class="mgr-card" onclick="openChat('manager')">
-          <div class="mgr-inner">
-            <div class="mgr-icon">🧠</div>
-            <div class="mgr-body">
-              <div class="mgr-eyebrow">Coordinateur IA</div>
-              <div class="mgr-name">Manager DEC</div>
-              <div class="mgr-desc">Stage, formations, CSOEC, stratégie DEC.</div>
+  <div class="page" id="page-agents">
+    <div class="page-label">Mes Agents IA</div>
+    <div class="page-title">Sept spécialistes pour ton doctorat.</div>
+    <div class="page-sub">Chaque agent a un prénom, un domaine, une voix. Ils s'appuient sur Claude Sonnet 4.5, mais répondent comme un spécialiste qui te connaît.</div>
+    <div class="agents-grid">
+      <div class="agent-card" onclick="openAgent('leon')">
+        <div class="agent-card-header">
+          <div class="agent-avatar blue">🧭</div>
+          <div class="agent-info">
+            <div class="agent-name-row">
+              <span class="agent-card-name">Léon</span>
+              <div class="agent-status-dot"></div>
+              <div class="agent-badge">2</div>
             </div>
-            <div class="mgr-chevron">›</div>
+            <div class="agent-specialty">Stratégie & priorisation</div>
           </div>
         </div>
+        <div class="agent-desc">Orchestre tes priorités, identifie les chemins critiques et anticipe les charges cognitives.</div>
+        <button class="agent-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Ouvrir la conversation
+        </button>
       </div>
-      <div class="section" style="padding-bottom:80px">
-        <div class="sec-hd"><div class="sec-title">Agents spécialisés</div></div>
-        <div class="sec-sub">Actifs 24/7 · Mémoire de conversation</div>
-        <div class="agents-grid">
-          <div class="agent-card" onclick="openChat('prof')" style="border-color:rgba(10,132,255,.2)">
-            <div class="agent-icon" style="background:var(--blue-bg)">📚</div>
-            <div class="agent-eyebrow" style="color:var(--blue)">Révision</div>
-            <div class="agent-name">Prof DEC</div>
-            <div class="agent-desc">Fiches, QCM, cas pratiques UE 1–5.</div>
-            <div class="agent-pill" style="color:var(--blue);background:var(--blue-bg)">Actif</div>
-          </div>
-          <div class="agent-card" onclick="openChat('culture')" style="border-color:rgba(255,159,10,.2)">
-            <div class="agent-icon" style="background:var(--orange-bg)">🌍</div>
-            <div class="agent-eyebrow" style="color:var(--orange)">Culture G</div>
-            <div class="agent-name">Culture G</div>
-            <div class="agent-desc">OEC, CNCC, IFRS, quiz oral DEC.</div>
-            <div class="agent-pill" style="color:var(--orange);background:var(--orange-bg)">Actif</div>
-          </div>
-          <div class="agent-card dim">
-            <div class="soon-badge">Bientôt</div>
-            <div class="agent-icon" style="background:var(--green-bg)">💼</div>
-            <div class="agent-eyebrow" style="color:var(--green)">Stage</div>
-            <div class="agent-name">Stage DEC</div>
-            <div class="agent-desc">Missions, fiche annuelle, rapport CSOEC.</div>
-          </div>
-          <div class="agent-card dim">
-            <div class="soon-badge">Bientôt</div>
-            <div class="agent-icon" style="background:var(--purple-bg)">📝</div>
-            <div class="agent-eyebrow" style="color:var(--purple)">Mémoire</div>
-            <div class="agent-name">Mémoire DEC</div>
-            <div class="agent-desc">Sujet, plan, rédaction, soutenance.</div>
+      <div class="agent-card" onclick="openAgent('iris')">
+        <div class="agent-card-header">
+          <div class="agent-avatar purple">📚</div>
+          <div class="agent-info">
+            <div class="agent-name-row">
+              <span class="agent-card-name">Iris</span>
+              <div class="agent-status-dot"></div>
+              <div class="agent-badge">2</div>
+            </div>
+            <div class="agent-specialty">Pédagogie & compréhension</div>
           </div>
         </div>
+        <div class="agent-desc">Explique les concepts comptables, juridiques et fiscaux avec rigueur et patience.</div>
+        <button class="agent-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Ouvrir la conversation
+        </button>
+      </div>
+      <div class="agent-card" onclick="openAgent('octave')">
+        <div class="agent-card-header">
+          <div class="agent-avatar green">🌐</div>
+          <div class="agent-info">
+            <div class="agent-name-row">
+              <span class="agent-card-name">Octave</span>
+              <div class="agent-status-dot"></div>
+            </div>
+            <div class="agent-specialty">Culture générale du métier</div>
+          </div>
+        </div>
+        <div class="agent-desc">Élargit ta vision : histoire de la profession, actualités, débats normatifs.</div>
+        <button class="agent-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Ouvrir la conversation
+        </button>
+      </div>
+      <div class="agent-card" onclick="openAgent('mila')">
+        <div class="agent-card-header">
+          <div class="agent-avatar orange">📋</div>
+          <div class="agent-info">
+            <div class="agent-name-row">
+              <span class="agent-card-name">Mila</span>
+              <div class="agent-status-dot"></div>
+            </div>
+            <div class="agent-specialty">Suivi opérationnel du stage</div>
+          </div>
+        </div>
+        <div class="agent-desc">Optimise tes fiches de travail, ton temps, ton tableau de bord.</div>
+        <button class="agent-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Ouvrir la conversation
+        </button>
+      </div>
+      <div class="agent-card" onclick="openAgent('theo')">
+        <div class="agent-card-header">
+          <div class="agent-avatar red">⚖️</div>
+          <div class="agent-info">
+            <div class="agent-name-row">
+              <span class="agent-card-name">Théo</span>
+              <div class="agent-status-dot"></div>
+            </div>
+            <div class="agent-specialty">Droit et déontologie</div>
+          </div>
+        </div>
+        <div class="agent-desc">Réponses précises sur le droit des sociétés, déontologie, normes professionnelles, CAC, secret professionnel.</div>
+        <button class="agent-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Ouvrir la conversation
+        </button>
+      </div>
+      <div class="agent-card" onclick="openAgent('aika')">
+        <div class="agent-card-header">
+          <div class="agent-avatar teal">🔍</div>
+          <div class="agent-info">
+            <div class="agent-name-row">
+              <span class="agent-card-name">Aïka</span>
+              <div class="agent-status-dot"></div>
+            </div>
+            <div class="agent-specialty">Recherche bibliographique</div>
+          </div>
+        </div>
+        <div class="agent-desc">Trouve, critique et propose articles & ressources académiques adaptées à ton mémoire et tes rapports.</div>
+        <button class="agent-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Ouvrir la conversation
+        </button>
+      </div>
+      <div class="agent-card" onclick="openAgent('plume')">
+        <div class="agent-card-header">
+          <div class="agent-avatar blue">✍️</div>
+          <div class="agent-info">
+            <div class="agent-name-row">
+              <span class="agent-card-name">Plume</span>
+              <div class="agent-status-dot" style="background:var(--orange)"></div>
+            </div>
+            <div class="agent-specialty">Rédaction des rapports</div>
+          </div>
+        </div>
+        <div class="agent-desc">Disponible 6 mois avant ton premier rapport semestriel pour t'accompagner dans la rédaction.</div>
+        <button class="agent-link" style="color:var(--text3)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+          Disponible en octobre 2026
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEMOIRE -->
+  <div class="page" id="page-memoire">
+    <div class="page-label">Mémoire</div>
+    <div class="page-title">Ton mémoire DEC.</div>
+    <div class="memoire-hero">
+      <p>Le mémoire est l'une des trois épreuves du DEC. Il porte sur une question professionnelle en lien avec l'expertise comptable ou le commissariat aux comptes. Il doit être déposé avant la fin de ta 3ème année de stage.</p>
+      <div class="memoire-status">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+        Sujet non encore défini
+      </div>
+    </div>
+    <div class="timeline-card">
+      <div class="timeline-title">Calendrier du mémoire</div>
+      <div class="timeline-item">
+        <div class="timeline-dot-col"><div class="timeline-dot done"></div><div class="timeline-line"></div></div>
+        <div class="timeline-info"><div class="timeline-event">Début du stage DEC</div><div class="timeline-date">1er octobre 2025</div></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot-col"><div class="timeline-dot current"></div><div class="timeline-line"></div></div>
+        <div class="timeline-info"><div class="timeline-event">Choix du sujet (module C2M6)</div><div class="timeline-date">Recommandé avant fin 2026 — Année 2</div></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot-col"><div class="timeline-dot upcoming"></div><div class="timeline-line"></div></div>
+        <div class="timeline-info"><div class="timeline-event">Demande d'agrément du sujet (module C3M6)</div><div class="timeline-date">Avant fin 2027 — Année 3</div></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot-col"><div class="timeline-dot upcoming"></div></div>
+        <div class="timeline-info"><div class="timeline-event">Dépôt du mémoire</div><div class="timeline-date">Avant le 1er octobre 2028</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FICHES -->
+  <div class="page" id="page-fiches">
+    <div class="fiches-toprow">
+      <div>
+        <div class="page-label">Fiches de travail</div>
+        <div class="page-title">Les preuves de ton stage.</div>
+        <div class="page-sub" style="margin-bottom:0">Chaque mission documentée. Chaque heure tracée. C'est ce que le jury lira.</div>
+      </div>
+      <button class="new-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nouvelle fiche
+      </button>
+    </div>
+    <div class="table-header">
+      <span>N° FICHE</span><span>CLIENT</span><span>MISSION</span><span>HEURES</span><span>STATUT</span>
+    </div>
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;margin:0 auto 12px;color:var(--text3)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+      <p>Aucune fiche enregistrée pour l'instant.</p>
+      <p style="margin-top:4px;font-size:.8rem">Clique sur « Nouvelle fiche » pour commencer.</p>
+    </div>
+    <div class="stats-row">
+      <div class="small-stat">
+        <div class="small-stat-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          Total fiches
+        </div>
+        <div class="small-stat-value">0</div>
+      </div>
+      <div class="small-stat">
+        <div class="small-stat-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+          Heures saisies
+        </div>
+        <div class="small-stat-value">0<span>h</span></div>
+      </div>
+      <div class="small-stat">
+        <div class="small-stat-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+          En attente tuteur
+        </div>
+        <div class="small-stat-value">0</div>
       </div>
     </div>
   </div>
 
   <!-- RAPPORTS -->
-  <div class="screen" id="s-rapports">
-    <div class="navbar">
-      <div class="nav-logo">Mon<em>DEC</em></div>
-      <div style="width:44px"></div>
+  <div class="page" id="page-rapports">
+    <div class="page-label">Rapports semestriels</div>
+    <div class="page-title">Six semestres. Six écrits.</div>
+    <div class="page-sub">Chaque rapport est lu, commenté, archivé. Ils tracent ta progression d'expert-comptable.</div>
+
+    <div class="rapport-item">
+      <div class="rapport-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+      <div class="rapport-info">
+        <div class="rapport-tag">À venir</div>
+        <div class="rapport-title2">Rapport semestriel n°1</div>
+        <div class="rapport-date">Dépôt avant le 30 avril 2027</div>
+      </div>
+      <button class="rapport-export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exporter
+      </button>
     </div>
-    <div class="scroll-wrap">
-      <div class="rapport-section">
-        <div class="rapport-title">Fiche annuelle d'activité</div>
-        <div class="rapport-sub">Minimum 1 316h/an · Signée par le maître de stage</div>
-        <div class="rapport-card">
-          <div class="rapport-icon" style="background:var(--blue-bg);font-size:20px">📋</div>
-          <div class="rapport-body">
-            <div class="rapport-name">Fiche annuelle 2025–2026</div>
-            <div class="rapport-date">À remettre avant oct. 2026</div>
-          </div>
-          <div class="rapport-status" style="background:var(--orange-bg);color:var(--orange)">En cours</div>
-        </div>
-        <div class="rapport-card">
-          <div class="rapport-icon" style="background:var(--bg4);font-size:20px">📋</div>
-          <div class="rapport-body">
-            <div class="rapport-name">Fiche annuelle 2026–2027</div>
-            <div class="rapport-date">À remettre avant oct. 2027</div>
-          </div>
-          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
-        </div>
-        <div class="rapport-card">
-          <div class="rapport-icon" style="background:var(--bg4);font-size:20px">📋</div>
-          <div class="rapport-body">
-            <div class="rapport-name">Fiche annuelle 2027–2028</div>
-            <div class="rapport-date">À remettre avant oct. 2028</div>
-          </div>
-          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
-        </div>
+    <div class="rapport-item">
+      <div class="rapport-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+      <div class="rapport-info">
+        <div class="rapport-tag">À venir</div>
+        <div class="rapport-title2">Rapport semestriel n°2</div>
+        <div class="rapport-date">Dépôt avant le 31 octobre 2027</div>
       </div>
-
-      <div class="rapport-section">
-        <div class="rapport-title">Rapports semestriels</div>
-        <div class="rapport-sub">C2 et C3 uniquement · 4 rapports au total</div>
-        <div class="rapport-card">
-          <div class="rapport-icon" style="background:var(--bg4)">📄</div>
-          <div class="rapport-body">
-            <div class="rapport-name">Rapport C2 — Semestre 1</div>
-            <div class="rapport-date">2ème année · ~mars 2027</div>
-          </div>
-          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
-        </div>
-        <div class="rapport-card">
-          <div class="rapport-icon" style="background:var(--bg4)">📄</div>
-          <div class="rapport-body">
-            <div class="rapport-name">Rapport C2 — Semestre 2</div>
-            <div class="rapport-date">2ème année · ~sept. 2027</div>
-          </div>
-          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
-        </div>
-        <div class="rapport-card">
-          <div class="rapport-icon" style="background:var(--bg4)">📄</div>
-          <div class="rapport-body">
-            <div class="rapport-name">Rapport C3 — Semestre 1</div>
-            <div class="rapport-date">3ème année · ~mars 2028</div>
-          </div>
-          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
-        </div>
-        <div class="rapport-card">
-          <div class="rapport-icon" style="background:var(--bg4)">📄</div>
-          <div class="rapport-body">
-            <div class="rapport-name">Rapport C3 — Semestre 2</div>
-            <div class="rapport-date">3ème année · ~sept. 2028</div>
-          </div>
-          <div class="rapport-status" style="background:var(--border2);color:var(--text3)">À venir</div>
-        </div>
+      <button class="rapport-export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exporter
+      </button>
+    </div>
+    <div class="rapport-item">
+      <div class="rapport-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+      <div class="rapport-info">
+        <div class="rapport-tag">À venir</div>
+        <div class="rapport-title2">Rapport semestriel n°3</div>
+        <div class="rapport-date">Dépôt avant le 30 avril 2028</div>
       </div>
-
-      <div class="rapport-section" style="padding-bottom:80px">
-        <div class="rapport-title">Fiches travaux professionnels</div>
-        <div class="rapport-sub">Missions réalisées en cabinet</div>
-        <div class="fiche-empty">
-          <div style="font-size:32px;margin-bottom:10px">📁</div>
-          <div>Aucune fiche pour l'instant.</div>
-          <div style="margin-top:6px;font-size:11px">Demande à ton Manager DEC de t'aider à en créer une.</div>
-        </div>
+      <button class="rapport-export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exporter
+      </button>
+    </div>
+    <div class="rapport-item">
+      <div class="rapport-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></div>
+      <div class="rapport-info">
+        <div class="rapport-tag">À venir</div>
+        <div class="rapport-title2">Rapport semestriel n°4</div>
+        <div class="rapport-date">Dépôt avant le 31 octobre 2028</div>
       </div>
+      <button class="rapport-export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exporter
+      </button>
     </div>
   </div>
 
-  <!-- CHAT (overlay) -->
-  <div class="screen" id="s-chat">
-    <div class="navbar">
-      <button class="nav-back" onclick="closeChat()"><span style="font-size:22px">‹</span> Retour</button>
-      <div class="nav-title" id="c-name"></div>
-      <button class="nav-action" onclick="clearHistory()">Effacer</button>
+  <!-- CORE -->
+  <div class="page core-page" id="page-core">
+    <div class="core-header">
+      <div class="core-agent-row">
+        <div class="core-avatar"><div class="core-avatar-dot"></div></div>
+        <div>
+          <div class="core-agent-name">CORE</div>
+          <div class="core-agent-desc">Cockpit cognitif autonome · état mental, focus, programme</div>
+        </div>
+      </div>
     </div>
-    <div class="chat-msgs" id="c-msgs"></div>
-    <div class="chat-bar">
-      <textarea id="c-inp" class="chat-input" placeholder="Message…" rows="1"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"
-        oninput="resizeInp(this)"></textarea>
-      <button class="send-btn" id="c-btn" onclick="send()">↑</button>
+    <div class="core-messages" id="core-messages">
+      <div class="core-msg">
+        <div class="core-msg-label">Core</div>
+        <div class="core-msg-text">Bonjour Marjana. Je suis CORE, ton cockpit cognitif. Je t'observe, j'apprends de tes patterns, j'ajuste ton interface pour maximiser ton énergie sans te submerger. Je peux modifier ton calendrier, te suggérer des articles, créer un programme perso — mais je ne touche jamais à ton mot de passe. Que se passe-t-il aujourd'hui ?</div>
+      </div>
+    </div>
+    <div class="core-prompts">
+      <button class="prompt-chip" onclick="sendCorePrompt(this)">Comment je me sens aujourd'hui ?</button>
+      <button class="prompt-chip" onclick="sendCorePrompt(this)">Crée-moi mon programme de la semaine.</button>
+      <button class="prompt-chip" onclick="sendCorePrompt(this)">Suis-je en surcharge ?</button>
+      <button class="prompt-chip" onclick="sendCorePrompt(this)">Quelle est ma priorité maintenant ?</button>
+    </div>
+    <div class="core-input-row">
+      <input class="core-input" id="core-input" placeholder="Écris à CORE..." onkeydown="if(event.key==='Enter')sendCoreMessage()"/>
+      <button class="core-send" onclick="sendCoreMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9 22,2"/></svg>
+      </button>
     </div>
   </div>
 
-  <!-- TAB BAR -->
-  <div class="tabbar" id="tabbar">
-    <button class="tab on" id="t-home" onclick="goScreen('home')"><span class="tab-icon">⊞</span><span>Accueil</span></button>
-    <button class="tab" id="t-programme" onclick="goScreen('programme')"><span class="tab-icon">📋</span><span>Programme</span></button>
-    <button class="tab" id="t-agents" onclick="goScreen('agents')"><span class="tab-icon">🤖</span><span>Agents</span></button>
-    <button class="tab" id="t-rapports" onclick="goScreen('rapports')"><span class="tab-icon">📄</span><span>Rapports</span></button>
-  </div>
 </div>
 
-<!-- MUSIC -->
-<button class="music-fab" id="music-fab" onclick="toggleMusicPanel()">♪</button>
-<div class="music-panel" id="music-panel">
-  <div class="music-now">
-    <div class="music-art" id="music-art">🎵</div>
-    <div>
-      <div class="music-info-track" id="music-track">Ambiance Focus</div>
-      <div class="music-info-type" id="music-type">Drones · Étude</div>
+<!-- AGENT MODAL -->
+<div class="modal-overlay" id="agent-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-agent-name">Agent</div>
+        <div style="font-size:.8rem;color:var(--text2)" id="modal-agent-specialty"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-  </div>
-  <div class="music-prog-wrap"><div class="music-prog-bar" id="music-prog"></div></div>
-  <div class="music-ctrls">
-    <button class="mc-btn" onclick="prevTrack()">⏮</button>
-    <button class="mc-btn mc-play" id="mc-play" onclick="togglePlay()">▶</button>
-    <button class="mc-btn" onclick="nextTrack()">⏭</button>
-  </div>
-  <div class="music-vol-row">
-    <span class="music-vol-ic">🔈</span>
-    <input type="range" class="music-vol-sl" id="music-vol" min="0" max="100" value="40" oninput="setVolume(this.value)">
-    <span class="music-vol-ic">🔊</span>
+    <div class="modal-messages" id="modal-messages"></div>
+    <div class="modal-input-row">
+      <input class="modal-input" id="modal-input" placeholder="Écris ton message..." onkeydown="if(event.key==='Enter')sendModalMessage()"/>
+      <button class="modal-send" onclick="sendModalMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9 22,2"/></svg>
+      </button>
+    </div>
   </div>
 </div>
 
 <script>
-/* ─── DATA ─── */
-const PWD = 'mondec2026';
-const START_DATE = new Date('2025-10-01');
-const END_DATE   = new Date('2028-10-01');
-const MONTHS_FR  = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sep.','oct.','nov.','déc.'];
-
-const AGENTS = {
-  manager: {
-    name:'Manager DEC', tab:'t-manager',
-    url:'https://mh0707.app.n8n.cloud/webhook/manager-dec',
-    welcome:"Bonjour ! Je suis ton **Manager DEC**.\n\nJe coordonne ta progression : 233 jours accomplis (21%), prochaine journée le **27 mai à Courbevoie** (Découverte de la profession). Je gère le Prof DEC, Culture G, et tes échéances CSOEC.\n\nQue puis-je prioriser pour toi aujourd'hui ?"
-  },
-  prof: {
-    name:'Prof DEC', tab:'t-prof',
-    url:'https://mh0707.app.n8n.cloud/webhook/prof-dec',
-    welcome:"Bonjour ! Je suis ton **Prof DEC**.\n\nJe couvre toutes les matières : Comptabilité, Fiscalité, Droit, Audit, Management, Finance. Je génère des fiches ultra-structurées, QCM avec corrections et cas pratiques corrigés.\n\nPar quelle matière on commence ?"
-  },
-  culture: {
-    name:'Culture G', tab:'t-culture',
-    url:'https://mh0707.app.n8n.cloud/webhook/culture-g',
-    welcome:"Bonjour ! Je suis ton agent **Culture G**.\n\nActualité OEC/CNCC/AMF, normes IFRS, quiz type oral DEC, grands auteurs (Keynes, Piketty, Porter…)\n\nUn quiz pour démarrer ou une actu du jour ?"
-  }
-};
-
-const SUBJECTS = [
-  { id:'stage', name:'Stage DEC (3 ans · 1 096 jours)', color:'#ffd60a' },
-  { id:'form_c1', name:'Formations C1 (7 obligatoires)', color:'#0a84ff' },
-  { id:'form_c2', name:'Formations C2 (6 obligatoires)', color:'#30d158' },
-  { id:'form_c3', name:'Formations C3 (7 obligatoires)', color:'#bf5af2' },
-  { id:'ep1', name:'Épreuve 1 — Réglementation & déontologie', color:'#ff9f0a' },
-  { id:'ep2', name:'Épreuve 2 — Cas pratique expertise comptable', color:'#ff453a' },
-  { id:'memo', name:'Épreuve 3 — Mémoire & soutenance', color:'#64d2ff' },
-];
-
-const PLANNING = [
-  { date:'2026-05-27', name:'Découverte de la profession comptable', lieu:'Campus Courbevoie', type:'Formation', color:'var(--red)', urgent:true },
-  { date:'2026-07-01', name:'Communication', lieu:"Sup'Expertise Paris 8", type:'Formation', color:'var(--blue)' },
-  { date:'2026-07-08', name:'Rapport annuel CSOEC à rendre', lieu:'En ligne', type:'Admin', color:'var(--orange)' },
-  { date:'2026-09-07', name:'Missions comptes annuels', lieu:"Sup'Expertise Paris 8", type:'Formation', color:'var(--blue)' },
-  { date:'2026-10-01', name:'Fin 1ère année de stage', lieu:'', type:'Étape', color:'var(--green)' },
-  { date:'2026-10-16', name:'Autres prestations EC', lieu:"Sup'Expertise Paris 8", type:'Formation', color:'var(--blue)' },
-  { date:'2026-11-25', name:'Présentation des 3 épreuves DEC', lieu:"Sup'Expertise Paris 8", type:'Formation', color:'var(--purple)' },
-  { date:'2028-06-30', name:'Soutenance du Mémoire DEC', lieu:'', type:'Final', color:'var(--green)' },
-];
-
+// FORMATIONS DATA
 const FORMATIONS = {
-  c1: [
-    { id:'c1f1', name:'Découverte de la profession comptable', desc:'Organisation EC/CAC, déontologie, missions, révolution numérique, stage et après-stage', format:'7h EL + 1j présentiel', days:2, date:'2026-05-27', lieu:'Campus Courbevoie', urgent:true },
-    { id:'c1f2', name:'Communication', desc:'Techniques de communication orale, entretien professionnel, négociation', format:'7h EL + 1j présentiel', days:2, date:'2026-07-01', lieu:"Sup'Expertise Paris 8" },
-    { id:'c1f3', name:"Audit 1 : Découvrir la mission d'audit", desc:"Démarche d'audit, techniques, documentation, savoir-être professionnel", format:'1j présentiel + 7h EL + 1j présentiel', days:3, date:null, lieu:"Sup'Expertise Paris 8" },
-    { id:'c1f4', name:'Missions comptes annuels : approche normative', desc:'Missions avec/sans assurance, mission de présentation, formalisation des travaux', format:'7h EL + 1j présentiel', days:2, date:'2026-09-07', lieu:"Sup'Expertise Paris 8" },
-    { id:'c1f5', name:"Autres prestations récurrentes de l'EC", desc:'Missions administratives, fiscales, paie, juridiques, patrimoniales', format:'7h EL + 1j présentiel', days:2, date:'2026-10-16', lieu:"Sup'Expertise Paris 8" },
-    { id:'c1f6', name:'Présentation des 3 épreuves du DEC', desc:'Structure du diplôme, conditions, préparation épreuves 1, 2 et mémoire', format:'1j présentiel', days:1, date:'2026-11-25', lieu:"Sup'Expertise Paris 8" },
-    { id:'c1f7', name:'Confirmation des tiers et assistance inventaires physiques', desc:'Délégable à un tiers — à programmer', format:'1j présentiel (délégable)', days:1, date:null, lieu:'À confirmer' },
+  year1: [
+    {code:'C1M1', title:'Découverte de la profession comptable', type:'E-learning', validated:true},
+    {code:'ME110', title:'Découverte de la profession comptable', type:'Présentiel', validated:false},
+    {code:'C1M2', title:'Communication', type:'E-learning', validated:false},
+    {code:'ME1301/ME1302', title:'Conduite d\'une mission comptable', type:'Présentiel', validated:false},
+    {code:'ME140', title:'Conduite d\'une mission comptable', type:'Présentiel', validated:false},
+    {code:'ME150', title:'Communication et relation client', type:'Présentiel', validated:false},
+    {code:'ME160', title:'Accompagnement du changement', type:'Présentiel', validated:false},
+    {code:'ME170', title:'Management d\'équipe en cabinet', type:'Présentiel', validated:false},
+    {code:'ME180', title:'Pilotage d\'un cabinet', type:'Présentiel', validated:false},
+    {code:'ME190', title:'Stratégie d\'entreprise & expertise', type:'Présentiel', validated:false},
+    {code:'C1M3', title:'Audit 1 : découvrir la mission d\'audit', type:'E-learning', validated:false},
+    {code:'C1M4', title:'Missions comptes annuels : approche normative et application à la mission de présentation', type:'E-learning', validated:false},
   ],
-  c2: [
-    { id:'c2f1', name:'Démarche et contrôle qualité — Communication et négociation', desc:'', format:'7h EL + 1j', days:2 },
-    { id:'c2f2', name:"Audit 2 : Mettre en œuvre la mission d'audit", desc:'', format:'7h EL + 2j', days:2 },
-    { id:'c2f3', name:'Autres missions comptes annuels, attestations et missions légales', desc:'', format:'7h EL + 1j', days:2 },
-    { id:'c2f4', name:"DEC : Se préparer à l'épreuve 2 et choisir un sujet de mémoire", desc:'', format:'7h EL + 1j', days:2 },
-    { id:'c2f5', name:'Procédures analytiques CAC', desc:'', format:'1j', days:1 },
-    { id:'c2f6', name:'Lutte contre le blanchiment et financement du terrorisme', desc:'', format:'1j', days:1 },
+  year2: [
+    {code:'C1M5', title:'Autres prestations récurrentes de l\'expert-comptable', type:'E-learning', validated:false},
+    {code:'C2M1', title:'Démarche et contrôle qualité, communication et négociation', type:'E-learning', validated:false},
+    {code:'ME210', title:'Démarche qualité et contrôle qualité — Thème commun EC/CAC', type:'Présentiel', validated:false},
+    {code:'C2M2', title:'Audit 2 : mettre en œuvre la mission d\'audit', type:'E-learning', validated:false},
+    {code:'ME220', title:'Présentation d\'une mission d\'audit légal', type:'Présentiel', validated:false},
+    {code:'ME230', title:'Audit légal approfondi', type:'Présentiel', validated:false},
+    {code:'C2M3', title:'Autres missions comptes annuels, attestations et missions légales : méthodologie', type:'E-learning', validated:false},
+    {code:'ME260-E', title:'Lutte contre le blanchiment de capitaux et le financement du terrorisme', type:'E-learning', validated:false},
+    {code:'ME260-P', title:'Les procédures analytiques : efficacité dans la démarche du commissaire aux comptes', type:'Présentiel', validated:false},
+    {code:'C2M6', title:'Se préparer à l\'épreuve n°2 et choisir un sujet de mémoire', type:'E-learning', validated:false},
   ],
-  c3: [
-    { id:'c3f1', name:'Déontologie et responsabilité', desc:'', format:'7h EL + 1j', days:2 },
-    { id:'c3f2', name:'Management des équipes et choix professionnels', desc:'', format:'7h EL + 1j', days:2 },
-    { id:'c3f3', name:"Audit 3 : Piloter la mission d'audit", desc:'', format:'7h EL + 2j', days:3 },
-    { id:'c3f4', name:'Missions comptes annuels et autres prestations : gestion des missions', desc:'', format:'7h EL + 1j', days:2 },
-    { id:'c3f5', name:"DEC : Demande d'agrément du sujet et rédaction du mémoire", desc:'', format:'7h EL + 1j', days:2 },
-    { id:'c3f6', name:'Participation à un évènement institutionnel', desc:'', format:'1j', days:0 },
-    { id:'c3f7', name:'Axe prioritaire : Accompagnement au changement', desc:'', format:'1j', days:0 },
+  year3: [
+    {code:'C3M1', title:'Déontologie et responsabilité', type:'E-learning', validated:false},
+    {code:'ME310', title:'Déontologie et responsabilité — Thème commun EC/CAC', type:'Présentiel', validated:false},
+    {code:'C3M2', title:'Management des équipes et choix professionnels', type:'E-learning', validated:false},
+    {code:'ME320', title:'Management des équipes et choix professionnels — Thème commun EC/CAC', type:'Présentiel', validated:false},
+    {code:'C3M3', title:'Audit 3 : piloter la mission d\'audit', type:'E-learning', validated:false},
+    {code:'ME330', title:'Collaborateurs : enjeux et mise en œuvre des missions d\'audit en petite entreprise', type:'Présentiel', validated:false},
+    {code:'C3M4', title:'Missions comptes annuels et autres prestations : gestion et panorama', type:'E-learning', validated:false},
+    {code:'ME340', title:'Missions comptes annuels et autres prestations : panorama des missions ponctuelles', type:'Présentiel', validated:false},
+    {code:'C3M6', title:'DEC : demande d\'agrément du sujet et rédaction du mémoire', type:'E-learning', validated:false},
+    {code:'ME360', title:'DEC : rédaction du mémoire et préparation à la soutenance', type:'Présentiel', validated:false},
+    {code:'DECCAC-P', title:'Présentation des trois épreuves du DEC', type:'E-learning', validated:false},
+  ],
+  axe: [
+    {code:'AXE-01', title:'Présentation des trois épreuves du DEC — Thème institutionnel CSOEC', type:'E-learning', validated:false},
   ]
 };
-const FORM_TOTAL_DAYS = 34;
 
-/* ─── STATE ─── */
-let curScreen = 'home', curAgent = null, busy = false;
+const YEAR_KEYS = ['year1','year2','year3','axe'];
+const YEAR_LABELS = ['Année 1','Année 2','Année 3','Axe institutionnel'];
 
-/* ─── INIT ─── */
-document.getElementById('pwd').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
-window.addEventListener('load', () => {
-  buildProgress();
-  buildPlanning();
-  buildFormations();
-  updateAlert();
-  updateFormStats();
-  setTimeout(() => animateBars(), 400);
+// LOAD STATE
+let checked = JSON.parse(localStorage.getItem('phddec-checked')||'{}');
+let currentYear = 0;
+
+function getKey(yr,idx){ return `${yr}-${idx}`; }
+function isChecked(yr,idx){
+  const f = FORMATIONS[YEAR_KEYS[yr]][idx];
+  if(yr===0 && idx===0) return true; // C1M1 always validated
+  return !!checked[getKey(yr,idx)];
+}
+function toggleCheck(yr,idx){
+  if(yr===0 && idx===0) return;
+  const k = getKey(yr,idx);
+  checked[k] = !checked[k];
+  localStorage.setItem('phddec-checked', JSON.stringify(checked));
+  renderFormations();
+  updateDashboard();
+}
+function resetYear(){
+  FORMATIONS[YEAR_KEYS[currentYear]].forEach((_,i)=>{
+    if(!(currentYear===0 && i===0)) delete checked[getKey(currentYear,i)];
+  });
+  localStorage.setItem('phddec-checked', JSON.stringify(checked));
+  renderFormations();
+  updateDashboard();
+}
+
+function getYearCount(yr){
+  const list = FORMATIONS[YEAR_KEYS[yr]];
+  return list.filter((_,i)=>isChecked(yr,i)).length;
+}
+
+function switchYear(yr){
+  currentYear = yr;
+  document.querySelectorAll('.prog-tab').forEach((t,i)=>t.classList.toggle('active',i===yr));
+  renderFormations();
+  renderProgStats();
+}
+
+function renderProgStats(){
+  const list = FORMATIONS[YEAR_KEYS[currentYear]];
+  const cnt = getYearCount(currentYear);
+  const pct = Math.round(cnt/list.length*100);
+  document.getElementById('prog-year-num').textContent = cnt;
+  document.getElementById('prog-year-label').textContent = `/ ${list.length} formations`;
+  document.getElementById('prog-fill2').style.width = pct+'%';
+  document.getElementById('formations-section-label').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Formations · ${YEAR_LABELS[currentYear]}`;
+}
+
+function renderFormations(){
+  const list = FORMATIONS[YEAR_KEYS[currentYear]];
+  const container = document.getElementById('formations-list');
+  container.innerHTML = list.map((f,i)=>{
+    const chk = isChecked(currentYear,i);
+    return `<div class="formation-item ${chk?'formation-validated':''}" onclick="toggleCheck(${currentYear},${i})">
+      <div class="formation-checkbox ${chk?'checked':''}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20,6 9,17 4,12"/></svg>
+      </div>
+      <div class="formation-details">
+        <div class="formation-code">${f.code}</div>
+        <div class="formation-name-text">${f.title}</div>
+      </div>
+      ${chk && (currentYear===0 && i===0) ? '<span class="validated-badge">VALIDÉ</span>' : ''}
+      <div class="formation-type-badge">
+        ${f.type==='E-learning'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'}
+        ${f.type}
+      </div>
+    </div>`;
+  }).join('');
+
+  // update tab labels
+  YEAR_KEYS.forEach((k,yr)=>{
+    const cnt = getYearCount(yr);
+    const total = FORMATIONS[k].length;
+    const ids = ['tab-y1','tab-y2','tab-y3','tab-y4'];
+    const el = document.getElementById(ids[yr]);
+    if(el) el.textContent = `${cnt}/${total}`;
+  });
+  renderProgStats();
+}
+
+function updateDashboard(){
+  const total = YEAR_KEYS.reduce((s,k,yr)=>s+getYearCount(yr),0);
+  const el = document.getElementById('dash-formations');
+  if(el) el.textContent = `${total}/34`;
+  const y1 = getYearCount(0);
+  document.getElementById('pct-y1').textContent = Math.round(y1/12*100)+'%';
+  document.getElementById('fill-y1').style.width = Math.round(y1/12*100)+'%';
+}
+
+// CLOCK
+function updateClock(){
+  const now = new Date();
+  const days = ['DIMANCHE','LUNDI','MARDI','MERCREDI','JEUDI','VENDREDI','SAMEDI'];
+  const months = ['JANVIER','FÉVRIER','MARS','AVRIL','MAI','JUIN','JUILLET','AOÛT','SEPTEMBRE','OCTOBRE','NOVEMBRE','DÉCEMBRE'];
+  const d = document.getElementById('accueil-date');
+  if(d) d.textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  const ct = document.getElementById('clock-time');
+  if(ct) ct.textContent = `${h}:${m}`;
+  const cs = document.getElementById('clock-secs');
+  if(cs) cs.textContent = s;
+
+  // Stage progress
+  const stageStart = new Date('2025-10-01');
+  const stageEnd = new Date('2028-10-01');
+  const daysDone = Math.floor((now - stageStart) / 86400000);
+  const totalDays = Math.floor((stageEnd - stageStart) / 86400000);
+  const pct = Math.round(daysDone/totalDays*100);
+  const ap = document.getElementById('accueil-progress');
+  if(ap) ap.textContent = `Stage DEC · Jour ${daysDone} · ${pct}% accompli`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// NAVIGATION
+function navigate(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item,.core-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
+  if(page==='programme'){renderFormations();}
+  if(page==='dashboard'){updateDashboard();}
+  history.pushState({page},'',(page==='core'?'/app/core':'/app/'+page));
+}
+
+// Handle browser back/forward
+window.addEventListener('popstate',e=>{
+  if(e.state && e.state.page) navigate(e.state.page);
 });
 
-/* ─── AUTH ─── */
-function login() {
-  if(document.getElementById('pwd').value === PWD) {
-    document.getElementById('auth').style.display = 'none';
-    document.getElementById('app').classList.add('on');
-    showScreen('home');
-  } else {
-    const err = document.getElementById('auth-err');
-    err.textContent = 'Mot de passe incorrect.';
-    document.getElementById('pwd').value = '';
-    setTimeout(() => err.textContent = '', 3000);
-  }
+// Initial route
+(function(){
+  const path = location.pathname;
+  const map = {'/app/accueil':'accueil','/app/dashboard':'dashboard','/app/flash':'flash',
+    '/app/calendrier':'calendrier','/app/programme':'programme','/app/agents':'agents',
+    '/app/memoire':'memoire','/app/fiches':'fiches','/app/rapports':'rapports','/app/core':'core'};
+  const page = map[path] || 'accueil';
+  navigate(page);
+})();
+
+// AGENTS
+const AGENTS = {
+  leon:{name:'Léon',specialty:'Stratégie & priorisation',greet:'Bonjour Marjana. Je suis Léon, ton stratège. Je t\'aide à orchestrer tes priorités, identifier les chemins critiques et anticiper les charges cognitives. Qu\'est-ce qui te bloque en ce moment ?'},
+  iris:{name:'Iris',specialty:'Pédagogie & compréhension',greet:'Bonjour Marjana. Je suis Iris. J\'explique les concepts comptables, juridiques et fiscaux avec rigueur et patience. Quel concept veux-tu approfondir aujourd\'hui ?'},
+  octave:{name:'Octave',specialty:'Culture générale du métier',greet:'Bonjour Marjana. Je suis Octave. Je t\'aide à élargir ta vision : histoire de la profession, actualités, débats normatifs. Quelle est ta question sur le métier ?'},
+  mila:{name:'Mila',specialty:'Suivi opérationnel du stage',greet:'Bonjour Marjana. Je suis Mila, ton suivi opérationnel. J\'optimise tes fiches de travail, ton temps, ton tableau de bord. Comment puis-je t\'aider ?'},
+  theo:{name:'Théo',specialty:'Droit et déontologie',greet:'Bonjour Marjana. Je suis Théo, ton juriste. Droit des sociétés, déontologie, normes professionnelles, CAC, secret professionnel. Quelle est ta question ?'},
+  aika:{name:'Aïka',specialty:'Recherche bibliographique',greet:'Bonjour Marjana. Je suis Aïka. Je trouve, critique et propose des articles et ressources académiques pour ton mémoire et tes rapports. Quel sujet explores-tu ?'},
+  plume:{name:'Plume',specialty:'Rédaction des rapports',greet:'Bonjour Marjana. Je suis Plume. Je serai pleinement disponible 6 mois avant ton premier rapport semestriel pour t\'accompagner dans la rédaction. Reviens me voir en octobre 2026 !'}
+};
+let currentAgent = null;
+
+function openAgent(id){
+  const a = AGENTS[id];
+  if(!a) return;
+  currentAgent = id;
+  document.getElementById('modal-agent-name').textContent = a.name;
+  document.getElementById('modal-agent-specialty').textContent = a.specialty;
+  const msgs = document.getElementById('modal-messages');
+  msgs.innerHTML = `<div class="modal-agent-msg">${a.greet}</div>`;
+  document.getElementById('agent-modal').classList.add('open');
+  document.getElementById('modal-input').focus();
 }
-
-/* ─── NAVIGATION ─── */
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
-  const el = document.getElementById('s-' + id);
-  if(el) el.classList.add('on');
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  const tab = document.getElementById('t-' + id);
-  if(tab) tab.classList.add('on');
-  const tb = document.getElementById('tabbar');
-  if(id === 'chat') {
-    tb.style.display = 'none';
-    document.getElementById('music-fab').style.display = 'none';
-  } else {
-    tb.style.display = 'flex';
-    document.getElementById('music-fab').style.display = 'flex';
-  }
-  curScreen = id;
+function closeModal(){
+  document.getElementById('agent-modal').classList.remove('open');
+  currentAgent = null;
 }
-
-function goScreen(id) {
-  showScreen(id);
-  if(id === 'home') setTimeout(() => animateBars(), 200);
-}
-
-function openChat(agentId) {
-  const a = AGENTS[agentId]; if(!a) return;
-  curAgent = { id: agentId, ...a };
-  document.getElementById('c-name').textContent = a.name;
-  renderHistory(agentId);
-  showScreen('chat');
-  setTimeout(() => document.getElementById('c-inp').focus(), 300);
-}
-
-function closeChat() {
-  showScreen(curScreen === 'chat' ? 'agents' : curScreen);
-  goScreen('agents');
-}
-
-function switchYear(year) {
-  document.querySelectorAll('.year-tab').forEach(t => t.classList.remove('on'));
-  document.querySelectorAll('.year-pane').forEach(p => p.classList.remove('on'));
-  document.getElementById('yt-' + year).classList.add('on');
-  document.getElementById('yp-' + year).classList.add('on');
-}
-
-/* ─── PROGRESS ─── */
-function buildProgress() {
-  const today = new Date();
-  const total = END_DATE - START_DATE;
-  const elapsed = Math.max(0, today - START_DATE);
-  const pct = Math.min(100, (elapsed / total) * 100).toFixed(1);
-  const daysElapsed = Math.floor(elapsed / 86400000);
-  const daysLeft = Math.ceil((END_DATE - today) / 86400000);
-
-  document.getElementById('prog-global-pct').textContent = pct + '%';
-  document.getElementById('prog-days-elapsed').textContent = daysElapsed + ' jours accomplis';
-  document.getElementById('prog-days-left').textContent = daysLeft + ' restants';
-  document.getElementById('s-pct').textContent = Math.floor(pct) + '%';
-  document.getElementById('s-days').textContent = daysElapsed + 'j';
-
-  const container = document.getElementById('prog-subjects');
-  container.innerHTML = '';
-  SUBJECTS.forEach(s => {
-    const saved = parseInt(localStorage.getItem('mondec_subj_' + s.id) || '0');
-    const div = document.createElement('div');
-    div.className = 'prog-subj';
-    div.innerHTML = `
-      <div class="prog-subj-hd">
-        <div class="prog-subj-name">${s.name}</div>
-        <div class="prog-subj-pct" style="color:${s.color}" id="pct-${s.id}">${saved}%</div>
-      </div>
-      <div class="prog-subj-bar-wrap" onclick="updateSubject('${s.id}','${s.color}')">
-        <div class="prog-subj-bar" id="bar-${s.id}" style="width:0%;background:${s.color}"></div>
-      </div>`;
-    container.appendChild(div);
-  });
-}
-
-function animateBars() {
-  const today = new Date();
-  const pct = Math.min(100, ((today - START_DATE) / (END_DATE - START_DATE)) * 100);
-  const bar = document.getElementById('prog-global-bar');
-  if(bar) bar.style.width = pct + '%';
-  SUBJECTS.forEach(s => {
-    const saved = parseInt(localStorage.getItem('mondec_subj_' + s.id) || '0');
-    const b = document.getElementById('bar-' + s.id);
-    if(b) b.style.width = saved + '%';
-  });
-}
-
-function updateSubject(id, color) {
-  const cur = parseInt(localStorage.getItem('mondec_subj_' + id) || '0');
-  const val = prompt('Avancement pour cette matière (0-100) :', cur);
-  if(val === null) return;
-  const n = Math.max(0, Math.min(100, parseInt(val) || 0));
-  localStorage.setItem('mondec_subj_' + id, n);
-  const pctEl = document.getElementById('pct-' + id);
-  const barEl = document.getElementById('bar-' + id);
-  if(pctEl) pctEl.textContent = n + '%';
-  if(barEl) { barEl.style.width = '0%'; setTimeout(() => barEl.style.width = n + '%', 50); }
-}
-
-/* ─── PLANNING ─── */
-function buildPlanning() {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const list = document.getElementById('plan-list');
-  list.innerHTML = '';
-  const future = PLANNING
-    .map(p => ({ ...p, d: new Date(p.date) }))
-    .filter(p => p.d >= today)
-    .sort((a,b) => a.d - b.d)
-    .slice(0, 6);
-
-  future.forEach(p => {
-    const daysLeft = Math.ceil((p.d - today) / 86400000);
-    const isUrgent = p.urgent || daysLeft <= 14;
-    const item = document.createElement('div');
-    item.className = 'plan-item' + (isUrgent ? ' urgent' : '');
-    const cdColor = daysLeft <= 7 ? 'var(--red)' : daysLeft <= 30 ? 'var(--orange)' : 'var(--text3)';
-    const cdBg = daysLeft <= 7 ? 'var(--red-bg)' : daysLeft <= 30 ? 'var(--orange-bg)' : 'var(--bg4)';
-    const cdTxt = daysLeft === 0 ? "Aujourd'hui !" : daysLeft === 1 ? 'Demain !' : `dans ${daysLeft}j`;
-    item.innerHTML = `
-      <div class="plan-date-box">
-        <div class="plan-month" style="color:${p.color}">${MONTHS_FR[p.d.getMonth()]}</div>
-        <div class="plan-day">${p.d.getDate()}</div>
-      </div>
-      <div class="plan-body">
-        <div class="plan-name">${p.name}</div>
-        <div class="plan-meta">${p.lieu || p.d.getFullYear()}</div>
-      </div>
-      <div class="plan-cd" style="color:${cdColor};background:${cdBg}">${cdTxt}</div>`;
-    list.appendChild(item);
-  });
-}
-
-function updateAlert() {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const next = PLANNING
-    .map(p => ({ ...p, d: new Date(p.date) }))
-    .filter(p => p.d >= today)
-    .sort((a,b) => a.d - b.d)[0];
-  if(!next) return;
-  const daysLeft = Math.ceil((next.d - today) / 86400000);
-  if(daysLeft <= 30) {
-    const bar = document.getElementById('alert-bar');
-    const txt = document.getElementById('alert-txt');
-    const cnt = document.getElementById('alert-cnt');
-    bar.style.display = 'flex';
-    txt.textContent = next.name + (next.lieu ? ' · ' + next.lieu : '');
-    cnt.textContent = daysLeft <= 1 ? (daysLeft===0?"Aujourd'hui !":"Demain !") : `dans ${daysLeft} jours`;
-  }
-}
-
-/* ─── FORMATIONS ─── */
-function buildFormations() {
-  ['c1','c2','c3'].forEach(year => {
-    const container = document.getElementById('forms-' + year);
-    container.innerHTML = '';
-    FORMATIONS[year].forEach(f => {
-      const done = localStorage.getItem('mondec_form_' + f.id) === '1';
-      const item = document.createElement('div');
-      item.className = 'form-item' + (done ? ' done' : '');
-      item.onclick = () => toggleFormation(f.id);
-      let tags = `<div class="form-meta">`;
-      tags += `<span class="form-tag" style="background:var(--bg4);color:var(--text2)">${f.format}</span>`;
-      if(f.date) {
-        const d = new Date(f.date);
-        const today = new Date(); today.setHours(0,0,0,0);
-        const dl = Math.ceil((d - today) / 86400000);
-        const col = dl <= 7 ? 'var(--red)' : dl <= 30 ? 'var(--orange)' : 'var(--text3)';
-        const bg = dl <= 7 ? 'var(--red-bg)' : dl <= 30 ? 'var(--orange-bg)' : 'var(--bg4)';
-        const txt = dl < 0 ? 'Passé' : dl === 0 ? "Aujourd'hui" : dl === 1 ? 'Demain' : `${d.getDate()} ${MONTHS_FR[d.getMonth()]}`;
-        tags += `<span class="form-tag" style="background:${bg};color:${col}">${txt}</span>`;
-      }
-      if(f.lieu) tags += `<span class="form-tag" style="background:var(--bg4);color:var(--text3)">${f.lieu}</span>`;
-      tags += `</div>`;
-      item.innerHTML = `
-        <div class="form-check"><span class="form-check-ic">✓</span></div>
-        <div class="form-body">
-          <div class="form-name">${f.name}</div>
-          ${f.desc ? `<div class="form-format">${f.desc}</div>` : ''}
-          ${tags}
-        </div>`;
-      container.appendChild(item);
-    });
-  });
-  updateYearProgress();
-}
-
-function toggleFormation(id) {
-  const current = localStorage.getItem('mondec_form_' + id) === '1';
-  localStorage.setItem('mondec_form_' + id, current ? '0' : '1');
-  buildFormations();
-  updateFormStats();
-}
-
-function updateYearProgress() {
-  ['c1','c2','c3'].forEach(year => {
-    const forms = FORMATIONS[year];
-    const done = forms.filter(f => localStorage.getItem('mondec_form_' + f.id) === '1').length;
-    const total = forms.length;
-    const pct = total > 0 ? (done/total)*100 : 0;
-    const bar = document.getElementById('ybar-' + year);
-    const lbl = document.getElementById('ylbl-' + year);
-    if(bar) bar.style.width = pct + '%';
-    if(lbl) lbl.textContent = done + '/' + total;
-  });
-}
-
-function updateFormStats() {
-  const allForms = [...FORMATIONS.c1, ...FORMATIONS.c2, ...FORMATIONS.c3];
-  const completedDays = allForms
-    .filter(f => localStorage.getItem('mondec_form_' + f.id) === '1')
-    .reduce((sum, f) => sum + f.days, 0);
-  document.getElementById('s-form').textContent = completedDays + '/' + FORM_TOTAL_DAYS;
-}
-
-/* ─── CHAT + HISTORY ─── */
-function hKey(id) { return 'mondec_hist_' + id; }
-function loadHist(id) { try { return JSON.parse(localStorage.getItem(hKey(id))) || []; } catch { return []; } }
-function saveHist(id, msgs) { try { localStorage.setItem(hKey(id), JSON.stringify(msgs.slice(-200))); } catch {} }
-
-function renderHistory(id) {
-  const msgs = document.getElementById('c-msgs');
-  msgs.innerHTML = '';
-  const hist = loadHist(id);
-  if(hist.length === 0) {
-    appendMsg('a', AGENTS[id].welcome, false);
-  } else {
-    let lastDate = '';
-    hist.forEach(m => {
-      const d = new Date(m.ts).toLocaleDateString('fr-FR', {day:'numeric',month:'long'});
-      if(d !== lastDate) { appendDateSep(msgs, d); lastDate = d; }
-      appendMsg(m.type, m.text, false);
-    });
-  }
+function sendModalMessage(){
+  const input = document.getElementById('modal-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const msgs = document.getElementById('modal-messages');
+  msgs.innerHTML += `<div class="modal-user-msg">${text}</div>`;
+  input.value = '';
   msgs.scrollTop = msgs.scrollHeight;
+  setTimeout(()=>{
+    const a = currentAgent && AGENTS[currentAgent];
+    const reply = a ? `Je note ta question sur "${text}". Cette fonctionnalité sera bientôt connectée à l'IA. En attendant, n'hésite pas à consulter les ressources CSOEC.` : 'Message reçu.';
+    msgs.innerHTML += `<div class="modal-agent-msg">${reply}</div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 800);
 }
 
-function clearHistory() {
-  if(!curAgent) return;
-  if(!confirm('Effacer la conversation ?')) return;
-  localStorage.removeItem(hKey(curAgent.id));
-  renderHistory(curAgent.id);
+// CORE
+function sendCorePrompt(btn){
+  document.getElementById('core-input').value = btn.textContent;
+  sendCoreMessage();
 }
-
-function appendDateSep(container, text) {
-  const sep = document.createElement('div');
-  sep.className = 'chat-date-sep';
-  sep.textContent = text;
-  container.appendChild(sep);
-}
-
-function renderMd(text) {
-  return text
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\n/g,'<br>');
-}
-
-function appendMsg(type, text, save = true) {
-  const msgs = document.getElementById('c-msgs');
-  const row = document.createElement('div');
-  row.className = 'msg' + (type==='u' ? ' u' : '');
-  const b = document.createElement('div');
-  b.className = 'bubble ' + type;
-  b.innerHTML = renderMd(text);
-  row.appendChild(b);
-  msgs.appendChild(row);
+function sendCoreMessage(){
+  const input = document.getElementById('core-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const msgs = document.getElementById('core-messages');
+  msgs.innerHTML += `<div class="core-msg" style="background:var(--blue);margin-left:auto;max-width:70%"><div class="core-msg-label" style="color:rgba(255,255,255,.7)">Toi</div><div class="core-msg-text" style="color:#fff">${text}</div></div>`;
+  input.value = '';
   msgs.scrollTop = msgs.scrollHeight;
-  if(save && curAgent) {
-    const hist = loadHist(curAgent.id);
-    hist.push({ type, text, ts: Date.now() });
-    saveHist(curAgent.id, hist);
-  }
-}
-
-async function streamMsg(text) {
-  const msgs = document.getElementById('c-msgs');
-  const row = document.createElement('div');
-  row.className = 'msg';
-  const b = document.createElement('div');
-  b.className = 'bubble a';
-  row.appendChild(b);
-  msgs.appendChild(row);
-
-  let shown = 0;
-  await new Promise(resolve => {
-    const step = () => {
-      if(shown >= text.length) {
-        b.innerHTML = renderMd(text);
-        msgs.scrollTop = msgs.scrollHeight;
-        resolve();
-        return;
-      }
-      shown = Math.min(shown + Math.floor(Math.random() * 5 + 3), text.length);
-      b.innerHTML = renderMd(text.slice(0, shown)) + '<span class="stream-cursor">▋</span>';
-      msgs.scrollTop = msgs.scrollHeight;
-      setTimeout(step, 14);
+  setTimeout(()=>{
+    const replies = {
+      'Comment je me sens aujourd\'hui ?': 'D\'après tes données récentes, tu as bien avancé cette semaine. Jour 238 du stage, 22% accompli. La prochaine échéance est dans 158 jours : tu as du temps, mais commencer à documenter tes missions maintenant est recommandé.',
+      'Crée-moi mon programme de la semaine.': 'Programme suggéré : Lundi — revue des notes C1M1 (30 min). Mardi — documentation fiche de travail client (1h). Mercredi — formation ME110 présentielle (journée). Jeudi — synthèse semaine + lecture Flash Info. Vendredi — temps libre ou avance sur fiches.',
+      'Suis-je en surcharge ?': 'Non, tu n\'es pas en surcharge critique. 1 formation validée sur 34, 0 fiche déposée. La pression va monter à partir du semestre 2. C\'est le bon moment pour établir tes routines.',
+      'Quelle est ma priorité maintenant ?': 'Ta priorité n°1 : préparer la formation présentielle ME110 du 27 mai (dans 2 jours). Ta priorité n°2 : démarrer ta première fiche de travaux. Ta priorité n°3 : avancer sur C1M2 en e-learning.'
     };
-    setTimeout(step, 80);
+    const r = replies[text] || `Tu m\'as dit : "${text}". Je prends note. Cette fonctionnalité sera bientôt enrichie avec une IA connectée à ton contexte de stage.`;
+    msgs.innerHTML += `<div class="core-msg"><div class="core-msg-label">Core</div><div class="core-msg-text">${r}</div></div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 900);
+}
+
+// Theme toggle
+document.querySelectorAll('.theme-btn').forEach((btn,i)=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
   });
-
-  if(curAgent) {
-    const hist = loadHist(curAgent.id);
-    hist.push({ type:'a', text, ts: Date.now() });
-    saveHist(curAgent.id, hist);
-  }
-}
-
-function showTyping() {
-  const msgs = document.getElementById('c-msgs');
-  const row = document.createElement('div');
-  row.className = 'msg'; row.id = 'typing-indicator';
-  row.innerHTML = '<div class="bubble a"><div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>';
-  msgs.appendChild(row);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-async function send() {
-  if(busy || !curAgent) return;
-  const inp = document.getElementById('c-inp');
-  const txt = inp.value.trim(); if(!txt) return;
-  inp.value = ''; inp.style.height = 'auto';
-  busy = true; document.getElementById('c-btn').disabled = true;
-  appendMsg('u', txt);
-  showTyping();
-  try {
-    const r = await fetch(curAgent.url, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ message: txt })
-    });
-    const raw = await r.text();
-    document.getElementById('typing-indicator')?.remove();
-    let reply = '';
-    if(raw) {
-      try {
-        const d = JSON.parse(raw);
-        reply = d.response || d.message || d.output || d.text || d.answer || JSON.stringify(d);
-      } catch { reply = raw; }
-    }
-    await streamMsg(reply || "⚠️ Le workflow n8n n'a renvoyé aucune réponse. Vérifie que le workflow est actif.");
-  } catch {
-    document.getElementById('typing-indicator')?.remove();
-    await streamMsg('⚠️ Erreur de connexion. Vérifie que ton workflow n8n est bien actif.');
-  }
-  busy = false;
-  document.getElementById('c-btn').disabled = false;
-  inp.focus();
-}
-
-function resizeInp(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-}
-
-/* ─── MUSIC ─── */
-let audioCtx=null, masterGain=null, musicPlaying=false;
-let progInterval=null, progValue=0, currentTrack=0;
-let oscillators=[], noiseSrc=null;
-
-const TRACKS = [
-  { name:'Ambiance Focus', type:'Drones · Étude', freqs:[110,220,330,440], icon:'🎵' },
-  { name:'Deep Work', type:'Basses · Concentration', freqs:[55,110,165,220], icon:'🌊' },
-  { name:'Calm Mind', type:'Harmoniques · Détente', freqs:[174,285,396,528], icon:'🧘' },
-];
-
-function initAudio() {
-  if(audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  masterGain = audioCtx.createGain();
-  masterGain.gain.value = 0;
-  masterGain.connect(audioCtx.destination);
-}
-function buildTrack(idx) {
-  stopNodes();
-  const track = TRACKS[idx];
-  track.freqs.forEach((freq, i) => {
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.frequency.value = freq; osc.type = 'sine';
-    g.gain.value = 0.18 / (i + 1);
-    const lfo = audioCtx.createOscillator();
-    const lg = audioCtx.createGain();
-    lfo.frequency.value = 0.07 + i * 0.02; lg.gain.value = 0.04;
-    lfo.connect(lg); lg.connect(g.gain);
-    osc.connect(g); g.connect(masterGain);
-    osc.start(); lfo.start();
-    oscillators.push(osc, lfo);
-  });
-  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*3, audioCtx.sampleRate);
-  const data = buf.getChannelData(0); let last=0;
-  for(let i=0;i<data.length;i++){const w=(Math.random()*2-1)*.04;data[i]=(last+w)/1.002;last=data[i];data[i]*=3.5;}
-  noiseSrc = audioCtx.createBufferSource();
-  noiseSrc.buffer = buf; noiseSrc.loop = true;
-  const filt = audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=180;
-  const ng = audioCtx.createGain(); ng.gain.value=0.06;
-  noiseSrc.connect(filt); filt.connect(ng); ng.connect(masterGain);
-  noiseSrc.start();
-}
-function stopNodes() {
-  oscillators.forEach(o => { try{o.stop();}catch{} }); oscillators=[];
-  if(noiseSrc){try{noiseSrc.stop();}catch{} noiseSrc=null;}
-}
-function startMusic() {
-  initAudio();
-  if(audioCtx.state==='suspended') audioCtx.resume();
-  buildTrack(currentTrack);
-  const vol = parseInt(document.getElementById('music-vol').value)/100;
-  masterGain.gain.setTargetAtTime(vol*.35, audioCtx.currentTime, 0.5);
-  musicPlaying=true;
-  document.getElementById('mc-play').textContent='⏸';
-  document.getElementById('music-fab').classList.add('playing');
-  document.getElementById('music-art').classList.add('playing');
-  startProgBar();
-}
-function stopMusic() {
-  if(masterGain) masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.4);
-  setTimeout(() => { if(audioCtx) audioCtx.suspend(); }, 500);
-  musicPlaying=false;
-  document.getElementById('mc-play').textContent='▶';
-  document.getElementById('music-fab').classList.remove('playing');
-  document.getElementById('music-art').classList.remove('playing');
-  stopProgBar();
-}
-function togglePlay() { if(musicPlaying) stopMusic(); else startMusic(); }
-function toggleMusicPanel() { document.getElementById('music-panel').classList.toggle('on'); }
-function prevTrack() { currentTrack=(currentTrack-1+TRACKS.length)%TRACKS.length; switchTrack(); }
-function nextTrack() { currentTrack=(currentTrack+1)%TRACKS.length; switchTrack(); }
-function switchTrack() {
-  const t=TRACKS[currentTrack];
-  document.getElementById('music-track').textContent=t.name;
-  document.getElementById('music-type').textContent=t.type;
-  document.getElementById('music-art').textContent=t.icon;
-  progValue=0; document.getElementById('music-prog').style.width='0%';
-  if(musicPlaying) buildTrack(currentTrack);
-}
-function setVolume(v) { if(masterGain&&musicPlaying) masterGain.gain.setTargetAtTime((v/100)*.35, audioCtx.currentTime, 0.1); }
-function startProgBar() {
-  stopProgBar(); progValue=0;
-  progInterval=setInterval(()=>{ progValue=(progValue+.04)%100; const el=document.getElementById('music-prog'); if(el) el.style.width=progValue+'%'; },1000);
-}
-function stopProgBar() { if(progInterval){clearInterval(progInterval);progInterval=null;} }
+});
 </script>
 </body>
 </html>
