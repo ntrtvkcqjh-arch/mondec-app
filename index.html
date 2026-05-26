@@ -1317,7 +1317,56 @@ document.querySelectorAll('.theme-btn').forEach((btn,i)=>{
   });
 });
 
-// ---- FLASH INFO RSS ----
+// ---- FLASH INFO RSS (via rss2json.com) ----
+
+const RSS_SOURCES = [
+  { url: 'https://www.compta-online.com/rss.php',              category: 'COMPTABILITÉ', source: 'Compta Online' },
+  { url: 'https://bofip.impots.gouv.fr/bofip/rss/bofipRSS.rss', category: 'FISCAL',       source: 'BOFIP' },
+  { url: 'https://www.village-justice.com/rss/articles.php',   category: 'DROIT',         source: 'Village Justice' },
+  { url: 'https://www.experts-comptables.fr/rss.php',          category: 'CSOEC',         source: 'Experts-Comptables.fr' },
+];
+
+async function fetchOneFeed({ url, category, source }) {
+  const api = 'https://api.rss2json.com/v1/api.json?count=5&rss_url=' + encodeURIComponent(url);
+  const res = await fetch(api, { signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (json.status !== 'ok' || !json.items) throw new Error('feed error');
+  return json.items.map(item => ({
+    title: item.title || '',
+    link:  item.link  || '',
+    description: (item.description || item.content || '').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,450),
+    pubDate: item.pubDate ? new Date(item.pubDate).toISOString() : null,
+    category: (item.categories && item.categories[0]) ? item.categories[0].toUpperCase() : category,
+    source,
+  }));
+}
+
+async function fetchRSSFeeds() {
+  const results = await Promise.allSettled(RSS_SOURCES.map(fetchOneFeed));
+  const allItems = [];
+  for (const r of results) {
+    if (r.status === 'fulfilled') allItems.push(...r.value);
+  }
+  allItems.sort((a, b) => (b.pubDate || '') > (a.pubDate || '') ? 1 : -1);
+  const seen = new Set();
+  const unique = allItems.filter(item => {
+    const k = item.title.slice(0,60).toLowerCase().trim();
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+  return {
+    items: unique.slice(0, 12),
+    count: unique.length,
+    updatedAt: new Date().toISOString(),
+    sources: results.map((r, i) => ({
+      name: RSS_SOURCES[i].source,
+      ok: r.status === 'fulfilled' && r.value.length > 0,
+    })),
+  };
+}
+
+// ---- END RSS helpers ----
 const CATEGORY_STYLES = {
   'FISCAL':      {bg:'#FFF1DC',color:'#D97706'},
   'COMPTABILITÉ':  {bg:'#EEF1FE',color:'#3F5BCE'},
@@ -1410,9 +1459,7 @@ async function loadFlash(force = false) {
   }
 
   try {
-    const res = await fetch('/api/flash');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
+    const data = await fetchRSSFeeds();
 
     flashLoaded = true;
 
@@ -1452,7 +1499,7 @@ async function loadFlash(force = false) {
     // Fallback to static articles
     document.getElementById('flash-articles-container').innerHTML = `
       <div style="background:#FFF5F4;border:1px solid #FFD9D2;border-radius:12px;padding:16px;margin-bottom:16px;font-size:.875rem;color:var(--text2)">
-        <strong style="color:var(--red)">Flux RSS indisponible</strong> — Vérifiez que le site est déployé sur Vercel (l'API /api/flash nécessite l'environnement serverless).
+        <strong style="color:var(--red)">Flux RSS indisponible</strong> — Vérifiez votre connexion internet et réessayez dans quelques secondes.
       </div>
       <div class="flash-article">
         <div class="article-meta"><div class="article-tags"><span class="tag fiscal">Fiscal</span></div><span class="article-time">17:22</span></div>
