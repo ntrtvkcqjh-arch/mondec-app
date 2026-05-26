@@ -1222,7 +1222,7 @@ function navigate(page){
   document.querySelectorAll('.nav-item,.core-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
   if(page==='programme'){renderFormations();}
   if(page==='dashboard'){updateDashboard();}
-  history.pushState({page},'',(page==='core'?'/app/core':'/app/'+page));
+  history.pushState({page},'','#'+page);
 }
 
 // Handle browser back/forward
@@ -1232,11 +1232,9 @@ window.addEventListener('popstate',e=>{
 
 // Initial route
 (function(){
-  const path = location.pathname;
-  const map = {'/app/accueil':'accueil','/app/dashboard':'dashboard','/app/flash':'flash',
-    '/app/calendrier':'calendrier','/app/programme':'programme','/app/agents':'agents',
-    '/app/memoire':'memoire','/app/fiches':'fiches','/app/rapports':'rapports','/app/core':'core'};
-  const page = map[path] || 'accueil';
+  const hash = location.hash.replace('#','');
+  const valid = ['accueil','dashboard','flash','calendrier','programme','agents','memoire','fiches','rapports','core'];
+  const page = valid.includes(hash) ? hash : 'accueil';
   navigate(page);
 })();
 
