@@ -62,6 +62,55 @@ interface AgendaSlot {
   xp_max: number;
   niveau_requis: number;
 }
+interface DeontoQuestion {
+  id: string;
+  categorie: "EC" | "CAC";
+  theme: string;
+  type: "qcm_simple" | "qcm_multiple" | "qrc" | "vrai_faux";
+  question: string;
+  options?: string[];
+  correct?: number[];
+  correct_mots_cles?: string[];
+  explication: string;
+}
+interface DeontoResult {
+  score_20: number;
+  pct: number;
+  total_points: number;
+  total_max: number;
+  detail: Array<{ question_id: string; question: string; type: string; theme: string; points_obtenus: number; points_max: number; is_correct: boolean; explication: string; feedback: string; }>;
+  impact_legitimite: number;
+  badge: string | null;
+  xp_gagne: number;
+  synthese: string;
+}
+interface MissionEtape {
+  numero: number;
+  label: string;
+  points_max: number;
+  consigne: string;
+  mots_cles_attendus: string[];
+}
+interface Mission {
+  id: string;
+  theme: string;
+  difficulte: number;
+  titre: string;
+  client: string;
+  contexte: string;
+  etapes: MissionEtape[];
+}
+interface MissionResult {
+  score_pct: number;
+  score_20: number;
+  total: number;
+  total_max: number;
+  detail: Array<{ numero: number; label: string; points_obtenus: number; points_max: number; mots_cles_trouves: number; mots_cles_total: number; feedback: string; correction_style: string | null; }>;
+  impact_legitimite: number;
+  xp_gagne: number;
+  synthese: string;
+}
+
 interface CaseStudy {
   titre: string;
   client: string;
@@ -239,6 +288,22 @@ export default function Home() {
   const [keyInput, setKeyInput] = useState("");
   const [keySaving, setKeySaving] = useState(false);
 
+  // DEC Prep modules
+  const [deontoPool, setDeontoPool] = useState<DeontoQuestion[]>([]);
+  const [missionsPool, setMissionsPool] = useState<Mission[]>([]);
+  // Déontologie session
+  const [activeDeonto, setActiveDeonto] = useState<DeontoQuestion[] | null>(null);
+  const [deontoReponses, setDeontoReponses] = useState<Record<string, { selected?: number[]; texte?: string }>>({});
+  const [deontoIndex, setDeontoIndex] = useState(0);
+  const [deontoSubmitting, setDeontoSubmitting] = useState(false);
+  const [deontoResult, setDeontoResult] = useState<DeontoResult | null>(null);
+  // Mission session
+  const [activeMission, setActiveMission] = useState<Mission | null>(null);
+  const [missionReponses, setMissionReponses] = useState<Record<number, string>>({});
+  const [missionEtapeIndex, setMissionEtapeIndex] = useState(0);
+  const [missionSubmitting, setMissionSubmitting] = useState(false);
+  const [missionResult, setMissionResult] = useState<MissionResult | null>(null);
+
   // Tasks (validation pédagogique)
   const [tasksPool, setTasksPool] = useState<TaskDoc[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
@@ -275,7 +340,14 @@ export default function Home() {
   useEffect(() => {
     fetch("/agenda.json").then(r => r.json()).then(d => setAgendaSlots(d.slots_quotidiens || [])).catch(() => {});
     fetch("/tasks_pool.json").then(r => r.json()).then(d => setTasksPool(d.tasks || [])).catch(() => {});
+    fetch("/deontologie_pool.json").then(r => r.json()).then(d => setDeontoPool(d.questions || [])).catch(() => {});
+    fetch("/missions_pool.json").then(r => r.json()).then(d => setMissionsPool(d.missions || [])).catch(() => {});
   }, []);
+
+  // Reset DEC drapeaux du jour quand on change de jour
+  useEffect(() => {
+    store.checkDecRollover();
+  }, [store.game_day]);
 
   // Auto-progression des deadlines fiscales par les agents autonomes
   // (toutes les 8 secondes réelles ≈ 4 minutes jeu)
@@ -884,6 +956,126 @@ export default function Home() {
     setActiveTask(null);
     setTaskResult(null);
     setShowEcritureModal(false);
+  }
+
+  // ── DÉONTOLOGIE ────────────────────────────────────────────────────────
+  function startDeonto() {
+    if (deontoPool.length === 0) { alert("Questions en cours de chargement…"); return; }
+    // Pioche 20 questions (10 EC + 10 CAC si possible), en évitant les récentes
+    const recent = new Set(store.dec_completed_deonto_ids.slice(-40));
+    const ec = deontoPool.filter(q => q.categorie === "EC" && !recent.has(q.id));
+    const cac = deontoPool.filter(q => q.categorie === "CAC" && !recent.has(q.id));
+    const ecFallback = deontoPool.filter(q => q.categorie === "EC");
+    const cacFallback = deontoPool.filter(q => q.categorie === "CAC");
+    const pickFrom = (pool: DeontoQuestion[], fallback: DeontoQuestion[], n: number) => {
+      const arr = (pool.length >= n ? pool : fallback).slice().sort(() => Math.random() - 0.5);
+      return arr.slice(0, n);
+    };
+    const selected = [...pickFrom(ec, ecFallback, 10), ...pickFrom(cac, cacFallback, 10)].sort(() => Math.random() - 0.5);
+    setActiveDeonto(selected);
+    setDeontoReponses({});
+    setDeontoIndex(0);
+    setDeontoResult(null);
+  }
+
+  function toggleDeontoOption(qid: string, idx: number, multiple: boolean) {
+    setDeontoReponses(prev => {
+      const current = prev[qid]?.selected || [];
+      let next: number[];
+      if (multiple) {
+        next = current.includes(idx) ? current.filter(x => x !== idx) : [...current, idx];
+      } else {
+        next = [idx];
+      }
+      return { ...prev, [qid]: { ...prev[qid], selected: next } };
+    });
+  }
+
+  function setDeontoText(qid: string, txt: string) {
+    setDeontoReponses(prev => ({ ...prev, [qid]: { ...prev[qid], texte: txt } }));
+  }
+
+  async function submitDeonto() {
+    if (!activeDeonto || deontoSubmitting) return;
+    setDeontoSubmitting(true);
+    try {
+      const reponses = activeDeonto.map(q => ({
+        question_id: q.id,
+        selected: deontoReponses[q.id]?.selected,
+        texte: deontoReponses[q.id]?.texte,
+      }));
+      const res = await apiFetch("/api/deontologie-eval", {
+        method: "POST",
+        body: JSON.stringify({ questions: activeDeonto, reponses }),
+      });
+      const data = await res.json();
+      if (data.score_20 !== undefined) {
+        setDeontoResult(data);
+        store.addXP(data.xp_gagne || 0);
+        if (data.impact_legitimite) {
+          store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + data.impact_legitimite)) });
+        }
+        if (data.badge) store.addBadge(data.badge);
+        store.markDeontoCompleted(activeDeonto.map(q => q.id));
+      } else {
+        alert("Erreur évaluation déontologie.");
+      }
+    } catch (e) {
+      alert("Erreur réseau.");
+    } finally {
+      setDeontoSubmitting(false);
+    }
+  }
+
+  function closeDeonto() {
+    setActiveDeonto(null);
+    setDeontoResult(null);
+    setDeontoIndex(0);
+  }
+
+  // ── MISSION ────────────────────────────────────────────────────────────
+  function startMission(mission: Mission) {
+    setActiveMission(mission);
+    setMissionReponses({});
+    setMissionEtapeIndex(0);
+    setMissionResult(null);
+  }
+
+  function setMissionText(numero: number, txt: string) {
+    setMissionReponses(prev => ({ ...prev, [numero]: txt }));
+  }
+
+  async function submitMission() {
+    if (!activeMission || missionSubmitting) return;
+    setMissionSubmitting(true);
+    try {
+      const reponses = activeMission.etapes.map(e => ({ numero: e.numero, texte: missionReponses[e.numero] || "" }));
+      const res = await apiFetch("/api/mission-eval", {
+        method: "POST",
+        body: JSON.stringify({ mission: activeMission, reponses }),
+      });
+      const data = await res.json();
+      if (data.score_pct !== undefined) {
+        setMissionResult(data);
+        store.addXP(data.xp_gagne || 0);
+        if (data.impact_legitimite) {
+          store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + data.impact_legitimite)) });
+        }
+        store.markMissionCompleted(activeMission.id);
+      } else {
+        alert("Erreur évaluation mission.");
+      }
+    } catch (e) {
+      alert("Erreur réseau.");
+    } finally {
+      setMissionSubmitting(false);
+    }
+  }
+
+  function closeMission() {
+    setActiveMission(null);
+    setMissionResult(null);
+    setMissionEtapeIndex(0);
   }
 
   // Claude assistant
@@ -1808,51 +2000,152 @@ export default function Home() {
         {activeTab === "dec" && (
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-3xl mx-auto">
-              <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">DEC Prep</h2>
-              <p className="text-[13px] text-[#6e6e73] mb-5">Niveau {store.player_level}/10 · {store.player_xp} XP</p>
-
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-gradient-to-br from-[#ff9f0a]/10 to-[#ff3b30]/10 border border-[#ff9f0a]/20 rounded-[16px] p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Award size={16} className="text-[#ff9f0a]" />
-                    <span className="font-semibold text-[13px] text-[#1d1d1f]">Niveau actuel</span>
-                  </div>
-                  <div className="text-[36px] font-bold text-[#1d1d1f] tabular-nums leading-none">{store.player_level}</div>
-                  <div className="text-[11px] text-[#6e6e73] mt-1">{store.xp_to_next - store.player_xp} XP avant niveau {store.player_level + 1}</div>
+              <div className="flex items-end justify-between mb-5">
+                <div>
+                  <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">DEC Prep</h2>
+                  <p className="text-[13px] text-[#6e6e73]">Niveau {store.player_level}/10 · {store.player_xp} XP · {store.dec_badges.length} badge{store.dec_badges.length > 1 ? "s" : ""}</p>
                 </div>
-                <div className="bg-gradient-to-br from-[#0071e3]/10 to-[#5e5ce6]/10 border border-[#0071e3]/20 rounded-[16px] p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles size={16} className="text-[#0071e3]" />
-                    <span className="font-semibold text-[13px] text-[#1d1d1f]">Total XP</span>
+                <div className="text-right">
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <Flame size={14} className="text-[#ff9f0a]" />
+                    <span className="text-[22px] font-bold text-[#ff9f0a] tabular-nums">{store.dec_streak}</span>
                   </div>
-                  <div className="text-[36px] font-bold text-[#1d1d1f] tabular-nums leading-none">{store.player_xp}</div>
-                  <div className="text-[11px] text-[#6e6e73] mt-1">Gagné en répondant et cas pratiques</div>
+                  <div className="text-[10px] text-[#6e6e73]">jours consécutifs</div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30 mb-3">
-                <p className="font-semibold text-[13px] text-[#1d1d1f] mb-3">Grille d'évaluation Ghost Writer</p>
-                <div className="space-y-2">
+              {/* Statut du jour */}
+              <div className="bg-gradient-to-r from-[#0071e3]/8 to-[#5e5ce6]/8 border border-[#0071e3]/15 rounded-[16px] p-4 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <ClockIcon size={14} className="text-[#0071e3]" />
+                  <span className="font-semibold text-[13px] text-[#1d1d1f]">Aujourd'hui · Jour {store.game_day}</span>
+                  <span className="ml-auto text-[11px] text-[#6e6e73]">
+                    {(store.dec_today_deonto ? 1 : 0) + (store.dec_today_mission ? 1 : 0)}/2 modules complétés
+                  </span>
+                </div>
+                <p className="text-[12px] text-[#3a3a3c] leading-relaxed">
+                  L'objectif est simple : <strong>1 module Déontologie et 1 module Révision par jour</strong>. Pas de chronomètre, tu vas à ton rythme. Streak +1 par jour où tu valides au moins l'un des deux.
+                </p>
+              </div>
+
+              {/* MODULE 1 — DÉONTOLOGIE */}
+              <div className={`bg-white rounded-[18px] border-2 transition-all mb-3 overflow-hidden ${store.dec_today_deonto ? "border-[#34c759]/40 bg-[#34c759]/5" : "border-[#d2d2d7]/40 hover:border-[#0071e3]/30 hover:shadow-md"}`}>
+                <div className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#0071e3] to-[#5e5ce6] shadow-md">
+                      <Award size={22} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-[15px] text-[#1d1d1f]">Épreuve 1 — Déontologie</h3>
+                        {store.dec_today_deonto && (
+                          <span className="text-[9px] font-semibold text-[#34c759] bg-[#34c759]/10 px-1.5 py-0.5 rounded-full">✓ FAIT AUJOURD'HUI</span>
+                        )}
+                      </div>
+                      <p className="text-[12px] text-[#6e6e73] leading-relaxed">
+                        <strong>QCM 20 questions</strong> · 10 EC + 10 CAC · Thèmes : exercice profession, éthique, contrôle qualité, responsabilité.
+                        Inspiré du QCM réel de l'examen DEC à 10h30.
+                      </p>
+                      <div className="flex items-center gap-3 mt-2 flex-wrap">
+                        <span className="text-[10px] text-[#0071e3] bg-[#0071e3]/10 px-1.5 py-0.5 rounded-md font-medium">+8 Lég si 18/20</span>
+                        <span className="text-[10px] text-[#ff9f0a] bg-[#ff9f0a]/10 px-1.5 py-0.5 rounded-md font-medium">+5 Lég si 14/20</span>
+                        <span className="text-[10px] text-[#ff3b30] bg-[#ff3b30]/10 px-1.5 py-0.5 rounded-md font-medium">−15 Lég si &lt;6/20</span>
+                        <span className="text-[10px] text-[#6e6e73] ml-auto">{deontoPool.length} questions au catalogue</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={startDeonto} disabled={deontoPool.length === 0}
+                    className={`mt-3 w-full py-2.5 rounded-[12px] text-[13px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                      deontoPool.length === 0 ? "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed" :
+                      store.dec_today_deonto ? "bg-[#34c759]/15 text-[#34c759] hover:bg-[#34c759]/20" :
+                      "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white shadow-md hover:shadow-lg"
+                    }`}>
+                    {store.dec_today_deonto ? <><RefreshCw size={13} /> Refaire le QCM (entraînement)</> : <><Sparkles size={13} /> Commencer le QCM du jour</>}
+                  </button>
+                </div>
+              </div>
+
+              {/* MODULE 2 — RÉVISION (MISSIONS) */}
+              <div className={`bg-white rounded-[18px] border-2 transition-all mb-3 overflow-hidden ${store.dec_today_mission ? "border-[#34c759]/40 bg-[#34c759]/5" : "border-[#d2d2d7]/40"}`}>
+                <div className="p-4">
+                  <div className="flex items-start gap-3 mb-2">
+                    <div className="w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#bf5af2] to-[#5e5ce6] shadow-md">
+                      <FileSearch size={22} className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-[15px] text-[#1d1d1f]">Épreuve 2 — Révision (Mission complète)</h3>
+                        {store.dec_today_mission && (
+                          <span className="text-[9px] font-semibold text-[#34c759] bg-[#34c759]/10 px-1.5 py-0.5 rounded-full">✓ FAIT AUJOURD'HUI</span>
+                        )}
+                      </div>
+                      <p className="text-[12px] text-[#6e6e73] leading-relaxed">
+                        <strong>Cas pratique 5 étapes</strong> : Acceptation · Planification · Contrôle interne · Procédures · Conclusion.
+                        Méthode de rédaction DEC corrigée à chaque étape.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Liste des missions */}
+                  <div className="space-y-1.5 mt-3">
+                    {missionsPool.map((m) => {
+                      const done = store.dec_completed_mission_ids.includes(m.id);
+                      const locked = m.difficulte > Math.max(2, Math.floor(store.player_level / 2) + 2);
+                      return (
+                        <button key={m.id} onClick={() => !locked && startMission(m)} disabled={locked}
+                          className={`w-full text-left rounded-[10px] p-2.5 border transition-all flex items-center gap-2.5 ${
+                            done ? "bg-[#34c759]/5 border-[#34c759]/20" :
+                            locked ? "bg-[#f5f5f7] border-[#d2d2d7]/30 opacity-50 cursor-not-allowed" :
+                            "bg-white border-[#d2d2d7]/40 hover:border-[#bf5af2]/40 hover:shadow-sm"
+                          }`}>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-[12px] font-medium text-[#1d1d1f] truncate">{m.titre}</span>
+                              {done && <span className="text-[9px] text-[#34c759]">✓</span>}
+                              {locked && <Lock size={9} className="text-[#8e8e93]" />}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[10px] text-[#8e8e93]">
+                              <span>{m.theme}</span>
+                              <span>·</span>
+                              <span>{"⭐".repeat(m.difficulte)}</span>
+                            </div>
+                          </div>
+                          {!locked && !done && <ChevronRight size={12} className="text-[#c7c7cc]" />}
+                        </button>
+                      );
+                    })}
+                    {missionsPool.length === 0 && (
+                      <p className="text-[11px] text-[#8e8e93] text-center py-4">Missions en cours de chargement…</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Badges */}
+              {store.dec_badges.length > 0 && (
+                <div className="bg-white rounded-[14px] p-3 border border-[#d2d2d7]/40 mb-3">
+                  <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-2">🏆 Badges débloqués</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {store.dec_badges.map((b) => (
+                      <span key={b} className="text-[11px] font-medium text-[#ff9f0a] bg-gradient-to-br from-[#ff9f0a]/15 to-[#ff3b30]/15 px-2.5 py-1 rounded-full">{b}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Grille évaluation Ghost Writer */}
+              <div className="bg-white rounded-[14px] p-4 border border-[#d2d2d7]/30">
+                <p className="font-semibold text-[12px] text-[#1d1d1f] mb-2.5">Grille Ghost Writer (réponses aux agents)</p>
+                <div className="space-y-1.5">
                   {[["Précision technique", 30, "#0071e3"],["Rédaction professionnelle", 20, "#34c759"],["Déontologie", 20, "#ff9f0a"],["Contexte & empathie", 15, "#bf5af2"],["Opérationnel", 15, "#ff3b30"]].map(([label, pts, color]) => (
                     <div key={label as string} className="flex items-center gap-3">
-                      <span className="text-[11px] text-[#6e6e73] w-40">{label as string}</span>
-                      <div className="flex-1 h-[4px] bg-[#f5f5f7] rounded-full overflow-hidden">
+                      <span className="text-[10px] text-[#6e6e73] w-36">{label as string}</span>
+                      <div className="flex-1 h-[3px] bg-[#f5f5f7] rounded-full overflow-hidden">
                         <div className="h-full rounded-full" style={{ width: `${(pts as number)}%`, backgroundColor: color as string }} />
                       </div>
-                      <span className="text-[11px] font-semibold text-[#3a3a3c] w-6 text-right">{pts as number}</span>
+                      <span className="text-[10px] font-semibold text-[#3a3a3c] w-6 text-right">{pts as number}</span>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30">
-                <p className="font-semibold text-[13px] text-[#1d1d1f] mb-2">Progression par niveau</p>
-                <div className="space-y-1.5 text-[11px] text-[#6e6e73]">
-                  <div><strong>N1-2</strong> : Saisie comptable, TVA, paie simple</div>
-                  <div><strong>N3-4</strong> : Bilan, liasse fiscale, IS, contentieux</div>
-                  <div><strong>N5-6</strong> : Audit, CAC, provisions, contrôle</div>
-                  <div><strong>N7-8</strong> : Consolidation, IFRS, fusion</div>
-                  <div><strong>N9-10</strong> : Stratégie cabinet, expertise judiciaire</div>
                 </div>
               </div>
             </div>
@@ -1977,6 +2270,305 @@ export default function Home() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL DÉONTOLOGIE (QCM 20 questions) ── */}
+      {activeDeonto && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 flex items-center justify-between bg-gradient-to-r from-[#0071e3]/5 to-[#5e5ce6]/5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0071e3] to-[#0040a3] flex items-center justify-center shadow-md">
+                  <Award size={18} className="text-white" />
+                </div>
+                <div>
+                  <div className="font-semibold text-[15px] text-[#1d1d1f]">Déontologie — QCM du jour</div>
+                  <div className="text-[11px] text-[#6e6e73]">
+                    {deontoResult ? "Résultat" : `Question ${deontoIndex + 1} / ${activeDeonto.length}`}
+                  </div>
+                </div>
+              </div>
+              <button onClick={closeDeonto} className="w-8 h-8 rounded-full bg-[#f5f5f7] hover:bg-[#e5e5ea] flex items-center justify-center">
+                <X size={14} className="text-[#6e6e73]" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {!deontoResult && (() => {
+                const q = activeDeonto[deontoIndex];
+                if (!q) return null;
+                const rep = deontoReponses[q.id];
+                const isMulti = q.type === "qcm_multiple";
+                return (
+                  <div className="space-y-4">
+                    {/* Progress bar */}
+                    <div className="h-[3px] bg-[#e5e5ea] rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-[#0071e3] to-[#5e5ce6] transition-all" style={{ width: `${((deontoIndex + 1) / activeDeonto.length) * 100}%` }} />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#0071e3]/10 text-[#0071e3]">{q.categorie}</span>
+                      <span className="text-[10px] font-medium text-[#6e6e73]">{q.theme}</span>
+                      <span className="text-[10px] text-[#8e8e93] ml-auto">
+                        {q.type === "qcm_simple" ? "QCM simple" : q.type === "qcm_multiple" ? "QCM multiple" : q.type === "vrai_faux" ? "Vrai/Faux" : "Réponse courte"}
+                      </span>
+                    </div>
+
+                    <p className="text-[14px] text-[#1d1d1f] leading-relaxed font-medium">{q.question}</p>
+
+                    {q.type === "qrc" ? (
+                      <textarea
+                        value={rep?.texte || ""}
+                        onChange={(e) => setDeontoText(q.id, e.target.value)}
+                        rows={4}
+                        placeholder="Ta réponse (cite les références, articles, normes…)"
+                        className="w-full text-[13px] p-3 border border-[#d2d2d7] rounded-[12px] outline-none focus:border-[#0071e3] resize-none leading-relaxed"
+                      />
+                    ) : (
+                      <div className="space-y-1.5">
+                        {(q.options || []).map((opt, i) => {
+                          const selected = (rep?.selected || []).includes(i);
+                          return (
+                            <button key={i} onClick={() => toggleDeontoOption(q.id, i, isMulti)}
+                              className={`w-full text-left px-3 py-2.5 rounded-[10px] border-2 transition-all flex items-start gap-2.5 ${
+                                selected ? "border-[#0071e3] bg-[#0071e3]/5" : "border-[#d2d2d7]/60 hover:border-[#0071e3]/40 hover:bg-[#f5f5f7]"
+                              }`}>
+                              <div className={`w-5 h-5 rounded-${isMulti ? "[4px]" : "full"} border-2 flex items-center justify-center shrink-0 mt-0.5 ${selected ? "border-[#0071e3] bg-[#0071e3]" : "border-[#c7c7cc]"}`}>
+                                {selected && <CheckCircle size={10} className="text-white" />}
+                              </div>
+                              <span className="text-[13px] text-[#1d1d1f]">{opt}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {isMulti && <p className="text-[10px] text-[#8e8e93] italic">Plusieurs réponses possibles</p>}
+                  </div>
+                );
+              })()}
+
+              {deontoResult && (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#0071e3]/5 to-[#34c759]/5 rounded-[16px] p-5">
+                      <div className="text-[56px] font-bold tabular-nums leading-none" style={{
+                        color: deontoResult.score_20 >= 14 ? "#34c759" : deontoResult.score_20 >= 10 ? "#ff9f0a" : "#ff3b30"
+                      }}>
+                        {deontoResult.score_20}<span className="text-[24px] text-[#6e6e73]">/20</span>
+                      </div>
+                      <div className="text-[12px] text-[#6e6e73] mt-1">{deontoResult.pct}% de réussite</div>
+                      {deontoResult.badge && (
+                        <div className="mt-2 text-[12px] font-bold text-[#ff9f0a] bg-gradient-to-br from-[#ff9f0a]/15 to-[#ff3b30]/15 px-3 py-1 rounded-full">
+                          🏆 {deontoResult.badge}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 text-[11px] mt-2">
+                        <span className="text-[#34c759]">+{deontoResult.xp_gagne} XP</span>
+                        <span className={deontoResult.impact_legitimite > 0 ? "text-[#34c759]" : deontoResult.impact_legitimite < 0 ? "text-[#ff3b30]" : "text-[#6e6e73]"}>
+                          {deontoResult.impact_legitimite > 0 ? "+" : ""}{deontoResult.impact_legitimite} Légitimité
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#f5f5f7] rounded-[12px] p-3">
+                    <p className="text-[12px] text-[#1d1d1f] italic leading-relaxed">"{deontoResult.synthese}"</p>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-2">Détail question par question</div>
+                    <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+                      {deontoResult.detail.map((d, i) => (
+                        <details key={d.question_id} className={`rounded-[10px] border p-2.5 ${d.is_correct ? "border-[#34c759]/30 bg-[#34c759]/5" : "border-[#ff3b30]/30 bg-[#ff3b30]/5"}`}>
+                          <summary className="cursor-pointer flex items-center gap-2 text-[11px] font-medium">
+                            <span className={d.is_correct ? "text-[#34c759]" : "text-[#ff3b30]"}>
+                              {d.is_correct ? "✓" : "✗"} Q{i + 1}
+                            </span>
+                            <span className="text-[#3a3a3c] truncate flex-1">{d.question}</span>
+                            <span className="text-[10px] text-[#8e8e93]">{d.points_obtenus.toFixed(1)}/{d.points_max}</span>
+                          </summary>
+                          <div className="mt-2 space-y-1">
+                            <p className="text-[11px] text-[#6e6e73]">{d.feedback}</p>
+                            <p className="text-[10px] text-[#3a3a3c] italic bg-white/70 rounded p-1.5">{d.explication}</p>
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button onClick={closeDeonto}
+                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white font-medium text-[13px] shadow-md">
+                    Terminer
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {!deontoResult && (
+              <div className="px-5 py-3 bg-[#fafafa] border-t border-[#d2d2d7]/40 flex items-center gap-2">
+                <button onClick={() => setDeontoIndex(Math.max(0, deontoIndex - 1))} disabled={deontoIndex === 0}
+                  className="px-3 py-1.5 text-[12px] rounded-[8px] bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e5e5ea] disabled:opacity-40 disabled:cursor-not-allowed">
+                  ← Précédent
+                </button>
+                <span className="text-[11px] text-[#8e8e93] mx-auto tabular-nums">
+                  {Object.keys(deontoReponses).length} / {activeDeonto.length} répondues
+                </span>
+                {deontoIndex < activeDeonto.length - 1 ? (
+                  <button onClick={() => setDeontoIndex(deontoIndex + 1)}
+                    className="px-3 py-1.5 text-[12px] rounded-[8px] bg-[#0071e3] text-white">
+                    Suivant →
+                  </button>
+                ) : (
+                  <button onClick={submitDeonto} disabled={deontoSubmitting}
+                    className="px-4 py-1.5 text-[12px] font-semibold rounded-[8px] bg-gradient-to-br from-[#34c759] to-[#0071e3] text-white shadow-md flex items-center gap-1.5">
+                    {deontoSubmitting ? <><RefreshCw size={11} className="animate-spin" /> Correction…</> : <><CheckCircle size={11} /> Valider mes 20 réponses</>}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL MISSION (5 étapes) ── */}
+      {activeMission && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 flex items-center justify-between bg-gradient-to-r from-[#bf5af2]/5 to-[#5e5ce6]/5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#bf5af2] to-[#5e5ce6] flex items-center justify-center shadow-md">
+                  <FileSearch size={18} className="text-white" />
+                </div>
+                <div>
+                  <div className="font-semibold text-[15px] text-[#1d1d1f]">{activeMission.titre}</div>
+                  <div className="text-[11px] text-[#6e6e73]">
+                    {missionResult ? "Résultat" : `${activeMission.client} · Étape ${missionEtapeIndex + 1} / ${activeMission.etapes.length}`}
+                  </div>
+                </div>
+              </div>
+              <button onClick={closeMission} className="w-8 h-8 rounded-full bg-[#f5f5f7] hover:bg-[#e5e5ea] flex items-center justify-center">
+                <X size={14} className="text-[#6e6e73]" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {!missionResult && (() => {
+                const etape = activeMission.etapes[missionEtapeIndex];
+                if (!etape) return null;
+                return (
+                  <div className="space-y-4">
+                    {missionEtapeIndex === 0 && (
+                      <div className="bg-[#f5f5f7] rounded-[12px] p-3">
+                        <div className="text-[10px] font-semibold text-[#bf5af2] uppercase tracking-wider mb-1">Contexte</div>
+                        <p className="text-[12px] text-[#1d1d1f] leading-relaxed">{activeMission.contexte}</p>
+                      </div>
+                    )}
+
+                    <div className="h-[3px] bg-[#e5e5ea] rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-[#bf5af2] to-[#5e5ce6] transition-all" style={{ width: `${((missionEtapeIndex + 1) / activeMission.etapes.length) * 100}%` }} />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md bg-gradient-to-r from-[#bf5af2] to-[#5e5ce6]">ÉTAPE {etape.numero}</span>
+                      <span className="text-[13px] font-semibold text-[#1d1d1f]">{etape.label}</span>
+                      <span className="text-[10px] text-[#8e8e93] ml-auto">/{etape.points_max} points</span>
+                    </div>
+
+                    <div className="bg-[#bf5af2]/5 border border-[#bf5af2]/20 rounded-[10px] p-3">
+                      <p className="text-[13px] text-[#1d1d1f] leading-relaxed">{etape.consigne}</p>
+                    </div>
+
+                    <textarea
+                      value={missionReponses[etape.numero] || ""}
+                      onChange={(e) => setMissionText(etape.numero, e.target.value)}
+                      rows={8}
+                      placeholder="Ta réponse — style EC (cite les NEP, normes, articles…). Évite les tournures familières."
+                      className="w-full text-[13px] p-3 border border-[#d2d2d7] rounded-[12px] outline-none focus:border-[#bf5af2] resize-none leading-relaxed"
+                    />
+
+                    <div className="text-[10px] text-[#8e8e93] bg-[#f5f5f7] rounded p-2">
+                      💡 <strong>Méthode DEC</strong> : « je constate », « je recommande à la direction », « il apparaît que », « ne permet pas de garantir ». Évite « je pense », « c'est mal », « j'ai vu ».
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {missionResult && (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#bf5af2]/5 to-[#34c759]/5 rounded-[16px] p-5">
+                      <div className="text-[56px] font-bold tabular-nums leading-none" style={{
+                        color: missionResult.score_pct >= 75 ? "#34c759" : missionResult.score_pct >= 50 ? "#ff9f0a" : "#ff3b30"
+                      }}>
+                        {missionResult.score_20}<span className="text-[24px] text-[#6e6e73]">/20</span>
+                      </div>
+                      <div className="text-[12px] text-[#6e6e73] mt-1">{missionResult.score_pct}% · {missionResult.total.toFixed(1)}/{missionResult.total_max} points</div>
+                      <div className="flex items-center gap-3 text-[11px] mt-2">
+                        <span className="text-[#34c759]">+{missionResult.xp_gagne} XP</span>
+                        <span className={missionResult.impact_legitimite > 0 ? "text-[#34c759]" : missionResult.impact_legitimite < 0 ? "text-[#ff3b30]" : "text-[#6e6e73]"}>
+                          {missionResult.impact_legitimite > 0 ? "+" : ""}{missionResult.impact_legitimite} Légitimité
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#f5f5f7] rounded-[12px] p-3">
+                    <p className="text-[12px] text-[#1d1d1f] italic leading-relaxed">"{missionResult.synthese}"</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    {missionResult.detail.map((d) => (
+                      <div key={d.numero} className={`rounded-[12px] border p-3 ${d.points_obtenus >= d.points_max * 0.7 ? "border-[#34c759]/30 bg-[#34c759]/5" : d.points_obtenus >= d.points_max * 0.4 ? "border-[#ff9f0a]/30 bg-[#ff9f0a]/5" : "border-[#ff3b30]/30 bg-[#ff3b30]/5"}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[11px] font-bold text-white px-1.5 py-0.5 rounded bg-gradient-to-r from-[#bf5af2] to-[#5e5ce6]">É{d.numero}</span>
+                          <span className="text-[12px] font-semibold text-[#1d1d1f]">{d.label}</span>
+                          <span className="text-[11px] font-mono tabular-nums ml-auto">{d.points_obtenus.toFixed(1)} / {d.points_max} pts</span>
+                        </div>
+                        <p className="text-[11px] text-[#3a3a3c] leading-relaxed">{d.feedback}</p>
+                        <p className="text-[10px] text-[#8e8e93] mt-1">Vocabulaire DEC : {d.mots_cles_trouves}/{d.mots_cles_total} termes attendus</p>
+                        {d.correction_style && (
+                          <div className="mt-1.5 bg-white/80 rounded-md p-2 border border-[#0071e3]/20">
+                            <p className="text-[9px] font-semibold text-[#0071e3] uppercase tracking-wider mb-0.5">Correction style EC</p>
+                            <p className="text-[11px] text-[#3a3a3c]">{d.correction_style}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button onClick={closeMission}
+                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#bf5af2] to-[#0040a3] text-white font-medium text-[13px] shadow-md">
+                    Terminer
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {!missionResult && (
+              <div className="px-5 py-3 bg-[#fafafa] border-t border-[#d2d2d7]/40 flex items-center gap-2">
+                <button onClick={() => setMissionEtapeIndex(Math.max(0, missionEtapeIndex - 1))} disabled={missionEtapeIndex === 0}
+                  className="px-3 py-1.5 text-[12px] rounded-[8px] bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e5e5ea] disabled:opacity-40">
+                  ← Précédent
+                </button>
+                <span className="text-[11px] text-[#8e8e93] mx-auto tabular-nums">
+                  Étape {missionEtapeIndex + 1}/{activeMission.etapes.length}
+                </span>
+                {missionEtapeIndex < activeMission.etapes.length - 1 ? (
+                  <button onClick={() => setMissionEtapeIndex(missionEtapeIndex + 1)}
+                    className="px-3 py-1.5 text-[12px] rounded-[8px] bg-[#bf5af2] text-white">
+                    Suivant →
+                  </button>
+                ) : (
+                  <button onClick={submitMission} disabled={missionSubmitting}
+                    className="px-4 py-1.5 text-[12px] font-semibold rounded-[8px] bg-gradient-to-br from-[#bf5af2] to-[#0040a3] text-white shadow-md flex items-center gap-1.5">
+                    {missionSubmitting ? <><RefreshCw size={11} className="animate-spin" /> Évaluation…</> : <><CheckCircle size={11} /> Soumettre la mission</>}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -1,0 +1,341 @@
+{
+  "questions": [
+    {
+      "id": "d001",
+      "categorie": "EC",
+      "theme": "Exercice profession",
+      "type": "qcm_simple",
+      "question": "L'ordonnance du 19 septembre 1945 prévoit que l'expert-comptable doit révéler au procureur de la République :",
+      "options": [
+        "Tous les actes du client",
+        "Les actes délictueux dont il a connaissance dans l'exercice de sa mission",
+        "Uniquement les fraudes fiscales caractérisées",
+        "Rien — le secret professionnel est absolu"
+      ],
+      "correct": [1],
+      "explication": "Article 31 de l'ordonnance du 19/09/1945 : l'EC est tenu de révéler les faits délictueux dont il a connaissance dans l'exercice de sa mission. Le secret professionnel n'est PAS absolu."
+    },
+    {
+      "id": "d002",
+      "categorie": "EC",
+      "theme": "Éthique",
+      "type": "qcm_simple",
+      "question": "Un client offre à un EC un séjour de 3 jours dans sa villa en Corse pour 'remercier' une mission bien menée. L'EC doit :",
+      "options": [
+        "Accepter, c'est un cadeau d'usage",
+        "Refuser car incompatible avec l'indépendance",
+        "Accepter mais déclarer à l'Ordre",
+        "Accepter en facturant la différence"
+      ],
+      "correct": [1],
+      "explication": "Code de déontologie OEC art. 145 : tout avantage en nature significatif qui pourrait altérer l'indépendance ou le jugement est à refuser. Un séjour ≠ cadeau d'usage."
+    },
+    {
+      "id": "d003",
+      "categorie": "EC",
+      "theme": "Contrôle qualité",
+      "type": "qcm_multiple",
+      "question": "Selon la norme professionnelle NP 2300 (contrôle qualité), un dossier doit comporter :",
+      "options": [
+        "La lettre de mission signée",
+        "Les pièces justificatives originales du client",
+        "Le plan de mission et le programme de travail",
+        "La revue indépendante (selon seuils)"
+      ],
+      "correct": [0, 2, 3],
+      "explication": "NP 2300 : lettre de mission + plan + programme + revue indépendante si EIP ou seuils dépassés. Les pièces ORIGINALES restent chez le client (copies suffisent au dossier)."
+    },
+    {
+      "id": "d004",
+      "categorie": "CAC",
+      "theme": "Exercice profession",
+      "type": "qcm_simple",
+      "question": "La durée du mandat du commissaire aux comptes est de :",
+      "options": [
+        "3 exercices",
+        "6 exercices",
+        "9 exercices renouvelable",
+        "Indéterminée"
+      ],
+      "correct": [1],
+      "explication": "Art. L. 823-3 Code de commerce : 6 exercices, renouvelable. Limite de 24 ans consécutifs pour les EIP (rotation obligatoire)."
+    },
+    {
+      "id": "d005",
+      "categorie": "CAC",
+      "theme": "Éthique",
+      "type": "qcm_multiple",
+      "question": "Selon le code de déontologie CAC, le CAC doit être indépendant :",
+      "options": [
+        "De la société contrôlée",
+        "Des dirigeants de la société",
+        "Des autres CAC du collège (en cas de co-commissariat)",
+        "Des actionnaires de la société"
+      ],
+      "correct": [0, 1, 3],
+      "explication": "Indépendance vis-à-vis de la société, ses dirigeants et ses actionnaires significatifs. Le collège est lui-même tenu à l'indépendance, mais les CAC entre eux peuvent partager des constats."
+    },
+    {
+      "id": "d006",
+      "categorie": "EC",
+      "theme": "Responsabilité",
+      "type": "vrai_faux",
+      "question": "L'expert-comptable est civilement responsable envers ses clients pour les fautes commises dans l'exercice de ses missions, et cette responsabilité ne peut être supprimée par clause contractuelle.",
+      "correct": [0],
+      "options": ["Vrai", "Faux"],
+      "explication": "Vrai. La responsabilité civile professionnelle est d'ordre public — une clause d'exonération est nulle. La responsabilité peut juste être plafonnée dans certains contrats (art. 12 ordonnance 1945)."
+    },
+    {
+      "id": "d007",
+      "categorie": "CAC",
+      "theme": "Contrôle qualité",
+      "type": "qcm_simple",
+      "question": "La revue qualité indépendante (revue par les pairs / EQR) est obligatoire pour le CAC sur :",
+      "options": [
+        "Tous les mandats sans exception",
+        "Les seuls mandats EIP",
+        "Les EIP et certains mandats à risque selon la NEP 220",
+        "Aucun mandat — c'est facultatif"
+      ],
+      "correct": [2],
+      "explication": "NEP 220 : EQR obligatoire pour EIP + mandats jugés à risque par le CAC selon son évaluation. La fréquence est annuelle."
+    },
+    {
+      "id": "d008",
+      "categorie": "EC",
+      "theme": "Exercice profession",
+      "type": "qrc",
+      "question": "Citez les 3 éléments du triangle de la qualité (norme NP 2300 / ISA 220) sur lesquels repose le contrôle qualité d'une mission.",
+      "correct_mots_cles": ["leadership", "ressources", "engagement", "compétence", "gouvernance", "réalisation", "documentation", "responsabilité"],
+      "explication": "Triangle qualité : (1) Leadership & gouvernance, (2) Ressources humaines & compétence, (3) Réalisation de la mission. Tout dossier doit refléter ces 3 piliers."
+    },
+    {
+      "id": "d009",
+      "categorie": "EC",
+      "theme": "Éthique",
+      "type": "qcm_simple",
+      "question": "Un EC découvre une fraude fiscale manifeste chez son client en tenue comptable. Il doit :",
+      "options": [
+        "La signaler immédiatement à Bercy",
+        "Démissionner sans rien dire (secret professionnel)",
+        "Demander correction au client et envisager démission si refus",
+        "Continuer la mission en notant la fraude au dossier"
+      ],
+      "correct": [2],
+      "explication": "Démarche en 3 temps : (1) demander correction au client par écrit, (2) si refus → démission de la mission, (3) révélation TRACFIN si soupçon blanchiment. Pas de dénonciation directe à Bercy (sauf demande judiciaire)."
+    },
+    {
+      "id": "d010",
+      "categorie": "CAC",
+      "theme": "Responsabilité",
+      "type": "qcm_multiple",
+      "question": "La responsabilité pénale du CAC peut être engagée pour :",
+      "options": [
+        "Confirmation d'informations mensongères sur la situation de l'entreprise",
+        "Non-révélation de faits délictueux au procureur",
+        "Violation du secret professionnel",
+        "Toute erreur d'évaluation des comptes"
+      ],
+      "correct": [0, 1, 2],
+      "explication": "Art. L. 820-7 et L. 820-5 C. com. + Code pénal. L'erreur d'évaluation simple n'est pas pénale (sauf si caractère intentionnel ou négligence grossière)."
+    },
+    {
+      "id": "d011",
+      "categorie": "EC",
+      "theme": "Exercice profession",
+      "type": "qcm_simple",
+      "question": "Un EC peut-il être rémunéré par un pourcentage du résultat fiscal qu'il a optimisé pour son client ?",
+      "options": [
+        "Oui, c'est une pratique courante",
+        "Oui si le client est d'accord par écrit",
+        "Non, c'est strictement interdit",
+        "Oui uniquement pour les sociétés > 50 salariés"
+      ],
+      "correct": [2],
+      "explication": "Art. 158 du Code de déontologie OEC : interdiction des honoraires liés au résultat ('success fees') car cela altère l'indépendance et l'objectivité."
+    },
+    {
+      "id": "d012",
+      "categorie": "CAC",
+      "theme": "Contrôle qualité",
+      "type": "vrai_faux",
+      "question": "Le CAC peut accepter une mission de conseil en optimisation fiscale chez la société qu'il certifie.",
+      "correct": [1],
+      "options": ["Vrai", "Faux"],
+      "explication": "Faux. Article L. 822-11 C. com. et CDD : interdiction de cumul des missions d'audit et de conseil chez la même entité pour préserver l'indépendance. Liste noire des SACC (Services Autres que la Certification)."
+    },
+    {
+      "id": "d013",
+      "categorie": "EC",
+      "theme": "Éthique",
+      "type": "qcm_simple",
+      "question": "Un EC peut faire de la publicité pour son cabinet :",
+      "options": [
+        "Jamais — c'est interdit",
+        "Oui, sans aucune restriction",
+        "Oui mais sans démarchage abusif et sans dénigrer la concurrence",
+        "Uniquement via le tableau de l'Ordre"
+      ],
+      "correct": [2],
+      "explication": "Depuis 2019, la publicité est autorisée pour l'EC (art. 152 CDD) mais doit rester loyale, sincère, non comparative dénigrante. Le démarchage personnalisé reste encadré."
+    },
+    {
+      "id": "d014",
+      "categorie": "EC",
+      "theme": "Responsabilité",
+      "type": "qrc",
+      "question": "Quelles sont les 3 conditions cumulatives pour engager la responsabilité civile professionnelle d'un EC ?",
+      "correct_mots_cles": ["faute", "préjudice", "lien", "causalité", "dommage", "manquement"],
+      "explication": "Triptyque classique : (1) une faute (manquement à une obligation), (2) un préjudice subi par le client/tiers, (3) un lien de causalité direct entre les deux. RCP couvre obligatoirement (art. 17 ordonnance 1945)."
+    },
+    {
+      "id": "d015",
+      "categorie": "CAC",
+      "theme": "Exercice profession",
+      "type": "qcm_multiple",
+      "question": "L'incompatibilité de la fonction de CAC est prononcée si :",
+      "options": [
+        "Le CAC est salarié de la société",
+        "Le CAC est dirigeant d'une filiale du groupe",
+        "Le CAC détient des actions de la société",
+        "Le conjoint du CAC est associé de la société"
+      ],
+      "correct": [0, 1, 2, 3],
+      "explication": "Toutes ces situations engendrent une incompatibilité (art. L. 822-11 C. com.). Le périmètre s'étend au cercle familial proche."
+    },
+    {
+      "id": "d016",
+      "categorie": "EC",
+      "theme": "Contrôle qualité",
+      "type": "qcm_simple",
+      "question": "Selon la norme NP 2300, la documentation d'une mission doit être conservée :",
+      "options": [
+        "3 ans",
+        "5 ans",
+        "10 ans",
+        "Indéfiniment"
+      ],
+      "correct": [2],
+      "explication": "10 ans (art. L. 123-22 C. com. + délais de prescription fiscale et de responsabilité). Conservation obligatoire pour démonstration en cas de contrôle de l'Ordre ou litige."
+    },
+    {
+      "id": "d017",
+      "categorie": "EC",
+      "theme": "Éthique",
+      "type": "vrai_faux",
+      "question": "Un EC peut recommander à un client de placer sa trésorerie chez un courtier dont il perçoit une commission sans en informer le client.",
+      "correct": [1],
+      "options": ["Vrai", "Faux"],
+      "explication": "Faux. Violation des obligations de transparence et d'indépendance. Toute rétrocommission doit être déclarée au client et acceptée par lui par écrit."
+    },
+    {
+      "id": "d018",
+      "categorie": "CAC",
+      "theme": "Responsabilité",
+      "type": "qcm_simple",
+      "question": "Le délai de prescription de l'action en responsabilité contre un CAC est de :",
+      "options": [
+        "3 ans à compter du fait générateur",
+        "3 ans à compter de la révélation du dommage",
+        "5 ans à compter de la mission",
+        "10 ans à compter de la signature du rapport"
+      ],
+      "correct": [1],
+      "explication": "Art. L. 822-18 C. com. : prescription triennale à compter de la révélation du fait dommageable (et non du fait lui-même). Cela permet aux victimes de ne pas être forcloses si la faute reste cachée."
+    },
+    {
+      "id": "d019",
+      "categorie": "EC",
+      "theme": "Exercice profession",
+      "type": "qcm_simple",
+      "question": "Un EC stagiaire (en cours de stage DEC) peut :",
+      "options": [
+        "Signer une attestation de bilan en autonomie",
+        "Réaliser une mission de conseil sous la responsabilité de son maître de stage",
+        "Tenir un cabinet en son nom propre",
+        "Devenir CAC après 6 mois de stage"
+      ],
+      "correct": [1],
+      "explication": "Le stagiaire DEC travaille sous responsabilité totale du maître de stage. Aucun acte signé en son nom propre tant que le diplôme n'est pas obtenu et l'inscription à l'Ordre faite."
+    },
+    {
+      "id": "d020",
+      "categorie": "CAC",
+      "theme": "Éthique",
+      "type": "qcm_multiple",
+      "question": "Le CAC qui détecte une atteinte à la continuité d'exploitation doit :",
+      "options": [
+        "Activer la procédure d'alerte (art. L. 234-1 C. com.)",
+        "Démissionner immédiatement",
+        "Informer le président du tribunal de commerce dans certains cas",
+        "Ajouter une observation ou une réserve dans son rapport"
+      ],
+      "correct": [0, 2, 3],
+      "explication": "Procédure d'alerte en 4 phases : (1) interroger dirigeant, (2) saisir Conseil d'admin, (3) AG si pas de réponse, (4) information du président TC. + Adaptation de l'opinion sur les comptes."
+    },
+    {
+      "id": "d021",
+      "categorie": "EC",
+      "theme": "Contrôle qualité",
+      "type": "qcm_simple",
+      "question": "Quel est le seuil au-dessus duquel un cabinet d'EC doit nommer un responsable de la conformité (compliance officer) ?",
+      "options": [
+        "Aucun seuil — c'est une obligation pour tous",
+        "5 collaborateurs",
+        "Selon la taille et la nature des missions (approche risque)",
+        "Uniquement les cabinets cotés"
+      ],
+      "correct": [2],
+      "explication": "Approche par les risques NEP/NP. Pas de seuil chiffré universel mais obligation organisationnelle de désigner un référent qualité conforme à la taille et aux missions du cabinet."
+    },
+    {
+      "id": "d022",
+      "categorie": "CAC",
+      "theme": "Contrôle qualité",
+      "type": "qrc",
+      "question": "Citez 3 SACC (Services Autres que la Certification des Comptes) interdits chez une EIP auditée.",
+      "correct_mots_cles": ["tenue comptable", "évaluation", "conseil fiscal", "audit interne", "ressources humaines", "juridique", "trésorerie", "financière", "actuariat", "investissement", "système information"],
+      "explication": "Règlement européen 537/2014 : liste noire — tenue comptable, services d'évaluation, conseil fiscal agressif, audit interne, conception/mise en œuvre de SI financiers, services RH dirigeants, conseil en investissement, etc."
+    },
+    {
+      "id": "d023",
+      "categorie": "EC",
+      "theme": "Éthique",
+      "type": "vrai_faux",
+      "question": "Un EC peut accepter une mission d'expertise judiciaire chez un client qu'il a accompagné comme conseil pendant 5 ans.",
+      "correct": [1],
+      "options": ["Vrai", "Faux"],
+      "explication": "Faux. Conflit d'intérêts manifeste — l'expert judiciaire doit être strictement indépendant des parties. L'EC doit décliner la mission auprès du juge."
+    },
+    {
+      "id": "d024",
+      "categorie": "EC",
+      "theme": "Responsabilité",
+      "type": "qcm_simple",
+      "question": "L'assurance Responsabilité Civile Professionnelle de l'EC est :",
+      "options": [
+        "Facultative mais recommandée",
+        "Obligatoire avec un plafond minimum réglementaire",
+        "Limitée aux missions de tenue comptable",
+        "Obligatoire uniquement pour les EC en libéral"
+      ],
+      "correct": [1],
+      "explication": "Art. 17 ordonnance 1945 + décret 2012-432 : RCP obligatoire avec plafond minimum (montants régulièrement réévalués par l'Ordre). Couvre l'EC et ses collaborateurs."
+    },
+    {
+      "id": "d025",
+      "categorie": "CAC",
+      "theme": "Exercice profession",
+      "type": "qcm_multiple",
+      "question": "Le CAC doit refuser ou ne pas renouveler son mandat si :",
+      "options": [
+        "Sa rémunération devient supérieure à 10% du CA du cabinet pour ce client",
+        "Il a réalisé une mission de tenue comptable chez ce client il y a 6 mois",
+        "Le dirigeant est un proche parent (cercle familial)",
+        "Le client est en redressement judiciaire"
+      ],
+      "correct": [0, 1, 2],
+      "explication": "Indépendance financière (>15% concentration = alerte, >30% = interdit selon H2A), incompatibilité de cumul de missions, lien familial = motifs de refus. Le redressement judiciaire n'est PAS un motif (le CAC doit au contraire jouer son rôle d'alerte)."
+    }
+  ]
+}

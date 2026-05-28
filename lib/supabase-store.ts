@@ -102,6 +102,15 @@ export interface GameState {
   player_xp: number;
   xp_to_next: number;
 
+  // DEC Prep — engagement quotidien
+  dec_streak: number;
+  dec_last_day: number;
+  dec_today_deonto: boolean;
+  dec_today_mission: boolean;
+  dec_completed_deonto_ids: string[];
+  dec_completed_mission_ids: string[];
+  dec_badges: string[];
+
   agents: Agent[];
   messages: Message[];
   dossiers: Dossier[];
@@ -152,6 +161,12 @@ export interface GameState {
   recomputeAllDossierStatus: () => void;
   attemptRecoverDossier: (id: string) => boolean;
   toggleVIP: (id: string) => void;
+
+  // DEC Prep
+  markDeontoCompleted: (questionIds: string[]) => void;
+  markMissionCompleted: (missionId: string) => void;
+  addBadge: (badge: string) => void;
+  checkDecRollover: () => void;
 }
 
 const xpForLevel = (level: number) => 100 + level * 50;
@@ -174,6 +189,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   player_level: 1,
   player_xp: 0,
   xp_to_next: 100,
+
+  dec_streak: 0,
+  dec_last_day: 0,
+  dec_today_deonto: false,
+  dec_today_mission: false,
+  dec_completed_deonto_ids: [],
+  dec_completed_mission_ids: [],
+  dec_badges: [],
 
   agents: [],
   messages: [],
@@ -883,5 +906,51 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((s) => ({
       dossiers: s.dossiers.map((x) => x.id === id ? { ...x, is_vip: !x.is_vip } : x),
     }));
+  },
+
+  // ── DEC PREP ────────────────────────────────────────────────────────────
+  markDeontoCompleted: (questionIds) => {
+    set((s) => ({
+      dec_today_deonto: true,
+      dec_completed_deonto_ids: Array.from(new Set([...s.dec_completed_deonto_ids, ...questionIds])).slice(-200),
+    }));
+    // Si déjà mission faite aussi → streak ++
+    const s = get();
+    if (s.dec_today_mission && s.dec_last_day !== s.game_day) {
+      set({ dec_streak: s.dec_streak + 1, dec_last_day: s.game_day });
+    }
+  },
+
+  markMissionCompleted: (missionId) => {
+    set((s) => ({
+      dec_today_mission: true,
+      dec_completed_mission_ids: Array.from(new Set([...s.dec_completed_mission_ids, missionId])),
+    }));
+    const s = get();
+    if (s.dec_today_deonto && s.dec_last_day !== s.game_day) {
+      set({ dec_streak: s.dec_streak + 1, dec_last_day: s.game_day });
+    }
+  },
+
+  addBadge: (badge) => {
+    set((s) => ({
+      dec_badges: s.dec_badges.includes(badge) ? s.dec_badges : [...s.dec_badges, badge],
+    }));
+  },
+
+  // Réinitialise les drapeaux du jour quand on change de jour de jeu
+  checkDecRollover: () => {
+    set((s) => {
+      if (s.dec_last_day !== s.game_day && (s.dec_today_deonto || s.dec_today_mission)) {
+        // Si on a sauté un jour sans rien faire → streak reset
+        const skipped = s.game_day - s.dec_last_day > 1;
+        return {
+          dec_today_deonto: false,
+          dec_today_mission: false,
+          dec_streak: skipped ? 0 : s.dec_streak,
+        };
+      }
+      return {} as any;
+    });
   },
 }));
