@@ -1,0 +1,9 @@
+{
+  "name": "phddec-app-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vercel deployment — serves static GitHub Pages build + Slack bridge API at /api/*",
+  "dependencies": {
+    "@vercel/kv": "^1.0.1"
+  }
+}
