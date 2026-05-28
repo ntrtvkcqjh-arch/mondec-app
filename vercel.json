@@ -2,7 +2,6 @@
   "version": 2,
   "outputDirectory": "dist",
   "rewrites": [
-    { "handle": "filesystem" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
