@@ -187,39 +187,46 @@ export default function Home() {
     store.loadConversations(agentId);
   }
 
-  async function handleGhostDraft() {
+  // Envoi direct (Enter) — toujours fonctionnel
+  async function handleDirectSend() {
     if (!inputText.trim() || !agent || phase !== "draft") return;
-    setPhase("picking");
+    const text = inputText;
     setGhostVersions(null);
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: "ghost",
-        messages: [{ role: "user", content: inputText }],
-        agent_context: { ...agent, sujet: selectedMessage?.sujet },
-      }),
-    });
-    const data = await res.json();
-    if (data.content) {
-      const versions = parseGhostVersions(data.content);
-      if (versions) { setGhostVersions(versions); }
-      else { setPhase("draft"); await sendAndGetResponse(inputText); }
-    } else {
-      setPhase("draft");
-    }
-  }
-
-  async function handlePickVersion(text: string) {
-    setGhostVersions(null);
-    setPhase("draft");
     setInputText("");
     await sendAndGetResponse(text);
   }
 
-  async function handleDirectSend() {
-    if (!inputText.trim() || !agent) return;
-    const text = inputText;
+  // Ghost Writer optionnel (bouton ✨) — propose 3 versions avant envoi
+  async function handleGhostDraft() {
+    if (!inputText.trim() || !agent || phase !== "draft") return;
+    const savedText = inputText;
+    setPhase("picking");
+    setGhostVersions(null);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "ghost",
+          messages: [{ role: "user", content: savedText }],
+          agent_context: { ...agent, sujet: selectedMessage?.sujet },
+        }),
+      });
+      if (!res.ok) throw new Error("api_error");
+      const data = await res.json();
+      if (!data.content) throw new Error("no_content");
+      const versions = parseGhostVersions(data.content);
+      if (versions) { setGhostVersions(versions); }
+      else { setPhase("draft"); setInputText(""); await sendAndGetResponse(savedText); }
+    } catch {
+      // GW échoue → envoi direct en fallback
+      setPhase("draft");
+      setInputText("");
+      await sendAndGetResponse(savedText);
+    }
+  }
+
+  async function handlePickVersion(text: string) {
     setGhostVersions(null);
     setPhase("draft");
     setInputText("");
@@ -235,9 +242,9 @@ export default function Home() {
     setLastPlayerMessage(text);
     setScoreResult(null);
 
-    const history = store.conversation_history[agent.id] || [];
-    const [chatRes, ] = await Promise.allSettled([
-      fetch("/api/chat", {
+    try {
+      const history = store.conversation_history[agent.id] || [];
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -246,41 +253,40 @@ export default function Home() {
           agent_context: agent,
           game_state: { date: store.date_simulation, mood: store.mood_global, joursRestants: 16 },
         }),
-      })
-    ]);
+      });
 
-    if (chatRes.status === "fulfilled") {
-      const data = await chatRes.value.json();
+      const data = await res.json();
+
       if (data.content) {
         await store.addConversation(agent.id, "user", text);
         await store.addConversation(agent.id, "assistant", data.content);
         if (selectedMessage) await store.replyToMessage(selectedMessage.id, text);
 
-        // Appel score en parallèle
+        // Score IA en arrière-plan (non-bloquant)
         setPhase("scoring");
-        try {
-          const scoreRes = await fetch("/api/score", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              player_message: text,
-              agent_original_message: selectedMessage?.contenu || "",
-              agent_response: data.content,
-              agent_context: agent,
-            }),
-          });
-          const scoreData = await scoreRes.json();
+        fetch("/api/score", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            player_message: text,
+            agent_original_message: selectedMessage?.contenu || "",
+            agent_response: data.content,
+            agent_context: agent,
+          }),
+        }).then(r => r.json()).then(scoreData => {
           if (scoreData.score_global !== undefined) {
             setScoreResult(scoreData);
-            // Appliquer l'impact sur les ressources
             if (scoreData.impact?.legitimite_delta) {
               store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + scoreData.impact.legitimite_delta)) });
             }
           }
-        } catch { /* ignore score errors */ }
+        }).catch(() => {}).finally(() => setPhase("draft"));
+      } else {
+        setPhase("draft");
       }
+    } catch {
+      setPhase("draft");
     }
-    setPhase("draft");
   }
 
   function handleArchive(msgId: string) {
@@ -616,37 +622,55 @@ export default function Home() {
                   {/* Zone de saisie */}
                   <div className="px-6 py-3 glass border-t border-[#d2d2d7]/50">
                     {phase === "picking" && !ghostVersions && (
-                      <div className="flex items-center gap-2 mb-2 text-[12px] text-[#6e6e73]">
-                        <RefreshCw size={12} className="animate-spin" /> Ghost Writer analyse…
+                      <div className="flex items-center gap-2 mb-2 text-[11px] text-[#6e6e73]">
+                        <RefreshCw size={11} className="animate-spin text-[#0071e3]" />
+                        Ghost Writer analyse ton brouillon…
                       </div>
                     )}
                     <div className="flex items-end gap-2">
-                      <div className={`flex-1 bg-white border rounded-[14px] px-4 py-2.5 shadow-sm transition-all ${phase !== "draft" ? "border-[#d2d2d7]/40 opacity-60" : "border-[#d2d2d7]/80"}`}>
+                      <div className={`flex-1 bg-white border rounded-[14px] px-4 py-2.5 shadow-sm transition-all ${
+                        phase === "waiting" || phase === "scoring" ? "border-[#d2d2d7]/40 opacity-60" : "border-[#d2d2d7]/80"
+                      }`}>
                         <textarea
                           value={inputText}
                           onChange={(e) => {
-                            if (phase !== "draft") return;
+                            if (phase === "waiting" || phase === "scoring") return;
                             setInputText(e.target.value);
                             e.target.style.height = "auto";
                             e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
                           }}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (phase === "draft") handleGhostDraft(); }
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              handleDirectSend();
+                            }
                           }}
-                          disabled={phase !== "draft"}
+                          disabled={phase === "waiting" || phase === "scoring"}
                           placeholder={
-                            phase === "picking" ? "Sélectionne une version Ghost Writer ci-dessus…" :
-                            phase === "waiting" ? `${agent.nom} rédige…` :
-                            phase === "scoring" ? "Ghost Writer note ta réponse…" :
-                            `Répondre à ${agent.nom}… (IA corrigera selon les standards ${agent.filiere})`
+                            phase === "waiting" ? `${agent.nom} rédige sa réponse…` :
+                            phase === "scoring" ? "Évaluation en cours…" :
+                            phase === "picking" ? "Choisis une version Ghost Writer ci-dessus, ou continue à écrire…" :
+                            `Répondre à ${agent.nom}… (↵ Envoyer · ✨ Ghost Writer)`
                           }
                           rows={1}
                           className="w-full text-[13px] text-[#1d1d1f] placeholder-[#8e8e93] outline-none resize-none leading-relaxed bg-transparent disabled:cursor-not-allowed"
                           style={{ minHeight: "20px" }}
                         />
                       </div>
+                      {/* Bouton Ghost Writer */}
                       <button
-                        onClick={phase === "draft" ? handleGhostDraft : undefined}
+                        onClick={handleGhostDraft}
+                        disabled={phase !== "draft" || !inputText.trim()}
+                        title="Ghost Writer — 3 versions corrigées"
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 border ${
+                          phase === "draft" && inputText.trim()
+                            ? "border-[#0071e3]/30 bg-[#0071e3]/5 text-[#0071e3] hover:bg-[#0071e3]/10"
+                            : "border-[#e5e5ea] bg-white text-[#c7c7cc] cursor-not-allowed"}`}>
+                        <Zap size={14} />
+                      </button>
+                      {/* Bouton Envoyer */}
+                      <button
+                        onClick={handleDirectSend}
                         disabled={phase !== "draft" || !inputText.trim()}
                         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm shrink-0 ${
                           phase === "draft" && inputText.trim()
@@ -659,19 +683,16 @@ export default function Home() {
                         )}
                       </button>
                     </div>
-                    {/* Grille de notation */}
-                    <div className="flex items-center gap-3 mt-2 px-1 overflow-x-auto">
-                      <span className="text-[9px] text-[#8e8e93] whitespace-nowrap">Grille DEC ·</span>
-                      {[["Précision", "30%"], ["Rédaction", "20%"], ["Déontologie", "20%"], ["Contexte", "15%"], ["Opérationnel", "15%"]].map(([label, pct]) => (
-                        <span key={label} className="text-[9px] text-[#8e8e93] whitespace-nowrap">
-                          <span className="font-semibold text-[#6e6e73]">{label}</span> {pct}
-                        </span>
-                      ))}
-                      {getPACost(selectedMessage?.niveau || "N1") > 0 && phase === "draft" && (
-                        <span className="ml-auto text-[10px] font-medium text-[#ff9f0a] whitespace-nowrap">
-                          −{getPACost(selectedMessage?.niveau || "N1")} PA
-                        </span>
-                      )}
+                    <div className="flex items-center gap-3 mt-2 px-1">
+                      <span className="text-[9px] text-[#8e8e93]">↵ Envoyer · <Zap size={8} className="inline" /> Ghost Writer · ⇧↵ Ligne</span>
+                      <div className="flex gap-2 ml-auto">
+                        {[["Précision","30%"],["Rédaction","20%"],["Déonto","20%"]].map(([l,p]) => (
+                          <span key={l} className="text-[9px] text-[#c7c7cc]"><span className="text-[#8e8e93]">{l}</span> {p}</span>
+                        ))}
+                        {getPACost(selectedMessage?.niveau || "N1") > 0 && (
+                          <span className="text-[10px] font-medium text-[#ff9f0a]">−{getPACost(selectedMessage?.niveau || "N1")} PA</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </>
