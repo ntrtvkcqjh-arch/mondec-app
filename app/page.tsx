@@ -232,7 +232,7 @@ export default function Home() {
   // Statut API (vérifie qu'Anthropic répond)
   const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "error">("checking");
   const [apiStatusReason, setApiStatusReason] = useState("");
-  const [apiStatusDetails, setApiStatusDetails] = useState<{ status?: number; attempts?: Array<{ model: string; status: number; message: string }>; diagnostic?: string } | null>(null);
+  const [apiStatusDetails, setApiStatusDetails] = useState<{ status?: number; attempts?: Array<{ model: string; status: number; message: string }>; diagnostic?: string; needs_credit?: boolean } | null>(null);
 
   // Modal configuration clé API utilisateur
   const [showKeyModal, setShowKeyModal] = useState(false);
@@ -297,7 +297,7 @@ export default function Home() {
         console.log("[HEALTH]", d);
         setApiStatus(d.ok ? "ok" : "error");
         setApiStatusReason(d.reason || "");
-        setApiStatusDetails({ status: d.status, attempts: d.attempts, diagnostic: d.diagnostic });
+        setApiStatusDetails({ status: d.status, attempts: d.attempts, diagnostic: d.diagnostic, needs_credit: d.needs_credit });
         if (!d.ok && d.needs_key && !hasUserApiKey()) {
           setShowKeyModal(true);
         }
@@ -324,7 +324,7 @@ export default function Home() {
       } else {
         setApiStatus("error");
         setApiStatusReason(d.reason || "Clé invalide");
-        setApiStatusDetails({ status: d.status, attempts: d.attempts, diagnostic: d.diagnostic });
+        setApiStatusDetails({ status: d.status, attempts: d.attempts, diagnostic: d.diagnostic, needs_credit: d.needs_credit });
       }
     } catch (err: any) {
       setApiStatus("error");
@@ -2234,6 +2234,20 @@ export default function Home() {
                   Format attendu : <code className="bg-[#f5f5f7] px-1 rounded">sk-ant-...</code>
                 </p>
               </div>
+
+              {apiStatusDetails?.needs_credit && (
+                <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener noreferrer"
+                  className="block bg-gradient-to-br from-[#0071e3] to-[#5e5ce6] text-white rounded-[14px] p-3.5 shadow-md hover:shadow-lg transition-all">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkles size={14} />
+                    <span className="font-semibold text-[13px]">Charger ton compte Anthropic</span>
+                    <ExternalLink size={11} className="ml-auto" />
+                  </div>
+                  <p className="text-[11px] text-white/85 leading-relaxed">
+                    Ton compte fonctionne mais n'a pas encore de crédit. Ajoute <strong>5$ minimum</strong> sur console.anthropic.com → Settings → Billing, puis reviens cliquer <strong>Re-tester</strong>.
+                  </p>
+                </a>
+              )}
 
               {apiStatus === "error" && apiStatusReason && (
                 <div className="text-[11px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-[10px] p-2.5 max-h-[280px] overflow-y-auto">

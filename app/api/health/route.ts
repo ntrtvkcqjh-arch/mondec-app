@@ -92,17 +92,32 @@ export async function GET(req: NextRequest) {
   }
 
   const last = attempts[attempts.length - 1] || { model: "?", status: 0, message: "Aucune réponse" };
+
+  // Si TOUS les essais sont 404 → c'est un compte sans crédit (cas le plus fréquent)
+  const all404 = attempts.length > 0 && attempts.every(a => a.status === 404);
+
+  let diagnostic = "Aucun modèle accessible — voir détails par essai ci-dessous";
+  let needs_credit = false;
+
+  if (all404) {
+    diagnostic = "Compte Anthropic sans crédit — l'API renvoie 404 sur tous les modèles. Charge ton compte avec 5$ minimum sur console.anthropic.com/settings/billing puis re-teste.";
+    needs_credit = true;
+  } else if (last.status === 429) {
+    diagnostic = "Quota dépassé ou crédit épuisé — recharger sur console.anthropic.com/settings/billing";
+    needs_credit = true;
+  } else if (last.status === 404) {
+    diagnostic = "Aucun modèle Claude n'est accessible avec cette clé — probablement compte sans crédit";
+    needs_credit = true;
+  }
+
   return NextResponse.json(
     {
       ok: false,
       status: last.status,
       reason: last.message,
       attempts,
-      diagnostic: last.status === 404
-        ? "Aucun modèle Claude n'est accessible avec cette clé — probablement compte sans crédit"
-        : last.status === 429
-        ? "Quota dépassé ou pas de crédit — recharger sur console.anthropic.com/settings/billing"
-        : "Aucun modèle accessible — voir détails par essai ci-dessous",
+      diagnostic,
+      needs_credit,
     },
     { headers: noCacheHeaders() }
   );
