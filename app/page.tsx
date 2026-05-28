@@ -254,8 +254,8 @@ export default function Home() {
   const [ecritureMontant, setEcritureMontant] = useState("");
   const [ecritureLibelle, setEcritureLibelle] = useState("");
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const claudeEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const claudeContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const store = useGameStore();
 
@@ -445,12 +445,15 @@ export default function Home() {
     }).catch(() => {}).finally(() => setGeneratingEvents(false));
   }, [store.isAuthenticated, store.isLoading, store.agents.length]);
 
+  // Scroll local au conteneur de messages — n'affecte pas la fenêtre principale
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [store.conversation_history, selectedAgent, ghostVersions, scoreResult]);
 
   useEffect(() => {
-    claudeEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = claudeContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [store.claude_history, claudeOpen]);
 
   const selectedMessage = store.messages.find((m) => m.agent_id === selectedAgent && !m.repondu)
@@ -1218,7 +1221,7 @@ export default function Home() {
                     </div>
                   </header>
 
-                  <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
                     {selectedMessage && (
                       <div className="flex gap-3 max-w-[78%]">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 mt-1" style={{ backgroundColor: agent.avatar_color }}>
@@ -1311,7 +1314,6 @@ export default function Home() {
                       </div>
                     )}
 
-                    <div ref={messagesEndRef} />
                   </div>
 
                   <div className="px-6 py-3 glass border-t border-[#d2d2d7]/50">
@@ -2356,7 +2358,7 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+            <div ref={claudeContainerRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
               {store.claude_history.length === 0 && (
                 <div className="text-center py-6 px-2">
                   <Sparkles size={24} className="text-[#0071e3] mx-auto mb-2" />
@@ -2392,7 +2394,6 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              <div ref={claudeEndRef} />
             </div>
 
             {claudeError && (
