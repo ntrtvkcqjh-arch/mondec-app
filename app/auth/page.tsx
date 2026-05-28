@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import { signInWithEmail, signUpWithEmail } from "@/lib/supabase";
 import { useGameStore } from "@/lib/supabase-store";
