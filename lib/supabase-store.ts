@@ -773,42 +773,61 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   // Recalcule statut + signaux d'alerte de tous les dossiers
-  // selon : agent porteur, qualité, progression, durée, conflits
+  // Auto-finalise (avance/cloture/perdu) selon progression, qualité et signaux
   recomputeAllDossierStatus: () => {
-    set((state) => ({
-      dossiers: state.dossiers.map((d) => {
-        // Skip dossiers terminés (gagne/perdu/cloture)
+    const state = get();
+    const toFinalize: { id: string; outcome: "win" | "lose" }[] = [];
+
+    set((s) => ({
+      dossiers: s.dossiers.map((d) => {
+        // Dossiers déjà terminés : on ne touche plus
         if (d.etat === "avance" || d.etat === "cloture" || d.etat === "perdu") return d;
 
-        const agent = state.agents.find((a) => a.id === d.agent_id);
+        const agent = s.agents.find((a) => a.id === d.agent_id);
         const signaux: string[] = [];
 
         if (agent) {
-          // Signal 1 : agent en burn-out
           if (agent.fatigue > 85 || agent.stress > 90) signaux.push("agent_burnout");
-          // Signal 2 : confiance très basse
           if (agent.confiance_joueur < 30) signaux.push("confiance_basse");
-          // Signal 3 : arc Rupture (Hugo) → risque départ
           if ((agent as any).arc_actuel === "Rupture") signaux.push("agent_rupture");
         }
 
-        // Signal 4 : retard sur progression (devrait être plus avancé selon le jour)
-        const expectedProgress = Math.min(95, 30 + state.game_day * 5);
+        const expectedProgress = Math.min(95, 30 + s.game_day * 5);
         if (d.progression < expectedProgress - 20) signaux.push("retard_critique");
+        if (s.mood_global === "En Crise") signaux.push("cabinet_crise");
 
-        // Signal 5 : mood cabinet
-        if (state.mood_global === "En Crise") signaux.push("cabinet_crise");
-
-        // Mood client (satisfait si qualité ok et pas trop de signaux)
         const client_satisfait = d.qualite >= 50 && signaux.length < 2;
 
-        // Détermine le statut
+        // Auto-finalisation #1 : progression atteinte → clôture automatique
+        if (d.progression >= 100) {
+          toFinalize.push({ id: d.id, outcome: "win" });
+          return d;
+        }
+
+        // Auto-finalisation #2 : perte probabiliste si plusieurs signaux non gérés
+        // (3% par tick avec 2 signaux, 8% avec 3+)
+        if (signaux.length >= 3 && Math.random() < 0.08) {
+          toFinalize.push({ id: d.id, outcome: "lose" });
+          return d;
+        }
+        if (signaux.length >= 2 && Math.random() < 0.03) {
+          toFinalize.push({ id: d.id, outcome: "lose" });
+          return d;
+        }
+
+        // Statut dynamique sinon
         let etat: Dossier["etat"] = "en_cours";
         if (signaux.length >= 2 || (signaux.length >= 1 && d.progression < 50)) etat = "surveillance";
 
         return { ...d, signaux_alerte: signaux, client_satisfait, etat };
       }),
     }));
+
+    // Déclenche les finalisations en dehors du set pour éviter récursion
+    toFinalize.forEach((f) => {
+      if (f.outcome === "win") get().winDossier(f.id);
+      else get().loseDossier(f.id);
+    });
   },
 
   attemptRecoverDossier: (id) => {

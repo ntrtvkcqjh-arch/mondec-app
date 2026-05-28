@@ -1639,7 +1639,7 @@ export default function Home() {
               <div className="flex items-end justify-between mb-4">
                 <div>
                   <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Dossiers clients</h2>
-                  <p className="text-[13px] text-[#6e6e73]">5 statuts auto · VIP impacte ×3 · Récupération possible 30 jours</p>
+                  <p className="text-[13px] text-[#6e6e73]">Aperçu en temps réel · Les statuts évoluent selon ton travail et l'autonomie des agents</p>
                 </div>
                 <div className="flex gap-1.5">
                   <DossierStat label="En cours" value={dossiersEnCours} color="#0071e3" />
@@ -1762,41 +1762,31 @@ export default function Home() {
                             <span>Perdu : <span className="text-[#ff3b30] font-medium">−{d.impact.reputation * (d.is_vip ? 3 : 1)} Rép · −{((d.impact.tresorerie * (d.is_vip ? 3 : 1)) / 2 / 1000).toFixed(1)}k€</span></span>
                           </div>
 
-                          {/* Actions */}
-                          <div className="flex flex-wrap gap-1.5 mt-2.5">
-                            {(d.etat === "en_cours" || d.etat === "surveillance") && (
-                              <>
-                                <button onClick={() => store.advanceDossier(d.id, 10)}
-                                  className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#0071e3]/10 text-[#0071e3] hover:bg-[#0071e3]/15 font-medium transition-all">
-                                  Avancer +10%
-                                </button>
-                                <button onClick={() => store.winDossier(d.id)}
-                                  className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#34c759]/10 text-[#34c759] hover:bg-[#34c759]/15 font-medium transition-all">
-                                  Clôturer ✓
-                                </button>
-                                <button onClick={() => store.loseDossier(d.id)}
-                                  className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#ff3b30]/10 text-[#ff3b30] hover:bg-[#ff3b30]/15 font-medium transition-all">
-                                  Perdre ✗
-                                </button>
-                                <button onClick={() => store.toggleVIP(d.id)}
-                                  className={`text-[11px] px-2.5 py-1 rounded-[8px] font-medium transition-all ${
-                                    d.is_vip ? "bg-[#bf5af2]/15 text-[#bf5af2]" : "bg-[#8e8e93]/10 text-[#6e6e73] hover:bg-[#bf5af2]/10 hover:text-[#bf5af2]"
-                                  }`}>
-                                  {d.is_vip ? "⭐ Retirer VIP" : "Marquer VIP"}
-                                </button>
-                              </>
-                            )}
-                            {recoverable && (
+                          {/* Aperçu — indicateur narratif (pas d'action manuelle) */}
+                          {(d.etat === "en_cours" || d.etat === "surveillance") && (
+                            <div className="flex items-center gap-1.5 mt-2.5 text-[10px] text-[#8e8e93]">
+                              <RefreshCw size={9} className="animate-spin" style={{ animationDuration: "3s" }} />
+                              <span>
+                                {d.etat === "surveillance"
+                                  ? "Statut surveillé · agis sur l'agent ou réponds vite avant que le client ne parte"
+                                  : a ? `${a.nom.split(" ")[0]} travaille de façon autonome — réponds aux messages pour accélérer` : "Avancement automatique"}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Seule action stratégique restante : tentative de récupération */}
+                          {recoverable && (
+                            <div className="mt-2.5">
                               <button onClick={() => {
                                   const ok = store.attemptRecoverDossier(d.id);
                                   if (!ok && store.points_action < 2) alert("Il te faut 2 PA pour tenter une récupération.");
                                   else if (!ok) alert("Tentative ratée. Le client refuse de revenir.");
                                 }}
                                 className="text-[11px] px-2.5 py-1 rounded-[8px] bg-gradient-to-r from-[#bf5af2]/15 to-[#0071e3]/15 text-[#bf5af2] hover:from-[#bf5af2]/25 hover:to-[#0071e3]/25 font-semibold transition-all flex items-center gap-1">
-                                <Sparkles size={11} /> Tentative récupération (2 PA · honoraires ×1,5)
+                                <Sparkles size={11} /> Tentative de récupération (2 PA · honoraires ×1,5)
                               </button>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
