@@ -7,15 +7,23 @@ import { useGameStore } from "@/lib/supabase-store";
 import { supabase, signOut } from "@/lib/supabase";
 import {
   Mail, Users, Calendar, FolderOpen, GraduationCap, Building2,
-  Send, LogOut, ChevronRight, Zap, AlertTriangle,
-  CheckCircle, Archive, CornerDownRight, Pencil, RefreshCw,
+  Send, LogOut, ChevronRight, Zap, AlertTriangle, CheckCircle,
+  Archive, CornerDownRight, Pencil, RefreshCw, TrendingUp, TrendingDown,
 } from "lucide-react";
 
 type Tab = "messages" | "equipe" | "agenda" | "dossiers" | "dec";
-type SendPhase = "draft" | "picking" | "waiting";
+type SendPhase = "draft" | "picking" | "waiting" | "scoring";
 
 interface GhostVersion { label: string; sublabel: string; text: string; color: string; }
 interface Dilemme { id: string; titre: string; description: string; options: { id: string; label: string; cout_PA: number; consequence_differee: string }[]; }
+interface ScoreResult {
+  score_global: number;
+  breakdown: { precision: number; redaction: number; deontologie: number; contexte: number; operationnel: number };
+  feedback: string;
+  points_forts: string[];
+  axes_amelioration: string[];
+  impact: { legitimite_delta: number; confiance_agent_delta: number };
+}
 
 function parseGhostVersions(content: string): GhostVersion[] | null {
   const defs = [
@@ -67,6 +75,34 @@ function getNiveauLabel(n: string) {
   }
 }
 
+function getUrgencyBarColor(n: string) {
+  switch (n) {
+    case "N5": return "bg-[#ff3b30]";
+    case "N4": return "bg-[#ff9f0a]";
+    case "N3": return "bg-[#ffd60a]";
+    case "N2": return "bg-[#34c759]";
+    default: return "bg-[#8e8e93]";
+  }
+}
+
+function getUrgencyWidth(heures: number) {
+  if (heures <= 1) return "100%";
+  if (heures <= 6) return "85%";
+  if (heures <= 12) return "60%";
+  if (heures <= 24) return "40%";
+  return "20%";
+}
+
+function getPhaseColor(phase: string | null) {
+  switch (phase) {
+    case "P5": return "bg-[#ff3b30]/15 text-[#ff3b30]";
+    case "P4": return "bg-[#ff9f0a]/15 text-[#ff9f0a]";
+    case "P3": return "bg-[#0071e3]/15 text-[#0071e3]";
+    case "P2": return "bg-[#34c759]/15 text-[#34c759]";
+    default: return "bg-[#8e8e93]/15 text-[#8e8e93]";
+  }
+}
+
 function getPACost(n: string) {
   if (n === "N3" || n === "N4") return 1;
   if (n === "N5") return 2;
@@ -82,6 +118,8 @@ export default function Home() {
   const [dilemme, setDilemme] = useState<Dilemme | null>(null);
   const [dilemmeResolu, setDilemmeResolu] = useState(false);
   const [generatingEvents, setGeneratingEvents] = useState(false);
+  const [scoreResult, setScoreResult] = useState<ScoreResult | null>(null);
+  const [lastPlayerMessage, setLastPlayerMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const store = useGameStore();
@@ -113,44 +151,29 @@ export default function Home() {
     const lastGen = typeof window !== "undefined" ? localStorage.getItem("lastEventGen") : null;
     const now = Date.now();
     if (lastGen && now - parseInt(lastGen) < 15 * 60 * 1000) return;
-
     localStorage.setItem("lastEventGen", now.toString());
     setGeneratingEvents(true);
-
     const agentsWithUnread = store.messages.filter(m => !m.lu).map(m => m.agent_id);
-
     fetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         agents: store.agents,
-        game_state: {
-          date: store.date_simulation,
-          mood: store.mood_global,
-          legitimite: store.legitimite,
-          tresorerie: store.tresorerie,
-          stress_global: store.stress_global,
-          joursRestants: 16,
-        },
+        game_state: { date: store.date_simulation, mood: store.mood_global, legitimite: store.legitimite, tresorerie: store.tresorerie, stress_global: store.stress_global, joursRestants: 16 },
         existing_subjects: store.messages.map(m => m.sujet),
         agents_with_unread: agentsWithUnread,
       }),
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.events?.length) {
-          data.events.forEach((e: any) => store.addNewMessage(e));
-        }
-      })
-      .catch(() => {})
-      .finally(() => setGeneratingEvents(false));
+    }).then(r => r.json()).then(data => {
+      if (data.events?.length) data.events.forEach((e: any) => store.addNewMessage(e));
+    }).catch(() => {}).finally(() => setGeneratingEvents(false));
   }, [store.isAuthenticated, store.isLoading, store.agents.length]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [store.conversation_history, selectedAgent, ghostVersions]);
+  }, [store.conversation_history, selectedAgent, ghostVersions, scoreResult]);
 
-  const selectedMessage = store.messages.find((m) => m.agent_id === selectedAgent && !m.repondu) || store.messages.find((m) => m.agent_id === selectedAgent);
+  const selectedMessage = store.messages.find((m) => m.agent_id === selectedAgent && !m.repondu)
+    || store.messages.find((m) => m.agent_id === selectedAgent);
   const agent = store.agents.find((a) => a.id === selectedAgent);
   const unreadCount = store.messages.filter(m => !m.lu).length;
 
@@ -159,16 +182,15 @@ export default function Home() {
     setGhostVersions(null);
     setPhase("draft");
     setInputText("");
+    setScoreResult(null);
     store.markMessageRead(messageId);
     store.loadConversations(agentId);
   }
 
-  // Étape 1 : le joueur envoie son brouillon → Ghost Writer propose 3 versions
   async function handleGhostDraft() {
     if (!inputText.trim() || !agent || phase !== "draft") return;
     setPhase("picking");
     setGhostVersions(null);
-
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -179,22 +201,15 @@ export default function Home() {
       }),
     });
     const data = await res.json();
-
     if (data.content) {
       const versions = parseGhostVersions(data.content);
-      if (versions) {
-        setGhostVersions(versions);
-      } else {
-        // Ghost Writer n'a pas pu parser → envoi direct
-        setPhase("draft");
-        await sendAndGetResponse(inputText);
-      }
+      if (versions) { setGhostVersions(versions); }
+      else { setPhase("draft"); await sendAndGetResponse(inputText); }
     } else {
       setPhase("draft");
     }
   }
 
-  // Étape 2 : le joueur choisit une version → l'agent répond
   async function handlePickVersion(text: string) {
     setGhostVersions(null);
     setPhase("draft");
@@ -202,7 +217,6 @@ export default function Home() {
     await sendAndGetResponse(text);
   }
 
-  // Bypass : envoyer le brouillon tel quel sans Ghost Writer
   async function handleDirectSend() {
     if (!inputText.trim() || !agent) return;
     const text = inputText;
@@ -212,35 +226,59 @@ export default function Home() {
     await sendAndGetResponse(text);
   }
 
-  // Core : enregistre le message et récupère la réponse de l'agent
   async function sendAndGetResponse(text: string) {
     if (!agent) return;
     const niveau = selectedMessage?.niveau || "N2";
     const cost = getPACost(niveau);
-    if (cost > 0 && !store.spendPA(cost)) {
-      alert("Pas assez de Points d'Action !");
-      setPhase("draft");
-      return;
-    }
+    if (cost > 0 && !store.spendPA(cost)) { alert("Pas assez de Points d'Action !"); setPhase("draft"); return; }
     setPhase("waiting");
+    setLastPlayerMessage(text);
+    setScoreResult(null);
 
     const history = store.conversation_history[agent.id] || [];
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: "agent",
-        messages: [...history, { role: "user", content: text }],
-        agent_context: agent,
-        game_state: { date: store.date_simulation, mood: store.mood_global, joursRestants: 16 },
-      }),
-    });
-    const data = await res.json();
+    const [chatRes, ] = await Promise.allSettled([
+      fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "agent",
+          messages: [...history, { role: "user", content: text }],
+          agent_context: agent,
+          game_state: { date: store.date_simulation, mood: store.mood_global, joursRestants: 16 },
+        }),
+      })
+    ]);
 
-    if (data.content) {
-      await store.addConversation(agent.id, "user", text);
-      await store.addConversation(agent.id, "assistant", data.content);
-      if (selectedMessage) await store.replyToMessage(selectedMessage.id, text);
+    if (chatRes.status === "fulfilled") {
+      const data = await chatRes.value.json();
+      if (data.content) {
+        await store.addConversation(agent.id, "user", text);
+        await store.addConversation(agent.id, "assistant", data.content);
+        if (selectedMessage) await store.replyToMessage(selectedMessage.id, text);
+
+        // Appel score en parallèle
+        setPhase("scoring");
+        try {
+          const scoreRes = await fetch("/api/score", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              player_message: text,
+              agent_original_message: selectedMessage?.contenu || "",
+              agent_response: data.content,
+              agent_context: agent,
+            }),
+          });
+          const scoreData = await scoreRes.json();
+          if (scoreData.score_global !== undefined) {
+            setScoreResult(scoreData);
+            // Appliquer l'impact sur les ressources
+            if (scoreData.impact?.legitimite_delta) {
+              store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + scoreData.impact.legitimite_delta)) });
+            }
+          }
+        } catch { /* ignore score errors */ }
+      }
     }
     setPhase("draft");
   }
@@ -311,7 +349,6 @@ export default function Home() {
           ))}
         </nav>
 
-        {/* Ressources */}
         <div className="px-4 py-3 border-t border-[#d2d2d7]/50 space-y-2">
           <MiniStat label="Légitimité" value={store.legitimite} color="#0071e3" />
           <MiniStat label="Trésorerie" value={Math.min((store.tresorerie / 2000), 100)} color="#34c759" display={`${(store.tresorerie / 1000).toFixed(0)}k€`} />
@@ -338,7 +375,6 @@ export default function Home() {
       {/* ── CONTENU ── */}
       <div className="flex-1 flex overflow-hidden">
 
-        {/* VUE MESSAGES */}
         {activeTab === "messages" && (
           <>
             {/* Liste messages */}
@@ -352,38 +388,58 @@ export default function Home() {
                   const a = store.agents.find((ag) => ag.id === msg.agent_id);
                   if (!a) return null;
                   const urgent = msg.delai_reponse_heures <= 6;
+                  const isSelected = selectedAgent === msg.agent_id;
                   return (
                     <div key={msg.id}
                       onClick={() => handleSelectAgent(msg.agent_id, msg.id)}
-                      className={`group mx-2 mb-1 p-3 rounded-[12px] cursor-pointer transition-all ${selectedAgent === msg.agent_id ? "bg-[#0071e3] text-white" : msg.lu ? "opacity-70 hover:bg-white/70" : "hover:bg-white/70"}`}>
+                      className={`group mx-2 mb-1 p-3 rounded-[12px] cursor-pointer transition-all ${isSelected ? "bg-[#0071e3] text-white" : msg.lu ? "opacity-70 hover:bg-white/70" : "hover:bg-white/70"}`}>
                       <div className="flex items-start gap-2.5">
                         <div className="relative shrink-0">
                           <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold" style={{ backgroundColor: a.avatar_color }}>
                             {a.initiales}
                           </div>
-                          <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${selectedAgent === msg.agent_id ? "border-[#0071e3]" : "border-[#f5f5f7]"} ${getNiveauDot(msg.niveau)}`} />
+                          <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${isSelected ? "border-[#0071e3]" : "border-[#f5f5f7]"} ${getNiveauDot(msg.niveau)}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-0.5">
-                            <span className={`text-[13px] font-semibold truncate ${selectedAgent === msg.agent_id ? "text-white" : "text-[#1d1d1f]"}`}>
+                            <span className={`text-[13px] font-semibold truncate ${isSelected ? "text-white" : "text-[#1d1d1f]"}`}>
                               {a.nom}
                               {!msg.lu && <span className="ml-1 w-1.5 h-1.5 inline-block rounded-full bg-[#0071e3] align-middle" />}
                             </span>
-                            <span className={`text-[10px] shrink-0 ${urgent ? "text-[#ff3b30]" : selectedAgent === msg.agent_id ? "text-white/60" : "text-[#8e8e93]"}`}>
+                            <span className={`text-[10px] shrink-0 ${urgent ? (isSelected ? "text-red-200" : "text-[#ff3b30]") : isSelected ? "text-white/60" : "text-[#8e8e93]"}`}>
                               {urgent ? `⚡ ${msg.delai_reponse_heures}h` : `${msg.delai_reponse_heures}h`}
                             </span>
                           </div>
-                          <p className={`text-[12px] truncate ${selectedAgent === msg.agent_id ? "text-white/80" : "text-[#6e6e73]"}`}>{msg.sujet}</p>
-                          <div className="flex items-center justify-between mt-1">
-                            <span className={`text-[10px] font-medium ${selectedAgent === msg.agent_id ? "text-white/70" : "text-[#8e8e93]"}`}>
-                              {getNiveauLabel(msg.niveau)} · {msg.type}
+                          <p className={`text-[12px] truncate mb-1 ${isSelected ? "text-white/80" : "text-[#6e6e73]"}`}>{msg.sujet}</p>
+                          {/* Chips niveau + phase */}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${
+                              isSelected ? "bg-white/20 text-white" :
+                              msg.niveau === "N5" ? "bg-[#ff3b30]/15 text-[#ff3b30]" :
+                              msg.niveau === "N4" ? "bg-[#ff9f0a]/15 text-[#ff9f0a]" :
+                              msg.niveau === "N3" ? "bg-[#ffd60a]/20 text-[#b07800]" :
+                              "bg-[#0071e3]/10 text-[#0071e3]"}`}>
+                              {msg.niveau}
                             </span>
-                            {(msg.niveau === "N1" || msg.niveau === "N2") && !msg.repondu && selectedAgent !== msg.agent_id && (
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-md ${isSelected ? "bg-white/15 text-white" : "bg-[#f5f5f7] text-[#6e6e73]"}`}>
+                              {msg.type}
+                            </span>
+                            {msg.phase && (
+                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${isSelected ? "bg-white/20 text-white" : getPhaseColor(msg.phase)}`}>
+                                {msg.phase}
+                              </span>
+                            )}
+                            {(msg.niveau === "N1" || msg.niveau === "N2") && !msg.repondu && !isSelected && (
                               <button onClick={(e) => { e.stopPropagation(); handleArchive(msg.id); }}
-                                className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-black/10 transition-all">
+                                className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 rounded hover:bg-black/10 transition-all">
                                 <Archive size={11} className="text-[#6e6e73]" />
                               </button>
                             )}
+                          </div>
+                          {/* Barre d'urgence */}
+                          <div className="mt-1.5 h-[2px] bg-[#e5e5ea] rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all ${isSelected ? "bg-white/40" : getUrgencyBarColor(msg.niveau)}`}
+                              style={{ width: getUrgencyWidth(msg.delai_reponse_heures) }} />
                           </div>
                         </div>
                       </div>
@@ -393,7 +449,7 @@ export default function Home() {
                 {store.messages.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-32 text-center px-4">
                     <p className="text-[12px] text-[#8e8e93]">Aucun message</p>
-                    <p className="text-[10px] text-[#c7c7cc] mt-1">Les agents vont bientôt écrire…</p>
+                    <p className="text-[10px] text-[#c7c7cc] mt-1">Les agents écrivent…</p>
                   </div>
                 )}
               </div>
@@ -403,7 +459,6 @@ export default function Home() {
             <main className="flex-1 flex flex-col bg-white/60">
               {agent ? (
                 <>
-                  {/* Header agent */}
                   <header className="px-6 py-3.5 glass border-b border-[#d2d2d7]/50 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style={{ backgroundColor: agent.avatar_color }}>
@@ -429,11 +484,10 @@ export default function Home() {
                     </div>
                   </header>
 
-                  {/* Messages */}
                   <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
                     {/* Dilemme actif */}
                     {dilemme && !dilemmeResolu && (
-                      <div className="bg-[#fff3cd] border border-[#ffc107]/30 rounded-[16px] p-4 mb-2">
+                      <div className="bg-[#fff3cd] border border-[#ffc107]/30 rounded-[16px] p-4">
                         <div className="flex items-start gap-2 mb-3">
                           <AlertTriangle size={16} className="text-[#ff9f0a] mt-0.5 shrink-0" />
                           <div>
@@ -470,6 +524,11 @@ export default function Home() {
                               "bg-[#0071e3]/10 text-[#0071e3]"}`}>
                               {getNiveauLabel(selectedMessage.niveau)}
                             </span>
+                            {selectedMessage.phase && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${getPhaseColor(selectedMessage.phase)}`}>
+                                {selectedMessage.phase}
+                              </span>
+                            )}
                           </div>
                           <div className="bg-white rounded-[18px] rounded-tl-[6px] px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30">
                             <p className="text-[13px] text-[#1d1d1f] leading-relaxed">{selectedMessage.contenu}</p>
@@ -497,19 +556,30 @@ export default function Home() {
                     ))}
 
                     {/* Indicateur "agent répond..." */}
-                    {phase === "waiting" && (
+                    {(phase === "waiting" || phase === "scoring") && (
                       <div className="flex gap-3 max-w-[78%]">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: agent.avatar_color }}>
                           {agent.initiales}
                         </div>
                         <div className="bg-white rounded-[18px] rounded-tl-[6px] px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30">
-                          <div className="flex gap-1 items-center">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "0ms" }} />
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "150ms" }} />
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "300ms" }} />
-                          </div>
+                          {phase === "scoring" ? (
+                            <span className="text-[12px] text-[#6e6e73] flex items-center gap-1.5">
+                              <Zap size={11} className="text-[#0071e3]" /> Ghost Writer note ta réponse…
+                            </span>
+                          ) : (
+                            <div className="flex gap-1 items-center">
+                              <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "0ms" }} />
+                              <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "150ms" }} />
+                              <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "300ms" }} />
+                            </div>
+                          )}
                         </div>
                       </div>
+                    )}
+
+                    {/* Score IA */}
+                    {scoreResult && (
+                      <ScoreCard score={scoreResult} playerMessage={lastPlayerMessage} onClose={() => setScoreResult(null)} />
                     )}
 
                     {/* Ghost Writer — 3 versions */}
@@ -544,11 +614,10 @@ export default function Home() {
                   </div>
 
                   {/* Zone de saisie */}
-                  <div className="px-6 py-4 glass border-t border-[#d2d2d7]/50">
+                  <div className="px-6 py-3 glass border-t border-[#d2d2d7]/50">
                     {phase === "picking" && !ghostVersions && (
                       <div className="flex items-center gap-2 mb-2 text-[12px] text-[#6e6e73]">
-                        <RefreshCw size={12} className="animate-spin" />
-                        Ghost Writer analyse ton brouillon…
+                        <RefreshCw size={12} className="animate-spin" /> Ghost Writer analyse…
                       </div>
                     )}
                     <div className="flex items-end gap-2">
@@ -562,16 +631,14 @@ export default function Home() {
                             e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
                           }}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              if (phase === "draft") handleGhostDraft();
-                            }
+                            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (phase === "draft") handleGhostDraft(); }
                           }}
                           disabled={phase !== "draft"}
                           placeholder={
                             phase === "picking" ? "Sélectionne une version Ghost Writer ci-dessus…" :
-                            phase === "waiting" ? `${agent.nom} rédige sa réponse…` :
-                            "Rédige un brouillon… Ghost Writer proposera 3 versions (↵)"
+                            phase === "waiting" ? `${agent.nom} rédige…` :
+                            phase === "scoring" ? "Ghost Writer note ta réponse…" :
+                            `Répondre à ${agent.nom}… (IA corrigera selon les standards ${agent.filiere})`
                           }
                           rows={1}
                           className="w-full text-[13px] text-[#1d1d1f] placeholder-[#8e8e93] outline-none resize-none leading-relaxed bg-transparent disabled:cursor-not-allowed"
@@ -584,20 +651,25 @@ export default function Home() {
                         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm shrink-0 ${
                           phase === "draft" && inputText.trim()
                             ? "bg-[#0071e3] hover:bg-[#0077ed] text-white"
-                            : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"
-                        }`}>
-                        {phase === "waiting" ? (
+                            : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"}`}>
+                        {phase === "waiting" || phase === "scoring" ? (
                           <div className="w-3 h-3 border-2 border-[#8e8e93] border-t-transparent rounded-full animate-spin" />
                         ) : (
                           <Send size={15} />
                         )}
                       </button>
                     </div>
-                    <div className="flex items-center justify-between mt-1.5 px-1">
-                      <span className="text-[10px] text-[#8e8e93]">↵ Ghost Writer · ⇧↵ Nouvelle ligne</span>
+                    {/* Grille de notation */}
+                    <div className="flex items-center gap-3 mt-2 px-1 overflow-x-auto">
+                      <span className="text-[9px] text-[#8e8e93] whitespace-nowrap">Grille DEC ·</span>
+                      {[["Précision", "30%"], ["Rédaction", "20%"], ["Déontologie", "20%"], ["Contexte", "15%"], ["Opérationnel", "15%"]].map(([label, pct]) => (
+                        <span key={label} className="text-[9px] text-[#8e8e93] whitespace-nowrap">
+                          <span className="font-semibold text-[#6e6e73]">{label}</span> {pct}
+                        </span>
+                      ))}
                       {getPACost(selectedMessage?.niveau || "N1") > 0 && phase === "draft" && (
-                        <span className="text-[10px] font-medium text-[#ff9f0a]">
-                          −{getPACost(selectedMessage?.niveau || "N1")} PA à l'envoi
+                        <span className="ml-auto text-[10px] font-medium text-[#ff9f0a] whitespace-nowrap">
+                          −{getPACost(selectedMessage?.niveau || "N1")} PA
                         </span>
                       )}
                     </div>
@@ -618,7 +690,6 @@ export default function Home() {
           </>
         )}
 
-        {/* VUE ÉQUIPE */}
         {activeTab === "equipe" && (
           <div className="flex-1 overflow-y-auto p-6">
             <h2 className="text-[22px] font-bold text-[#1d1d1f] mb-1">Équipe</h2>
@@ -651,8 +722,9 @@ export default function Home() {
                         (a as any).arc_actuel === "Rupture" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
                         (a as any).arc_actuel === "Trahison" ? "bg-[#ff9f0a]/10 text-[#ff9f0a]" :
                         (a as any).arc_actuel === "Crise" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
-                        "bg-[#0071e3]/10 text-[#0071e3]"
-                      }`}>Arc : {(a as any).arc_actuel}</span>
+                        "bg-[#0071e3]/10 text-[#0071e3]"}`}>
+                        Arc : {(a as any).arc_actuel}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -661,7 +733,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* VUE AGENDA */}
         {activeTab === "agenda" && (
           <div className="flex-1 overflow-y-auto p-6">
             <h2 className="text-[22px] font-bold text-[#1d1d1f] mb-1">Agenda</h2>
@@ -695,7 +766,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* VUE DOSSIERS */}
         {activeTab === "dossiers" && (
           <div className="flex-1 overflow-y-auto p-6">
             <h2 className="text-[22px] font-bold text-[#1d1d1f] mb-1">Dossiers actifs</h2>
@@ -719,7 +789,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* VUE DEC PREP */}
         {activeTab === "dec" && (
           <div className="flex-1 overflow-y-auto p-6">
             <h2 className="text-[22px] font-bold text-[#1d1d1f] mb-1">DEC Prep</h2>
@@ -739,20 +808,17 @@ export default function Home() {
                 </div>
               </div>
               <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30">
-                <p className="font-semibold text-[13px] text-[#1d1d1f] mb-2">Comment fonctionne le Ghost Writer</p>
-                <ol className="text-[12px] text-[#6e6e73] space-y-1.5 list-none">
-                  <li className="flex gap-2"><span className="w-5 h-5 bg-[#0071e3] text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">1</span>Tu rédiges un brouillon de réponse à un agent</li>
-                  <li className="flex gap-2"><span className="w-5 h-5 bg-[#0071e3] text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">2</span>L'IA propose 3 versions corrigées (Standard · Ferme · Pédagogue)</li>
-                  <li className="flex gap-2"><span className="w-5 h-5 bg-[#0071e3] text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">3</span>Tu choisis une version — l'agent répond en temps réel</li>
-                  <li className="flex gap-2"><span className="w-5 h-5 bg-[#34c759] text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>Tu apprends à écrire comme un EC en voyant tes corrections</li>
-                </ol>
-              </div>
-              <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30">
-                <p className="font-semibold text-[13px] text-[#1d1d1f] mb-2">Score & Légitimité</p>
-                <div className="space-y-1.5 text-[12px] text-[#6e6e73]">
-                  <div className="flex items-center gap-2"><span className="text-[#34c759]">▲ +10</span> Légitimité si QCM ≥ 80%</div>
-                  <div className="flex items-center gap-2"><span className="text-[#ff3b30]">▼ −15</span> Légitimité si QCM &lt; 50%</div>
-                  <div className="flex items-center gap-2"><span className="text-[#0071e3]">✎</span> Personnaliser une version Ghost Writer = +Légitimité si techniquement correct</div>
+                <p className="font-semibold text-[13px] text-[#1d1d1f] mb-3">Grille d'évaluation Ghost Writer</p>
+                <div className="space-y-2">
+                  {[["Précision technique", 30, "#0071e3"],["Rédaction professionnelle", 20, "#34c759"],["Déontologie", 20, "#ff9f0a"],["Contexte & empathie", 15, "#bf5af2"],["Opérationnel", 15, "#ff3b30"]].map(([label, pts, color]) => (
+                    <div key={label as string} className="flex items-center gap-3">
+                      <span className="text-[11px] text-[#6e6e73] w-40">{label as string}</span>
+                      <div className="flex-1 h-[4px] bg-[#f5f5f7] rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${(pts as number)}%`, backgroundColor: color as string }} />
+                      </div>
+                      <span className="text-[11px] font-semibold text-[#3a3a3c] w-6 text-right">{pts as number}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -764,6 +830,95 @@ export default function Home() {
   );
 }
 
+// ── Score Card ──────────────────────────────────────────────────────────────
+function ScoreCard({ score, playerMessage, onClose }: { score: ScoreResult; playerMessage: string; onClose: () => void }) {
+  const color = score.score_global >= 80 ? "#34c759" : score.score_global >= 60 ? "#ff9f0a" : "#ff3b30";
+  const grade = score.score_global >= 80 ? "Excellent" : score.score_global >= 70 ? "Bien" : score.score_global >= 60 ? "Satisfaisant" : score.score_global >= 50 ? "À améliorer" : "Insuffisant";
+  const bars = [
+    { label: "Précision", val: score.breakdown.precision, max: 30 },
+    { label: "Rédaction", val: score.breakdown.redaction, max: 20 },
+    { label: "Déontologie", val: score.breakdown.deontologie, max: 20 },
+    { label: "Contexte", val: score.breakdown.contexte, max: 15 },
+    { label: "Opérationnel", val: score.breakdown.operationnel, max: 15 },
+  ];
+
+  return (
+    <div className="bg-white rounded-[18px] border border-[#d2d2d7]/40 shadow-[0_4px_24px_rgba(0,0,0,0.10)] p-4 my-2">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-[16px] shadow-sm" style={{ backgroundColor: color }}>
+            {score.score_global}
+          </div>
+          <div>
+            <p className="font-semibold text-[14px] text-[#1d1d1f]">Évaluation Ghost Writer DEC</p>
+            <p className="text-[11px] font-medium" style={{ color }}>{grade}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {score.impact.legitimite_delta !== 0 && (
+            <span className={`flex items-center gap-0.5 text-[10px] font-medium px-2 py-0.5 rounded-full ${score.impact.legitimite_delta > 0 ? "bg-[#34c759]/10 text-[#34c759]" : "bg-[#ff3b30]/10 text-[#ff3b30]"}`}>
+              {score.impact.legitimite_delta > 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+              {score.impact.legitimite_delta > 0 ? "+" : ""}{score.impact.legitimite_delta} Légitimité
+            </span>
+          )}
+          <button onClick={onClose} className="w-6 h-6 rounded-full bg-[#f5f5f7] flex items-center justify-center text-[#6e6e73] hover:bg-[#e5e5ea] transition-colors text-[14px] font-medium">×</button>
+        </div>
+      </div>
+
+      {/* Barres de score */}
+      <div className="space-y-1.5 mb-3">
+        {bars.map(b => (
+          <div key={b.label} className="flex items-center gap-2">
+            <span className="text-[10px] text-[#6e6e73] w-22 shrink-0">{b.label}</span>
+            <div className="flex-1 h-[4px] bg-[#f5f5f7] rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all" style={{ width: `${(b.val / b.max) * 100}%`, backgroundColor: (b.val / b.max) >= 0.8 ? "#34c759" : (b.val / b.max) >= 0.6 ? "#ff9f0a" : "#ff3b30" }} />
+            </div>
+            <span className="text-[10px] font-semibold text-[#3a3a3c] w-8 text-right">{b.val}/{b.max}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Feedback avec analogie */}
+      <div className="bg-[#f5f5f7] rounded-[12px] p-3 mb-2.5">
+        <div className="flex items-start gap-2">
+          <Zap size={12} className="text-[#0071e3] mt-0.5 shrink-0" />
+          <p className="text-[12px] text-[#3a3a3c] leading-relaxed italic">{score.feedback}</p>
+        </div>
+      </div>
+
+      {/* Points forts + Axes */}
+      <div className="flex gap-3">
+        {score.points_forts?.length > 0 && (
+          <div className="flex-1">
+            <p className="text-[9px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5">Points forts</p>
+            <div className="space-y-1">
+              {score.points_forts.map(p => (
+                <p key={p} className="text-[11px] text-[#3a3a3c] flex gap-1.5 items-start">
+                  <span className="text-[#34c759] font-bold mt-0.5">✓</span>{p}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+        {score.axes_amelioration?.length > 0 && (
+          <div className="flex-1">
+            <p className="text-[9px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5">À améliorer</p>
+            <div className="space-y-1">
+              {score.axes_amelioration.map(a => (
+                <p key={a} className="text-[11px] text-[#3a3a3c] flex gap-1.5 items-start">
+                  <span className="text-[#0071e3] font-bold mt-0.5">→</span>{a}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Composants UI ────────────────────────────────────────────────────────────
 function MiniStat({ label, value, color, display }: { label: string; value: number; color: string; display?: string }) {
   const pct = Math.min(Math.max(value, 0), 100);
   return (
