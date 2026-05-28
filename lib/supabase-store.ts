@@ -114,6 +114,11 @@ export interface GameState {
   // Tasks (validation pédagogique) — persistant
   completed_tasks: string[];
 
+  // Équipe : actions joueur → agent
+  agent_cooldowns: Record<string, Record<string, number>>; // agent_id → action → game_day jusque-là
+  agent_player_history: Record<string, { day: number; hour: number; event: string; impact?: string }[]>;
+  team_health: number;
+
   agents: Agent[];
   messages: Message[];
   dossiers: Dossier[];
@@ -174,6 +179,13 @@ export interface GameState {
   // Tasks
   markTaskCompleted: (taskId: string) => void;
   loadLocalPersistence: () => void;
+
+  // Équipe : actions
+  talkAgent: (agentId: string) => { ok: boolean; reason?: string };
+  rewardAgent: (agentId: string) => { ok: boolean; reason?: string };
+  reprimandAgent: (agentId: string) => { ok: boolean; reason?: string };
+  trainAgent: (agentId: string) => { ok: boolean; reason?: string };
+  recomputeTeamHealth: () => void;
 }
 
 const xpForLevel = (level: number) => 100 + level * 50;
@@ -219,6 +231,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   dec_badges: [],
 
   completed_tasks: [],
+
+  agent_cooldowns: {},
+  agent_player_history: {},
+  team_health: 60,
 
   agents: [],
   messages: [],
@@ -1022,6 +1038,130 @@ export const useGameStore = create<GameState>((set, get) => ({
     } catch (e) {
       console.warn("[Store] loadLocalPersistence failed:", e);
     }
+  },
+
+  talkAgent: (agentId) => {
+    const state = get();
+    const agent = state.agents.find((a) => a.id === agentId);
+    if (!agent) return { ok: false, reason: "Agent introuvable" };
+    const cd = state.agent_cooldowns[agentId]?.talk;
+    if (cd && state.game_day < cd) return { ok: false, reason: `Disponible au jour ${cd}` };
+
+    set((s) => ({
+      agents: s.agents.map((a) => a.id === agentId ? {
+        ...a,
+        confiance_joueur: Math.min(100, a.confiance_joueur + 3),
+        respect: Math.min(100, a.respect + 1),
+        stress: Math.max(0, a.stress - 2),
+      } : a),
+      agent_cooldowns: { ...s.agent_cooldowns, [agentId]: { ...s.agent_cooldowns[agentId], talk: s.game_day + 1 } },
+      agent_player_history: {
+        ...s.agent_player_history,
+        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Échange informel", impact: "+3 Confiance · −2 Stress" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
+      },
+    }));
+    get().recomputeTeamHealth();
+    return { ok: true };
+  },
+
+  rewardAgent: (agentId) => {
+    const state = get();
+    const agent = state.agents.find((a) => a.id === agentId);
+    if (!agent) return { ok: false, reason: "Agent introuvable" };
+    const cd = state.agent_cooldowns[agentId]?.reward;
+    if (cd && state.game_day < cd) return { ok: false, reason: `Récompense déjà donnée — re-disponible jour ${cd}` };
+
+    set((s) => ({
+      agents: s.agents.map((a) => a.id === agentId ? {
+        ...a,
+        confiance_joueur: Math.min(100, a.confiance_joueur + 7),
+        loyaute: Math.min(100, a.loyaute + 5),
+        stress: Math.max(0, a.stress - 5),
+        emotion: "Euphorique",
+      } : a),
+      legitimite: Math.min(100, s.legitimite + 2),
+      agent_cooldowns: { ...s.agent_cooldowns, [agentId]: { ...s.agent_cooldowns[agentId], reward: s.game_day + 7 } },
+      agent_player_history: {
+        ...s.agent_player_history,
+        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Récompense (prime/reconnaissance)", impact: "+7 Confiance · +5 Loyauté · +2 Légitimité" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
+      },
+    }));
+    get().recomputeTeamHealth();
+    return { ok: true };
+  },
+
+  reprimandAgent: (agentId) => {
+    const state = get();
+    const agent = state.agents.find((a) => a.id === agentId);
+    if (!agent) return { ok: false, reason: "Agent introuvable" };
+    const cd = state.agent_cooldowns[agentId]?.reprimand;
+    if (cd && state.game_day < cd) return { ok: false, reason: `Disponible au jour ${cd}` };
+
+    // Si déjà bas confiance + Trait fier → risque démission
+    const risqueDemission = agent.confiance_joueur < 30 && (agent as any).trait_dominant === "Ambitieux";
+
+    set((s) => ({
+      agents: s.agents.map((a) => a.id === agentId ? {
+        ...a,
+        confiance_joueur: Math.max(0, a.confiance_joueur - 6),
+        peur: Math.min(100, a.peur + 10),
+        stress: Math.min(100, a.stress + 5),
+        emotion: "Frustré",
+      } : a),
+      legitimite: Math.min(100, s.legitimite + 1),
+      agent_cooldowns: { ...s.agent_cooldowns, [agentId]: { ...s.agent_cooldowns[agentId], reprimand: s.game_day + 3 } },
+      agent_player_history: {
+        ...s.agent_player_history,
+        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Réprimande", impact: risqueDemission ? "⚠ RISQUE DÉMISSION · −6 Confiance · +10 Peur" : "−6 Confiance · +10 Peur · +5 Stress" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
+      },
+    }));
+    get().recomputeTeamHealth();
+    return { ok: true };
+  },
+
+  trainAgent: (agentId) => {
+    const state = get();
+    const agent = state.agents.find((a) => a.id === agentId);
+    if (!agent) return { ok: false, reason: "Agent introuvable" };
+    if (state.points_action < 1) return { ok: false, reason: "1 PA requis" };
+    if (state.tresorerie < 3000) return { ok: false, reason: "3 000 € requis" };
+    const cd = state.agent_cooldowns[agentId]?.train;
+    if (cd && state.game_day < cd) return { ok: false, reason: `Formation suivante au jour ${cd}` };
+
+    set((s) => ({
+      points_action: s.points_action - 1,
+      tresorerie: s.tresorerie - 3000,
+      agents: s.agents.map((a) => a.id === agentId ? {
+        ...a,
+        confiance_joueur: Math.min(100, a.confiance_joueur + 4),
+        loyaute: Math.min(100, a.loyaute + 3),
+        fatigue: Math.max(0, a.fatigue - 15),
+        stress: Math.max(0, a.stress - 10),
+        emotion: "Concentré",
+      } : a),
+      agent_cooldowns: { ...s.agent_cooldowns, [agentId]: { ...s.agent_cooldowns[agentId], train: s.game_day + 10 } },
+      agent_player_history: {
+        ...s.agent_player_history,
+        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Formation 1 journée", impact: "−15 Fatigue · −10 Stress · +4 Confiance · −3k€" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
+      },
+    }));
+    get().recomputeTeamHealth();
+    get().saveGameState();
+    return { ok: true };
+  },
+
+  recomputeTeamHealth: () => {
+    set((state) => {
+      if (state.agents.length === 0) return state;
+      const avgConfiance = state.agents.reduce((s, a) => s + a.confiance_joueur, 0) / state.agents.length;
+      const avgStress = state.agents.reduce((s, a) => s + a.stress, 0) / state.agents.length;
+      const avgFatigue = state.agents.reduce((s, a) => s + a.fatigue, 0) / state.agents.length;
+      const avgLoyaute = state.agents.reduce((s, a) => s + a.loyaute, 0) / state.agents.length;
+      const health = Math.round((avgConfiance + (100 - avgStress) + (100 - avgFatigue) + avgLoyaute) / 4);
+      // Seuil critique : <50 → mood "En Crise"
+      const mood = health < 50 && state.mood_global !== "En Crise" ? "En Crise" : state.mood_global;
+      return { team_health: health, mood_global: mood };
+    });
   },
 
   // Réinitialise les drapeaux du jour quand on change de jour de jeu

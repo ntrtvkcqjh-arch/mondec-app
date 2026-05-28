@@ -13,6 +13,7 @@ import {
   Sparkles, Clock as ClockIcon, Trophy, X, Coffee, Briefcase, MessageSquare,
   Award, Flame, Target, ChevronUp, Settings, Key, ExternalLink,
   ClipboardCheck, FileSearch, Calculator, Lock, Unlock,
+  Heart, ArrowUpDown, Filter, GitBranch, Grid3x3, Inbox, Megaphone, BookOpen,
 } from "lucide-react";
 
 type Tab = "messages" | "equipe" | "agenda" | "tasks" | "dossiers" | "dec";
@@ -290,6 +291,13 @@ export default function Home() {
   const [keyInput, setKeyInput] = useState("");
   const [keySaving, setKeySaving] = useState(false);
 
+  // Équipe : filtres + tri + vue + modal détail
+  const [teamView, setTeamView] = useState<"grid" | "org">("grid");
+  const [teamFilter, setTeamFilter] = useState<"tous" | "en_ligne" | "en_alerte" | "stagiaires" | "managers">("tous");
+  const [teamSort, setTeamSort] = useState<"confiance" | "stress" | "nom">("confiance");
+  const [detailAgentId, setDetailAgentId] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<string>("");
+
   // DEC Prep modules
   const [deontoPool, setDeontoPool] = useState<DeontoQuestion[]>([]);
   const [missionsPool, setMissionsPool] = useState<Mission[]>([]);
@@ -353,6 +361,32 @@ export default function Home() {
   useEffect(() => {
     store.checkDecRollover();
   }, [store.game_day]);
+
+  // Recompute team health quand les agents changent
+  useEffect(() => {
+    if (store.agents.length > 0) store.recomputeTeamHealth();
+  }, [store.agents.length]);
+
+  function handleAgentAction(agentId: string, action: "talk" | "reward" | "reprimand" | "train") {
+    let result: { ok: boolean; reason?: string };
+    if (action === "talk") result = store.talkAgent(agentId);
+    else if (action === "reward") result = store.rewardAgent(agentId);
+    else if (action === "reprimand") result = store.reprimandAgent(agentId);
+    else result = store.trainAgent(agentId);
+
+    if (!result.ok) {
+      setActionFeedback(result.reason || "Action indisponible");
+    } else {
+      const labels: Record<string, string> = {
+        talk: "Échange terminé",
+        reward: "Récompense distribuée",
+        reprimand: "Réprimande effectuée",
+        train: "Formation lancée",
+      };
+      setActionFeedback(labels[action]);
+    }
+    setTimeout(() => setActionFeedback(""), 3000);
+  }
 
   // Auto-progression des deadlines fiscales par les agents autonomes
   // (toutes les 8 secondes réelles ≈ 4 minutes jeu)
@@ -1645,52 +1679,257 @@ export default function Home() {
           </>
         )}
 
-        {activeTab === "equipe" && (
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="flex items-end justify-between mb-5">
-              <div>
-                <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Équipe</h2>
-                <p className="text-[13px] text-[#6e6e73]">{store.agents.length} collaborateurs · Cabinet Morel & Associés</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-              {store.agents.map((a) => (
-                <div key={a.id} className="bg-white rounded-[18px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold shadow-sm" style={{ backgroundColor: a.avatar_color }}>
-                      {a.initiales}
+        {activeTab === "equipe" && (() => {
+          // Compute alertes par agent
+          const getAlerts = (a: any) => {
+            const alerts: { icon: string; label: string }[] = [];
+            if (a.stress > 85 || a.fatigue > 85) alerts.push({ icon: "🔥", label: "Burn-out imminent" });
+            if (a.emotion === "En conflit" || a.emotion === "Frustré") alerts.push({ icon: "⚠️", label: "Tension" });
+            const unreadFromAgent = store.messages.filter(m => m.agent_id === a.id && !m.lu && !m.repondu).length;
+            if (unreadFromAgent > 0) alerts.push({ icon: "📩", label: `${unreadFromAgent} message(s) en attente` });
+            if (a.arc_actuel === "Rupture") alerts.push({ icon: "💼", label: "Risque départ (offre externe)" });
+            if (a.niveau?.includes("Stagiaire") && a.arc_actuel === "Apprentissage") alerts.push({ icon: "🎯", label: "Stagiaire DEC en progression" });
+            if (store.game_hour >= 18 && a.statut === "En ligne") alerts.push({ icon: "🌙", label: "Heures sup (surveiller fatigue)" });
+            return alerts;
+          };
+
+          // Filtrer
+          let filtered = store.agents.filter((a) => {
+            if (teamFilter === "tous") return true;
+            if (teamFilter === "en_ligne") return a.statut === "En ligne";
+            if (teamFilter === "en_alerte") return getAlerts(a).length > 0;
+            if (teamFilter === "stagiaires") return a.niveau?.includes("Stagiaire");
+            if (teamFilter === "managers") return a.niveau === "Manager" || a.niveau === "Directeur";
+            return true;
+          });
+
+          // Trier
+          filtered = filtered.slice().sort((a, b) => {
+            if (teamSort === "confiance") return b.confiance_joueur - a.confiance_joueur;
+            if (teamSort === "stress") return b.stress - a.stress;
+            return a.nom.localeCompare(b.nom);
+          });
+
+          // Compteurs santé mentale
+          const conflits = store.agents.filter(a => a.emotion === "En conflit" || a.emotion === "Frustré").length;
+          const burnoutRisques = store.agents.filter(a => a.stress > 85 || a.fatigue > 85).length;
+          const turnoverRisques = store.agents.filter(a => a.confiance_joueur < 30 || (a as any).arc_actuel === "Rupture").length;
+          const satisfMoyenne = Math.round(store.agents.reduce((s, a) => s + a.confiance_joueur, 0) / Math.max(1, store.agents.length));
+
+          // Organigramme : par niveau hiérarchique puis filière
+          const directeurs = filtered.filter(a => a.niveau === "Directeur");
+          const managers = filtered.filter(a => a.niveau === "Manager");
+          const collabs = filtered.filter(a => a.niveau === "Collaborateur");
+          const stagiaires = filtered.filter(a => a.niveau?.includes("Stagiaire"));
+
+          return (
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="max-w-5xl mx-auto">
+                <div className="flex items-end justify-between mb-4">
+                  <div>
+                    <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Équipe</h2>
+                    <p className="text-[13px] text-[#6e6e73]">{store.agents.length} collaborateurs · Cabinet Morel & Associés</p>
+                  </div>
+                  {/* Toggle vue */}
+                  <div className="flex gap-1 bg-[#f5f5f7] p-1 rounded-[10px]">
+                    <button onClick={() => setTeamView("grid")}
+                      className={`px-2.5 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${teamView === "grid" ? "bg-white text-[#1d1d1f] shadow-sm" : "text-[#6e6e73]"}`}>
+                      <Grid3x3 size={11} /> Grille
+                    </button>
+                    <button onClick={() => setTeamView("org")}
+                      className={`px-2.5 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${teamView === "org" ? "bg-white text-[#1d1d1f] shadow-sm" : "text-[#6e6e73]"}`}>
+                      <GitBranch size={11} /> Organigramme
+                    </button>
+                  </div>
+                </div>
+
+                {/* Santé mentale équipe */}
+                <div className={`rounded-[18px] p-4 mb-4 border-2 ${store.team_health >= 70 ? "border-[#34c759]/30 bg-gradient-to-br from-[#34c759]/8 to-[#0071e3]/5" : store.team_health >= 50 ? "border-[#ff9f0a]/30 bg-gradient-to-br from-[#ff9f0a]/8 to-[#ff3b30]/5" : "border-[#ff3b30]/40 bg-gradient-to-br from-[#ff3b30]/10 to-[#ff9f0a]/5"}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Heart size={16} className={store.team_health >= 70 ? "text-[#34c759]" : store.team_health >= 50 ? "text-[#ff9f0a]" : "text-[#ff3b30]"} />
+                      <span className="font-semibold text-[14px] text-[#1d1d1f]">Santé mentale équipe</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-[14px] text-[#1d1d1f] truncate">{a.nom}</div>
-                      <div className="text-[11px] text-[#6e6e73] truncate">{a.role}</div>
-                      <div className="mt-1"><EmotionChip emotion={(a as any).emotion || "Stable"} small /></div>
+                    <div className="text-[28px] font-bold tabular-nums leading-none" style={{ color: store.team_health >= 70 ? "#34c759" : store.team_health >= 50 ? "#ff9f0a" : "#ff3b30" }}>
+                      {store.team_health}<span className="text-[14px] text-[#6e6e73] font-normal">/100</span>
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <AgentBar label="Stress" value={a.stress} warn={70} />
-                    <AgentBar label="Fatigue" value={a.fatigue} warn={70} />
-                    <AgentBar label="Confiance" value={a.confiance_joueur} invert />
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+                    <div className="bg-white/70 rounded-[10px] p-2">
+                      <div className="text-[#8e8e93]">Satisfaction moyenne</div>
+                      <div className="text-[14px] font-semibold text-[#1d1d1f] tabular-nums">{satisfMoyenne}%</div>
+                    </div>
+                    <div className="bg-white/70 rounded-[10px] p-2">
+                      <div className="text-[#8e8e93]">Turnover risqué</div>
+                      <div className="text-[14px] font-semibold text-[#ff3b30] tabular-nums">{turnoverRisques} agent{turnoverRisques > 1 ? "s" : ""}</div>
+                    </div>
+                    <div className="bg-white/70 rounded-[10px] p-2">
+                      <div className="text-[#8e8e93]">Conflits actifs</div>
+                      <div className="text-[14px] font-semibold text-[#ff9f0a] tabular-nums">{conflits}</div>
+                    </div>
+                    <div className="bg-white/70 rounded-[10px] p-2">
+                      <div className="text-[#8e8e93]">Burn-out potentiel</div>
+                      <div className="text-[14px] font-semibold text-[#ff3b30] tabular-nums">{burnoutRisques}</div>
+                    </div>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-[#f5f5f7] flex items-center justify-between">
-                    <span className="text-[10px] text-[#8e8e93] bg-[#f5f5f7] px-2 py-0.5 rounded-full">{a.filiere}</span>
-                    <span className={`text-[10px] font-medium ${a.statut === "En ligne" ? "text-[#34c759]" : a.statut === "Occupé" ? "text-[#ff9f0a]" : "text-[#8e8e93]"}`}>{a.statut}</span>
-                  </div>
-                  {(a as any).arc_actuel && (a as any).arc_actuel !== "Stable" && (
-                    <div className="mt-1.5">
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                        (a as any).arc_actuel === "Rupture" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
-                        (a as any).arc_actuel === "Trahison" ? "bg-[#ff9f0a]/10 text-[#ff9f0a]" :
-                        (a as any).arc_actuel === "Crise" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
-                        "bg-[#0071e3]/10 text-[#0071e3]"}`}>
-                        Arc : {(a as any).arc_actuel}
-                      </span>
+                  {store.team_health < 50 && (
+                    <div className="mt-2 text-[11px] text-[#ff3b30] font-medium">
+                      ⚠ Seuil critique atteint — Mood cabinet basculé en "En Crise" automatiquement
                     </div>
                   )}
                 </div>
-              ))}
+
+                {/* Filtres + Tri */}
+                <div className="flex items-center gap-2 mb-4 flex-wrap">
+                  <Filter size={12} className="text-[#8e8e93]" />
+                  {(["tous", "en_ligne", "en_alerte", "stagiaires", "managers"] as const).map(f => (
+                    <button key={f} onClick={() => setTeamFilter(f)}
+                      className={`px-2.5 py-1 text-[11px] font-medium rounded-[8px] transition-all ${teamFilter === f ? "bg-[#0071e3] text-white" : "bg-white text-[#6e6e73] hover:text-[#1d1d1f] border border-[#d2d2d7]/40"}`}>
+                      {f === "tous" ? "Tous" : f === "en_ligne" ? "En ligne" : f === "en_alerte" ? "En alerte" : f === "stagiaires" ? "Stagiaires" : "Managers"}
+                    </button>
+                  ))}
+                  <div className="ml-auto flex items-center gap-1">
+                    <ArrowUpDown size={11} className="text-[#8e8e93]" />
+                    <select value={teamSort} onChange={(e) => setTeamSort(e.target.value as any)}
+                      className="text-[11px] bg-white border border-[#d2d2d7]/40 rounded-[8px] px-2 py-1 outline-none">
+                      <option value="confiance">Tri : Confiance ↓</option>
+                      <option value="stress">Tri : Stress ↓</option>
+                      <option value="nom">Tri : Nom A-Z</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Feedback action */}
+                {actionFeedback && (
+                  <div className="mb-3 px-3 py-2 bg-[#0071e3]/10 border border-[#0071e3]/20 text-[#0071e3] text-[12px] rounded-[10px] flex items-center gap-2">
+                    <CheckCircle size={12} /> {actionFeedback}
+                  </div>
+                )}
+
+                {/* Vue Grille */}
+                {teamView === "grid" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {filtered.map((a) => {
+                      const alerts = getAlerts(a);
+                      return (
+                        <div key={a.id} onClick={() => setDetailAgentId(a.id)}
+                          className="bg-white rounded-[18px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] hover:-translate-y-0.5 cursor-pointer transition-all">
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold shadow-sm shrink-0" style={{ backgroundColor: a.avatar_color }}>
+                              {a.initiales}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-[14px] text-[#1d1d1f] truncate">{a.nom}</div>
+                              <div className="text-[11px] text-[#6e6e73] truncate">{a.role}</div>
+                              <div className="mt-1 flex items-center gap-1 flex-wrap">
+                                <EmotionChip emotion={(a as any).emotion || "Stable"} small />
+                                {alerts.map((alert, i) => (
+                                  <span key={i} title={alert.label} className="text-[12px] cursor-help">{alert.icon}</span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <AgentBar label="Stress" value={a.stress} warn={70} />
+                            <AgentBar label="Fatigue" value={a.fatigue} warn={70} />
+                            <AgentBar label="Confiance" value={a.confiance_joueur} invert />
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-[#f5f5f7] flex items-center justify-between">
+                            <span className="text-[10px] text-[#8e8e93] bg-[#f5f5f7] px-2 py-0.5 rounded-full">{a.filiere}</span>
+                            <span className={`text-[10px] font-medium ${a.statut === "En ligne" ? "text-[#34c759]" : a.statut === "Occupé" ? "text-[#ff9f0a]" : "text-[#8e8e93]"}`}>{a.statut}</span>
+                          </div>
+                          {(a as any).arc_actuel && (a as any).arc_actuel !== "Stable" && (
+                            <div className="mt-1.5">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                (a as any).arc_actuel === "Rupture" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
+                                (a as any).arc_actuel === "Trahison" ? "bg-[#ff9f0a]/10 text-[#ff9f0a]" :
+                                (a as any).arc_actuel === "Crise" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
+                                "bg-[#0071e3]/10 text-[#0071e3]"}`}>
+                                Arc : {(a as any).arc_actuel}
+                              </span>
+                            </div>
+                          )}
+                          {/* Boutons actions rapides */}
+                          <div className="grid grid-cols-4 gap-1 mt-2.5" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => handleAgentAction(a.id, "talk")}
+                              title="Échange informel · +3 Confiance"
+                              className="px-1.5 py-1.5 text-[10px] bg-[#0071e3]/8 text-[#0071e3] hover:bg-[#0071e3]/15 rounded-[6px] transition-all flex items-center justify-center gap-0.5 font-medium">
+                              <MessageSquare size={10} />
+                            </button>
+                            <button onClick={() => handleAgentAction(a.id, "reward")}
+                              title="Récompenser · +7 Confiance, +5 Loyauté (1×/semaine)"
+                              className="px-1.5 py-1.5 text-[10px] bg-[#34c759]/8 text-[#34c759] hover:bg-[#34c759]/15 rounded-[6px] transition-all flex items-center justify-center gap-0.5 font-medium">
+                              <Award size={10} />
+                            </button>
+                            <button onClick={() => handleAgentAction(a.id, "train")}
+                              title="Former · −15 Fatigue (1 PA + 3k€)"
+                              className="px-1.5 py-1.5 text-[10px] bg-[#bf5af2]/8 text-[#bf5af2] hover:bg-[#bf5af2]/15 rounded-[6px] transition-all flex items-center justify-center gap-0.5 font-medium">
+                              <BookOpen size={10} />
+                            </button>
+                            <button onClick={() => handleAgentAction(a.id, "reprimand")}
+                              title="Réprimander · −6 Confiance, +10 Peur"
+                              className="px-1.5 py-1.5 text-[10px] bg-[#ff3b30]/8 text-[#ff3b30] hover:bg-[#ff3b30]/15 rounded-[6px] transition-all flex items-center justify-center gap-0.5 font-medium">
+                              <Megaphone size={10} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Vue Organigramme */}
+                {teamView === "org" && (
+                  <div className="space-y-4">
+                    {[{ label: "Direction", agents: directeurs, color: "#bf5af2" },
+                      { label: "Managers", agents: managers, color: "#0071e3" },
+                      { label: "Collaborateurs", agents: collabs, color: "#34c759" },
+                      { label: "Stagiaires", agents: stagiaires, color: "#ff9f0a" }].map((row) => (
+                      row.agents.length === 0 ? null : (
+                        <div key={row.label}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-1 h-4 rounded-full" style={{ backgroundColor: row.color }} />
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6e6e73]">{row.label}</span>
+                            <span className="text-[10px] text-[#8e8e93]">({row.agents.length})</span>
+                            <div className="flex-1 h-[1px] bg-[#d2d2d7]/40" />
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
+                            {row.agents.map((a) => {
+                              const alerts = getAlerts(a);
+                              return (
+                                <button key={a.id} onClick={() => setDetailAgentId(a.id)}
+                                  className="bg-white rounded-[14px] p-3 border border-[#d2d2d7]/40 hover:border-[#0071e3]/40 hover:shadow transition-all text-left">
+                                  <div className="flex items-center gap-2 mb-1.5">
+                                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: a.avatar_color }}>
+                                      {a.initiales}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[12px] font-semibold text-[#1d1d1f] truncate">{a.nom.split(" ")[0]}</div>
+                                      <div className="text-[10px] text-[#6e6e73] truncate">{a.filiere}</div>
+                                    </div>
+                                    {alerts.length > 0 && (
+                                      <div className="flex gap-0.5">
+                                        {alerts.slice(0, 2).map((al, i) => <span key={i} className="text-[10px]">{al.icon}</span>)}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px]">
+                                    <span className={a.stress > 70 ? "text-[#ff3b30]" : "text-[#8e8e93]"}>S {a.stress}</span>
+                                    <span className={a.confiance_joueur < 40 ? "text-[#ff3b30]" : "text-[#34c759]"}>C {a.confiance_joueur}</span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {activeTab === "agenda" && (
           <div className="flex-1 overflow-y-auto p-6">
@@ -2316,6 +2555,183 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* ── MODAL DÉTAIL AGENT ── */}
+      {detailAgentId && (() => {
+        const a = store.agents.find(x => x.id === detailAgentId);
+        if (!a) return null;
+        const dossiers = store.dossiers.filter(d => d.agent_id === a.id);
+        const messages = store.messages.filter(m => m.agent_id === a.id);
+        const history = store.agent_player_history[a.id] || [];
+        const cooldowns = store.agent_cooldowns[a.id] || {};
+        const competences: string[] = (a as any).competences_DEC || [];
+        const secret: string | null = (a as any).secret || null;
+        const memoires: any[] = (a as any).memoires || [];
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-[22px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-[#d2d2d7]/40 bg-gradient-to-r from-[#f5f5f7] to-white">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[15px] font-bold shadow-md" style={{ backgroundColor: a.avatar_color }}>
+                      {a.initiales}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-[17px] text-[#1d1d1f] tracking-tight">{a.nom}</h3>
+                      <p className="text-[12px] text-[#6e6e73]">{a.role} · {a.filiere}</p>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <EmotionChip emotion={(a as any).emotion || "Stable"} small />
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${a.statut === "En ligne" ? "bg-[#34c759]/15 text-[#34c759]" : a.statut === "Occupé" ? "bg-[#ff9f0a]/15 text-[#ff9f0a]" : "bg-[#8e8e93]/15 text-[#8e8e93]"}`}>{a.statut}</span>
+                        {(a as any).trait_dominant && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#bf5af2]/10 text-[#bf5af2] font-medium">Trait : {(a as any).trait_dominant}</span>
+                        )}
+                        {(a as any).arc_actuel && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
+                            (a as any).arc_actuel === "Rupture" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
+                            (a as any).arc_actuel === "Trahison" ? "bg-[#ff9f0a]/10 text-[#ff9f0a]" :
+                            "bg-[#0071e3]/10 text-[#0071e3]"}`}>Arc : {(a as any).arc_actuel}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={() => setDetailAgentId(null)} className="w-8 h-8 rounded-full bg-[#f5f5f7] hover:bg-[#e5e5ea] flex items-center justify-center">
+                    <X size={14} className="text-[#6e6e73]" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {/* Stats détaillées */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <AgentBar label="Stress" value={a.stress} warn={70} />
+                  <AgentBar label="Fatigue" value={a.fatigue} warn={70} />
+                  <AgentBar label="Confiance" value={a.confiance_joueur} invert />
+                  <AgentBar label="Respect" value={a.respect} invert />
+                  <AgentBar label="Peur" value={a.peur} warn={70} />
+                  <AgentBar label="Loyauté" value={a.loyaute} invert />
+                </div>
+
+                {/* Compétences DEC */}
+                {competences.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5">Compétences DEC</div>
+                    <div className="flex flex-wrap gap-1">
+                      {competences.map((c, i) => (
+                        <span key={i} className="text-[11px] bg-[#0071e3]/8 text-[#0071e3] px-2 py-0.5 rounded-md font-medium">{c}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dossiers actifs */}
+                {dossiers.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5">Dossiers portés ({dossiers.length})</div>
+                    <div className="space-y-1.5">
+                      {dossiers.map(d => (
+                        <div key={d.id} className="bg-[#f5f5f7] rounded-[10px] p-2 flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[12px] font-medium text-[#1d1d1f] truncate">{d.client}</div>
+                            <div className="text-[10px] text-[#6e6e73]">{d.theme}</div>
+                          </div>
+                          <div className="text-[10px] tabular-nums font-semibold" style={{ color: d.etat === "perdu" ? "#ff3b30" : d.etat === "avance" ? "#34c759" : d.etat === "surveillance" ? "#ff9f0a" : "#0071e3" }}>
+                            {d.progression}%
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Historique actions joueur */}
+                <div>
+                  <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5">Historique de tes actions sur cet agent</div>
+                  {history.length === 0 ? (
+                    <p className="text-[11px] text-[#8e8e93] italic">Aucune action enregistrée. Utilise les boutons en bas pour interagir.</p>
+                  ) : (
+                    <div className="space-y-1 max-h-[160px] overflow-y-auto">
+                      {history.slice(0, 8).map((h, i) => (
+                        <div key={i} className="flex items-start gap-2 text-[11px] py-1 border-b border-[#f5f5f7] last:border-0">
+                          <span className="text-[#8e8e93] font-mono tabular-nums shrink-0 w-12">J{h.day} {String(h.hour).padStart(2, "0")}h</span>
+                          <span className="text-[#1d1d1f] flex-1">{h.event}</span>
+                          {h.impact && <span className="text-[10px] text-[#6e6e73] italic">{h.impact}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Mémoires agent (depuis config) */}
+                {memoires.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5">Ses mémoires de toi</div>
+                    <div className="space-y-1">
+                      {memoires.slice(0, 5).map((m, i) => (
+                        <div key={i} className={`text-[11px] p-2 rounded-[8px] flex items-start gap-2 ${
+                          m.type === "promesse" ? "bg-[#34c759]/8 text-[#34c759]" :
+                          m.type === "crise" ? "bg-[#ff3b30]/8 text-[#ff3b30]" :
+                          m.type === "promesse_brisee" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
+                          "bg-[#f5f5f7] text-[#6e6e73]"
+                        }`}>
+                          <span className="shrink-0 font-semibold uppercase text-[9px]">{m.type}</span>
+                          <span className="flex-1">{m.contenu}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Secret (toujours discret) */}
+                {secret && (
+                  <div className="bg-[#1d1d1f]/95 text-white rounded-[10px] p-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 opacity-70">🔐 Secret (révélé)</div>
+                    <p className="text-[12px] italic">{secret}</p>
+                  </div>
+                )}
+
+                {/* Messages récents */}
+                <div>
+                  <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5">Messages échangés ({messages.length})</div>
+                  <p className="text-[11px] text-[#6e6e73]">Va dans l'onglet Messages pour la conversation complète.</p>
+                </div>
+              </div>
+
+              {/* Footer : actions */}
+              <div className="px-6 py-3 bg-[#fafafa] border-t border-[#d2d2d7]/40">
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { id: "talk", label: "Parler", desc: "+3 Confiance", icon: MessageSquare, color: "#0071e3", cd: cooldowns.talk },
+                    { id: "reward", label: "Récompenser", desc: "+7 Conf · +5 Loy", icon: Award, color: "#34c759", cd: cooldowns.reward },
+                    { id: "train", label: "Former", desc: "1 PA · 3k€", icon: BookOpen, color: "#bf5af2", cd: cooldowns.train },
+                    { id: "reprimand", label: "Réprimander", desc: "−6 Conf · +Peur", icon: Megaphone, color: "#ff3b30", cd: cooldowns.reprimand },
+                  ].map((act) => {
+                    const locked = !!(act.cd && store.game_day < act.cd);
+                    const Icon = act.icon;
+                    return (
+                      <button key={act.id} onClick={() => handleAgentAction(a.id, act.id as any)} disabled={locked}
+                        title={locked ? `Re-dispo jour ${act.cd}` : act.desc}
+                        className={`px-2 py-2 rounded-[10px] transition-all flex flex-col items-center gap-0.5 ${
+                          locked ? "bg-[#f5f5f7] text-[#c7c7cc] cursor-not-allowed" :
+                          "hover:bg-white border"
+                        }`}
+                        style={!locked ? { backgroundColor: `${act.color}10`, color: act.color, borderColor: `${act.color}20` } : {}}>
+                        <Icon size={14} />
+                        <span className="text-[11px] font-semibold">{act.label}</span>
+                        <span className="text-[9px] opacity-70">{locked ? `J${act.cd}` : act.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {actionFeedback && (
+                  <div className="mt-2 text-[11px] text-[#0071e3] text-center">{actionFeedback}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── MODAL DÉONTOLOGIE (QCM 20 questions) ── */}
       {activeDeonto && (
