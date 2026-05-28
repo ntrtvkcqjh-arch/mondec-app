@@ -250,6 +250,25 @@ function timeToMinutes(t: string) {
   return h * 60 + m;
 }
 
+// Logo custom Cabinet DEC — monogramme stylisé inspiré Apple
+function CabinetLogo({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#007AFF" />
+          <stop offset="0.5" stopColor="#5856D6" />
+          <stop offset="1" stopColor="#AF52DE" />
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="8" fill="url(#logoGrad)" />
+      {/* Monogramme stylisé : un "D" minimaliste qui évoque aussi un bilan comptable */}
+      <path d="M8 8.5h7.5c3.59 0 6.5 2.91 6.5 6.5v2c0 3.59-2.91 6.5-6.5 6.5H8V8.5z" stroke="white" strokeWidth="2" strokeLinejoin="round" fill="none" opacity="0.95" />
+      <circle cx="11.5" cy="16" r="1.2" fill="white" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("messages");
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -718,9 +737,15 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        console.error("[CHAT] HTTP error", res.status, errText);
-        setApiError(`Erreur ${res.status} — ${errText.slice(0, 100)}`);
+        const errData = await res.json().catch(() => ({}));
+        console.error("[CHAT] HTTP error", res.status, errData);
+        const errMsg = errData?.error || `HTTP ${res.status}`;
+        // Si l'erreur mentionne un modèle → compte sans crédit
+        if (typeof errMsg === "string" && (errMsg.includes("model:") || errMsg.toLowerCase().includes("credit") || res.status === 404)) {
+          setApiError("Compte Anthropic sans crédit — ouvre ⚙ pour charger ton compte (5$ min)");
+        } else {
+          setApiError(`${errMsg}`);
+        }
         return;
       }
 
@@ -728,7 +753,7 @@ export default function Home() {
       console.log("[CHAT] Réponse reçue:", data.content?.slice(0, 50) || "(vide)");
 
       if (data.error) {
-        setApiError(`API: ${data.error}`);
+        setApiError(typeof data.error === "string" && data.error.includes("model:") ? "Compte sans crédit — ouvre ⚙" : `${data.error}`);
         return;
       }
       if (!data.content) {
@@ -1199,12 +1224,13 @@ export default function Home() {
 
   if (store.isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f5f5f7] to-[#e5e5ea]">
-        <div className="text-center space-y-3">
-          <div className="w-16 h-16 bg-gradient-to-br from-[#0071e3] to-[#0040a3] rounded-[18px] flex items-center justify-center mx-auto shadow-xl">
-            <Building2 size={32} className="text-white" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FAFAFA] via-white to-[#F5F5F7]">
+        <div className="text-center space-y-4">
+          <div className="inline-block animate-pulse">
+            <CabinetLogo size={56} />
           </div>
-          <p className="text-[#6e6e73] text-sm">Chargement du cabinet…</p>
+          <p className="text-[#1d1d1f] text-[15px] font-medium tracking-tight">Cabinet DEC</p>
+          <p className="text-[#86868b] text-[12px]">Chargement du cabinet…</p>
         </div>
       </div>
     );
@@ -1226,18 +1252,16 @@ export default function Home() {
     : store.dossiers.filter(d => d.etat === dossiersFilter);
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-[#f5f5f7] via-[#fafafa] to-[#eeeef0] overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-[#FAFAFA] via-white to-[#F5F5F7] overflow-hidden">
 
-      {/* ── SIDEBAR ── */}
-      <aside className="w-60 glass border-r border-[#d2d2d7]/50 flex flex-col z-10">
-        <div className="px-4 py-4 border-b border-[#d2d2d7]/40">
-          <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-[#0071e3] to-[#0040a3] rounded-[10px] flex items-center justify-center shadow-md">
-              <Building2 size={18} className="text-white" />
-            </div>
+      {/* ── SIDEBAR — Style Apple Sidebar ── */}
+      <aside className="w-[248px] bg-white/80 backdrop-blur-2xl border-r border-[#E5E5EA] flex flex-col z-10 shadow-[1px_0_0_rgba(0,0,0,0.04)]">
+        <div className="px-5 pt-5 pb-4 border-b border-[#E5E5EA]/60">
+          <div className="flex items-center gap-3 mb-3">
+            <CabinetLogo size={36} />
             <div>
-              <div className="font-semibold text-[14px] text-[#1d1d1f] leading-tight">Cabinet DEC</div>
-              <div className="text-[10px] text-[#8e8e93]">Morel & Associés</div>
+              <div className="font-semibold text-[15px] text-[#1D1D1F] leading-tight tracking-[-0.01em]">Cabinet DEC</div>
+              <div className="text-[11px] text-[#86868B] tracking-tight">Morel &amp; Associés</div>
             </div>
           </div>
 
@@ -1593,9 +1617,16 @@ export default function Home() {
                       </div>
                     )}
                     {apiError && (
-                      <div className="flex items-center gap-2 mb-2 text-[11px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-lg px-2 py-1">
-                        <AlertTriangle size={11} /> {apiError}
-                        <button onClick={() => setApiError("")} className="ml-auto opacity-60 hover:opacity-100"><X size={11} /></button>
+                      <div className="flex items-center gap-2 mb-2 text-[11px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-lg px-2 py-1.5">
+                        <AlertTriangle size={11} className="shrink-0" />
+                        <span className="flex-1">{apiError}</span>
+                        {(apiError.includes("⚙") || apiError.toLowerCase().includes("crédit") || apiError.toLowerCase().includes("clé")) && (
+                          <button onClick={() => setShowKeyModal(true)}
+                            className="px-2 py-0.5 bg-[#ff3b30] text-white rounded-md text-[10px] font-semibold hover:bg-[#dc2626] transition-all">
+                            Configurer ⚙
+                          </button>
+                        )}
+                        <button onClick={() => setApiError("")} className="opacity-60 hover:opacity-100 shrink-0"><X size={11} /></button>
                       </div>
                     )}
                     <div className="flex items-end gap-2">
