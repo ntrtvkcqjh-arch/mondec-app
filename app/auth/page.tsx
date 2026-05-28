@@ -3,14 +3,13 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
-import { signInWithEmail, signUpWithEmail } from "@/lib/supabase";
+import { signInWithEmail } from "@/lib/supabase";
 import { useGameStore } from "@/lib/supabase-store";
-import { Building2, Mail, Lock, LogIn, UserPlus } from "lucide-react";
+import { Building2, Mail, Lock, LogIn } from "lucide-react";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,11 +20,10 @@ export default function AuthPage() {
     setLoading(true);
     setError("");
 
-    const fn = isSignUp ? signUpWithEmail : signInWithEmail;
-    const { data, error } = await fn(email, password);
+    const { data, error } = await signInWithEmail(email, password);
 
     if (error) {
-      setError(error.message);
+      setError("Email ou mot de passe incorrect.");
       setLoading(false);
       return;
     }
@@ -74,7 +72,6 @@ export default function AuthPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
                 className="w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-200"
                 placeholder="••••••••"
               />
@@ -90,25 +87,9 @@ export default function AuthPage() {
             disabled={loading}
             className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
           >
-            {loading ? (
-              "Chargement..."
-            ) : isSignUp ? (
-              <><UserPlus size={18} /> Créer un compte</>
-            ) : (
-              <><LogIn size={18} /> Se connecter</>
-            )}
+            {loading ? "Connexion..." : <><LogIn size={18} /> Se connecter</>}
           </button>
         </form>
-
-        <p className="text-center text-sm text-gray-500 mt-6">
-          {isSignUp ? "Déjà un compte ?" : "Pas encore de compte ?"}{" "}
-          <button
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-indigo-600 font-medium hover:underline"
-          >
-            {isSignUp ? "Se connecter" : "S'inscrire"}
-          </button>
-        </p>
       </div>
     </div>
   );
