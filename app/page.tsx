@@ -232,6 +232,7 @@ export default function Home() {
   // Statut API (vérifie qu'Anthropic répond)
   const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "error">("checking");
   const [apiStatusReason, setApiStatusReason] = useState("");
+  const [apiStatusDetails, setApiStatusDetails] = useState<{ status?: number; attempts?: Array<{ model: string; status: number; message: string }> } | null>(null);
 
   // Modal configuration clé API utilisateur
   const [showKeyModal, setShowKeyModal] = useState(false);
@@ -292,8 +293,10 @@ export default function Home() {
     if (!store.isAuthenticated) return;
     const check = () => {
       apiFetch("/api/health").then(r => r.json()).then(d => {
+        console.log("[HEALTH]", d);
         setApiStatus(d.ok ? "ok" : "error");
         setApiStatusReason(d.reason || "");
+        setApiStatusDetails({ status: d.status, attempts: d.attempts });
         if (!d.ok && d.needs_key && !hasUserApiKey()) {
           setShowKeyModal(true);
         }
@@ -311,17 +314,20 @@ export default function Home() {
     try {
       const r = await apiFetch("/api/health");
       const d = await r.json();
+      console.log("[HEALTH/save]", d);
       if (d.ok) {
         setApiStatus("ok");
         setApiStatusReason("");
+        setApiStatusDetails(null);
         setShowKeyModal(false);
       } else {
         setApiStatus("error");
         setApiStatusReason(d.reason || "Clé invalide");
+        setApiStatusDetails({ status: d.status, attempts: d.attempts });
       }
-    } catch {
+    } catch (err: any) {
       setApiStatus("error");
-      setApiStatusReason("Erreur réseau");
+      setApiStatusReason("Erreur réseau : " + (err?.message || "?"));
     } finally {
       setKeySaving(false);
     }
@@ -2148,27 +2154,56 @@ export default function Home() {
               </div>
 
               {apiStatus === "error" && apiStatusReason && (
-                <div className="text-[11px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-[10px] p-2.5">
+                <div className="text-[11px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-[10px] p-2.5 max-h-[280px] overflow-y-auto">
                   <div className="flex items-start gap-2">
                     <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-                    <span className="break-words whitespace-pre-wrap leading-relaxed">{apiStatusReason}</span>
+                    <div className="flex-1">
+                      {apiStatusDetails?.status ? (
+                        <div className="font-semibold mb-1">Erreur HTTP {apiStatusDetails.status}</div>
+                      ) : null}
+                      <div className="break-words whitespace-pre-wrap leading-relaxed">{apiStatusReason}</div>
+                    </div>
                   </div>
+
+                  {/* Détails par modèle testé */}
+                  {apiStatusDetails?.attempts && apiStatusDetails.attempts.length > 0 && (
+                    <details className="mt-2 text-[#6e6e73]">
+                      <summary className="cursor-pointer text-[10px] uppercase tracking-wider font-semibold">Détails techniques ({apiStatusDetails.attempts.length} modèles testés)</summary>
+                      <div className="mt-1.5 space-y-1 font-mono text-[10px]">
+                        {apiStatusDetails.attempts.map((a, i) => (
+                          <div key={i} className="bg-white/50 rounded p-1.5">
+                            <div className="text-[#1d1d1f]">{a.model}</div>
+                            <div className="text-[#ff3b30]">[{a.status}] {a.message}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+
                   {/* Hints contextuels */}
-                  {(apiStatusReason.toLowerCase().includes("credit") || apiStatusReason.toLowerCase().includes("balance") || apiStatusReason.toLowerCase().includes("billing")) && (
-                    <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener noreferrer"
-                      className="mt-2 flex items-center gap-1 text-[#0071e3] hover:underline">
-                      <ExternalLink size={10} /> Recharger mon compte Anthropic (5€ minimum)
-                    </a>
-                  )}
-                  {apiStatusReason.toLowerCase().includes("deprecated") && (
-                    <div className="mt-2 text-[#6e6e73]">Modèle obsolète côté Anthropic. Réessaie — le code utilise maintenant <code className="bg-[#f5f5f7] px-1 rounded">claude-3-5-haiku-latest</code> qui s'auto-résout.</div>
-                  )}
-                  {apiStatusReason.toLowerCase().includes("invalid") && apiStatusReason.toLowerCase().includes("key") && (
-                    <div className="mt-2 text-[#6e6e73]">Vérifie que tu as bien copié la clé entière (commence par <code className="bg-[#f5f5f7] px-1 rounded">sk-ant-api03-</code>) sans espace.</div>
-                  )}
-                  {apiStatusReason.toLowerCase().includes("permission") && (
-                    <div className="mt-2 text-[#6e6e73]">Ta clé n'a pas les droits pour ce modèle. Sur console.anthropic.com → Settings → Workspaces, vérifie les permissions.</div>
-                  )}
+                  <div className="mt-2 space-y-1.5">
+                    {(apiStatusReason.toLowerCase().includes("credit") || apiStatusReason.toLowerCase().includes("balance") || apiStatusReason.toLowerCase().includes("billing")) && (
+                      <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[#0071e3] hover:underline">
+                        <ExternalLink size={10} /> Recharger mon compte Anthropic (5$ minimum)
+                      </a>
+                    )}
+                    {apiStatusDetails?.status === 401 && (
+                      <div className="text-[#6e6e73]">⚠ <strong>Clé invalide</strong>. Vérifie qu'elle commence par <code className="bg-[#f5f5f7] px-1 rounded">sk-ant-api03-</code> et qu'elle n'a pas été révoquée.</div>
+                    )}
+                    {apiStatusDetails?.status === 403 && (
+                      <div className="text-[#6e6e73]">⚠ <strong>Accès refusé</strong>. Ta clé n'a pas les droits sur ces modèles. Vérifie Workspaces sur console.anthropic.com.</div>
+                    )}
+                    {apiStatusDetails?.status === 429 && (
+                      <div className="text-[#6e6e73]">⚠ <strong>Quota dépassé</strong>. Tu as épuisé ton crédit ou dépassé la limite. Recharge ou attends.</div>
+                    )}
+                    {apiStatusDetails?.status === 404 && (
+                      <div className="text-[#6e6e73]">⚠ <strong>Modèle introuvable</strong>. Aucun modèle Claude n'est accessible avec cette clé.</div>
+                    )}
+                    {apiStatusDetails?.status === 400 && (
+                      <div className="text-[#6e6e73]">⚠ <strong>Requête invalide</strong>. Probablement un problème de format de clé ou de modèle.</div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
