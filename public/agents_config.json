@@ -1,0 +1,498 @@
+{
+  "cabinet": {
+    "nom": "Cabinet Morel & Associés",
+    "date_simulation": "2026-05-14",
+    "mood_global": "Sous Pression",
+    "ressources": {
+      "legitimite": 72,
+      "tresorerie": 145000,
+      "reputation": 68,
+      "stress_global": 61,
+      "points_action_quotidiens": 3,
+      "points_action_restants": 2
+    },
+    "calendrier": {
+      "prochain_boss": "Clôture bilan",
+      "jours_restants": 16,
+      "saison": "Mai-Juin"
+    }
+  },
+  "agents": [
+    {
+      "id": "thomas_lefevre",
+      "nom": "Thomas Lefèvre",
+      "initiales": "TL",
+      "avatar_color": "#4F46E5",
+      "statut": "En ligne",
+      "role": "Manager Fiscal",
+      "filiere": "Fiscal",
+      "niveau": "Manager",
+      "anciennete_annees": 5,
+      "trait_dominant": "Rigide",
+      "competence_technique": 4,
+      "emotion": "Concentré",
+      "stress": 55,
+      "fatigue": 45,
+      "confiance_joueur": 78,
+      "respect": 82,
+      "peur": 15,
+      "loyaute": 75,
+      "arc_actuel": "Loyauté",
+      "secret": null,
+      "competences_DEC": [
+        "IS",
+        "IR",
+        "TVA intracommunautaire",
+        "Optimisation fiscale",
+        "Contentieux fiscal"
+      ],
+      "dossiers_actifs": [
+        "Martin SARL - TVA intracommunautaire"
+      ],
+      "derniere_interaction": "1h",
+      "memoires": [
+        {
+          "date": "2026-05-10",
+          "type": "promesse",
+          "contenu": "Joueur a validé sa stratégie sur le dossier Martin"
+        }
+      ]
+    },
+    {
+      "id": "samuel_dubois",
+      "nom": "Samuel Dubois",
+      "initiales": "SD",
+      "avatar_color": "#7C3AED",
+      "statut": "En ligne",
+      "role": "Senior Audit & IFRS",
+      "filiere": "Audit & IFRS",
+      "niveau": "Manager",
+      "anciennete_annees": 7,
+      "trait_dominant": "Froid",
+      "competence_technique": 5,
+      "emotion": "Stable",
+      "stress": 40,
+      "fatigue": 50,
+      "confiance_joueur": 65,
+      "respect": 70,
+      "peur": 10,
+      "loyaute": 60,
+      "arc_actuel": "Apprentissage",
+      "secret": "Veut passer le DEC l'année prochaine mais n'ose pas le dire au joueur",
+      "competences_DEC": [
+        "Consolidation",
+        "IFRS",
+        "Écarts de conversion",
+        "CAC",
+        "Rapport de gestion"
+      ],
+      "dossiers_actifs": [
+        "Groupe Dubois - Écart de conversion IFRS"
+      ],
+      "derniere_interaction": "2j 12h",
+      "memoires": [
+        {
+          "date": "2026-05-08",
+          "type": "crise",
+          "contenu": "Joueur a refusé sa demande de formation IFRS avancée"
+        }
+      ]
+    },
+    {
+      "id": "lea_garnier",
+      "nom": "Léa Garnier",
+      "initiales": "LG",
+      "avatar_color": "#059669",
+      "statut": "Hors ligne",
+      "role": "Collaboratrice Comptable",
+      "filiere": "Comptable",
+      "niveau": "Collaborateur",
+      "anciennete_annees": 3,
+      "trait_dominant": "Loyal",
+      "competence_technique": 3,
+      "emotion": "Anxieux",
+      "stress": 72,
+      "fatigue": 60,
+      "confiance_joueur": 80,
+      "respect": 75,
+      "peur": 20,
+      "loyaute": 85,
+      "arc_actuel": "Crise",
+      "secret": null,
+      "competences_DEC": [
+        "Tenue comptable",
+        "Liasse fiscale",
+        "TVA",
+        "Bilan SARL"
+      ],
+      "dossiers_actifs": [
+        "Drama : conflit Hugo / Amélie (médiation en cours)"
+      ],
+      "derniere_interaction": "8h",
+      "memoires": [
+        {
+          "date": "2026-05-12",
+          "type": "promesse",
+          "contenu": "Joueur l'a soutenue face à Hugo lors du dernier conflit sur répartition des dossiers"
+        }
+      ]
+    },
+    {
+      "id": "sophie_morel",
+      "nom": "Sophie Morel",
+      "initiales": "SM",
+      "avatar_color": "#DB2777",
+      "statut": "En ligne",
+      "role": "Responsable RH",
+      "filiere": "RH",
+      "niveau": "Directeur",
+      "anciennete_annees": 9,
+      "trait_dominant": "Ambitieux",
+      "competence_technique": 4,
+      "emotion": "Concentré",
+      "stress": 50,
+      "fatigue": 40,
+      "confiance_joueur": 70,
+      "respect": 85,
+      "peur": 5,
+      "loyaute": 65,
+      "arc_actuel": "Trahison",
+      "secret": "A reçu une offre pour diriger les RH d'un Big 4, réfléchit depuis 2 mois",
+      "competences_DEC": [
+        "Gestion RH",
+        "Recrutement",
+        "Formation professionnelle",
+        "Droit du travail"
+      ],
+      "dossiers_actifs": [
+        "Recrutement Manager Fiscal - Charlotte D.",
+        "Entretiens annuels Q2"
+      ],
+      "derniere_interaction": "21h",
+      "memoires": [
+        {
+          "date": "2026-05-05",
+          "type": "promesse",
+          "contenu": "Joueur a promis d'augmenter le budget recrutement pour la filière fiscal"
+        },
+        {
+          "date": "2026-05-20",
+          "type": "crise",
+          "contenu": "Joueur n'a pas répondu sous 48h au CV précédent, candidat perdu"
+        }
+      ]
+    },
+    {
+      "id": "yacine_haddad",
+      "nom": "Yacine Haddad",
+      "initiales": "YH",
+      "avatar_color": "#D97706",
+      "statut": "En ligne",
+      "role": "Collaborateur Social",
+      "filiere": "Social",
+      "niveau": "Collaborateur",
+      "anciennete_annees": 2,
+      "trait_dominant": "Créatif",
+      "competence_technique": 3,
+      "emotion": "Euphorique",
+      "stress": 35,
+      "fatigue": 30,
+      "confiance_joueur": 88,
+      "respect": 70,
+      "peur": 10,
+      "loyaute": 90,
+      "arc_actuel": "Apprentissage",
+      "secret": null,
+      "competences_DEC": [
+        "Paie",
+        "DSN",
+        "Congés payés",
+        "Accords d'entreprise",
+        "Charges sociales"
+      ],
+      "dossiers_actifs": [
+        "Demande de congé - semaine du 12"
+      ],
+      "derniere_interaction": "3h",
+      "memoires": [
+        {
+          "date": "2026-05-01",
+          "type": "promesse",
+          "contenu": "Joueur a accepté sa précédente demande de congé sans conditions"
+        }
+      ]
+    },
+    {
+      "id": "naima_bensaid",
+      "nom": "Naïma Bensaid",
+      "initiales": "NB",
+      "avatar_color": "#2563EB",
+      "statut": "Occupé",
+      "role": "Directrice Audit",
+      "filiere": "Audit & IFRS",
+      "niveau": "Directeur",
+      "anciennete_annees": 11,
+      "trait_dominant": "Rigide",
+      "competence_technique": 5,
+      "emotion": "Concentré",
+      "stress": 60,
+      "fatigue": 55,
+      "confiance_joueur": 75,
+      "respect": 95,
+      "peur": 0,
+      "loyaute": 80,
+      "arc_actuel": "Loyauté",
+      "secret": null,
+      "competences_DEC": [
+        "Commissariat aux comptes",
+        "Audit légal",
+        "Consolidation",
+        "Risque",
+        "Signature bilan"
+      ],
+      "dossiers_actifs": [
+        "Prépa RDV signature bilan - Vidal Industrie"
+      ],
+      "derniere_interaction": "1h",
+      "memoires": [
+        {
+          "date": "2026-04-28",
+          "type": "crise",
+          "contenu": "Joueur a signé un bilan malgré son refus - conflit technique majeur résolu par compromis"
+        },
+        {
+          "date": "2026-05-15",
+          "type": "promesse",
+          "contenu": "Joueur a promis de ne plus outrepasser son avis sur les signatures à risque"
+        }
+      ]
+    },
+    {
+      "id": "hugo_bernard",
+      "nom": "Hugo Bernard",
+      "initiales": "HB",
+      "avatar_color": "#DC2626",
+      "statut": "Hors ligne",
+      "role": "Collaborateur Comptable",
+      "filiere": "Comptable",
+      "niveau": "Collaborateur",
+      "anciennete_annees": 4,
+      "trait_dominant": "Ambitieux",
+      "competence_technique": 3,
+      "emotion": "Frustré",
+      "stress": 78,
+      "fatigue": 65,
+      "confiance_joueur": 45,
+      "respect": 50,
+      "peur": 30,
+      "loyaute": 40,
+      "arc_actuel": "Rupture",
+      "secret": "A postulé chez le concurrent et attend la réponse",
+      "competences_DEC": [
+        "Tenue comptable",
+        "Immobilisations",
+        "Amortissements",
+        "Bilan"
+      ],
+      "dossiers_actifs": [
+        "Drama : conflit avec Amélie sur répartition des dossiers clients"
+      ],
+      "derniere_interaction": "5h",
+      "memoires": [
+        {
+          "date": "2026-05-10",
+          "type": "crise",
+          "contenu": "Joueur a donné raison à Amélie lors du dernier conflit de répartition"
+        },
+        {
+          "date": "2026-05-18",
+          "type": "promesse_brisee",
+          "contenu": "Joueur avait promis une augmentation en janvier, jamais appliquée"
+        }
+      ]
+    },
+    {
+      "id": "amelie_durand",
+      "nom": "Amélie Durand",
+      "initiales": "AD",
+      "avatar_color": "#0891B2",
+      "statut": "En ligne",
+      "role": "Stagiaire DEC",
+      "filiere": "Comptable",
+      "niveau": "Stagiaire DEC",
+      "anciennete_annees": 0,
+      "trait_dominant": "Anxieux",
+      "competence_technique": 2,
+      "emotion": "Anxieux",
+      "stress": 68,
+      "fatigue": 70,
+      "confiance_joueur": 60,
+      "respect": 55,
+      "peur": 40,
+      "loyaute": 70,
+      "arc_actuel": "Apprentissage",
+      "secret": "A fait une erreur sur le bilan Petit la semaine dernière, l'a cachée à tout le monde",
+      "competences_DEC": [
+        "PCG de base",
+        "Saisie comptable",
+        "TVA déductible",
+        "Charges déductibles/non déductibles"
+      ],
+      "dossiers_actifs": [
+        "Bilan Petit - Phase 3 (doute sur provision)"
+      ],
+      "derniere_interaction": "1j",
+      "memoires": [
+        {
+          "date": "2026-05-12",
+          "type": "promesse",
+          "contenu": "Joueur a promis de la former à la consolidation dès qu'un manager est disponible"
+        }
+      ]
+    }
+  ],
+  "filieres": {
+    "Comptable": {
+      "stress_departemental": 72,
+      "agents_count": 3,
+      "charge": 85
+    },
+    "Audit & IFRS": {
+      "stress_departemental": 55,
+      "agents_count": 2,
+      "charge": 70
+    },
+    "Fiscal": {
+      "stress_departemental": 60,
+      "agents_count": 1,
+      "charge": 90
+    },
+    "Social": {
+      "stress_departemental": 40,
+      "agents_count": 1,
+      "charge": 50
+    },
+    "RH": {
+      "stress_departemental": 45,
+      "agents_count": 1,
+      "charge": 60
+    },
+    "Juridique": {
+      "stress_departemental": 30,
+      "agents_count": 0,
+      "charge": 0
+    }
+  },
+  "messages_en_attente": [
+    {
+      "id": "msg_001",
+      "agent_id": "thomas_lefevre",
+      "niveau": "N2",
+      "type": "Question",
+      "phase": "P3",
+      "sujet": "TVA intracommunautaire — Martin SARL",
+      "contenu": "J'ai finalisé la liasse fiscale du client Martin & Fils. Tout est déposé sauf l'acompte IS — j'ai un doute sur le taux applicable après la réforme de janvier. J'ai mis en attente, dépôt demain matin si tu confirmes. Sinon je passe au taux habituel mais on risque un redressement si j'ai tort.",
+      "delai_reponse_heures": 12,
+      "timestamp": "2026-05-14T09:00:00Z"
+    },
+    {
+      "id": "msg_002",
+      "agent_id": "samuel_dubois",
+      "niveau": "N5",
+      "type": "Question",
+      "phase": "P5",
+      "sujet": "Écart de conversion en IFRS",
+      "contenu": "Écart de conversion non résolu sur le groupe Dubois. L'écart cumulé atteint 340k€. Le client pousse pour clôturer avant l'AG de juin. Je ne suis pas sûr du traitement des écarts de conversion sur les filiales à fort taux de change. J'ai besoin d'une décision avant demain midi ou on manque l'échéance.",
+      "delai_reponse_heures": 6,
+      "timestamp": "2026-05-12T14:30:00Z"
+    },
+    {
+      "id": "msg_003",
+      "agent_id": "lea_garnier",
+      "niveau": "N3",
+      "type": "Drama",
+      "phase": null,
+      "sujet": "Drama : conflit Hugo / Amélie",
+      "contenu": "Chef, Hugo a refusé de transmettre les pièces du dossier Petit à Amélie. Il dit que c'est 'son' client depuis 2 ans. Amélie pleure dans la salle de pause. Le client Petit a appelé ce matin, il veut son bilan avant lundi. Je ne sais pas quoi faire.",
+      "delai_reponse_heures": 24,
+      "timestamp": "2026-05-14T08:15:00Z"
+    },
+    {
+      "id": "msg_004",
+      "agent_id": "sophie_morel",
+      "niveau": "N3",
+      "type": "RH",
+      "phase": null,
+      "sujet": "CV candidat Manager Fiscal",
+      "contenu": "CV candidat Manager Fiscal. Charlotte D. — 6 ans d'XP en cabinet moyen. Maîtrise IS, TVA, contentieux. Salaire demandé 58k€. Profil rigide mais compétent. À valider sous 48h, elle a deux autres propositions. Mon avis : on en a besoin, la filière Fiscal est à 90% de charge.",
+      "delai_reponse_heures": 48,
+      "timestamp": "2026-05-13T21:00:00Z"
+    },
+    {
+      "id": "msg_005",
+      "agent_id": "yacine_haddad",
+      "niveau": "N1",
+      "type": "Congé",
+      "phase": "P3",
+      "sujet": "Demande de congé — semaine du 12",
+      "contenu": "Demande de congé pour la semaine du 12 au 16 juin. J'ai terminé les DSN de mai et la paie est bouclée. La filière Social est calme en ce moment. Dis-moi si c'est OK pour toi.",
+      "delai_reponse_heures": 72,
+      "timestamp": "2026-05-14T15:00:00Z"
+    },
+    {
+      "id": "msg_006",
+      "agent_id": "naima_bensaid",
+      "niveau": "N4",
+      "type": "Audit",
+      "phase": "P4",
+      "sujet": "Prépa RDV signature bilan — Vidal Industrie",
+      "contenu": "RDV signature bilan Vidal Industrie prévu demain 10h. J'ai terminé la revue analytique. Un point d'attention majeur : la provision pour risque client est sous-évaluée de 18k€ selon mon analyse. Le client conteste. Ma recommandation : on ajuste avant signature. Si tu signes sans ajustement, je ne peux pas cautionner le rapport de gestion. J'attends ton arbitrage.",
+      "delai_reponse_heures": 6,
+      "timestamp": "2026-05-14T16:00:00Z"
+    }
+  ],
+  "dilemme_actif": {
+    "id": "dil_001",
+    "titre": "Sophie en burn-out latent",
+    "description": "Sophie (stagiaire) a avoué une erreur sur le bilan Petit. Elle est à 80 de fatigue et visiblement à bout.",
+    "options": [
+      {
+        "id": "opt_A",
+        "label": "Arrêt immédiat",
+        "cout_PA": 1,
+        "effets": {
+          "tresorerie": -5000,
+          "sophie_loyaute": 20,
+          "sophie_stress": -30,
+          "retard_dossiers": 2,
+          "legitimite": 0
+        },
+        "consequence_differee": "Sophie revient plus forte dans 5 jours, mais les dossiers Petit et Durand sont en retard."
+      },
+      {
+        "id": "opt_B",
+        "label": "Coacher toi-même",
+        "cout_PA": 1,
+        "effets": {
+          "sophie_stress": -10,
+          "sophie_fatigue": -5,
+          "risque_erreur": "medium",
+          "legitimite": 0
+        },
+        "consequence_differee": "Sophie reste mais fait une 2ème erreur dans 3 jours si sa fatigue ne baisse pas."
+      },
+      {
+        "id": "opt_C",
+        "label": "Confier à Naïma",
+        "cout_PA": 0,
+        "effets": {
+          "naima_stress": 15,
+          "naima_confiance": -5,
+          "risque_conflit": "naima_vs_sophie",
+          "legitimite": 0
+        },
+        "consequence_differee": "Naïma gère mais est vexée d'être utilisée comme 'pompier'. Tension palpable."
+      }
+    ]
+  }
+}
