@@ -42,7 +42,8 @@ export interface Dossier {
   client: string;
   theme: string;
   agent_id: string;
-  etat: "en_cours" | "alerte" | "gagne" | "perdu";
+  // 5 statuts auto-calculés
+  etat: "en_cours" | "surveillance" | "avance" | "cloture" | "perdu";
   progression: number;
   phase: "P1" | "P2" | "P3" | "P4" | "P5";
   echeance_heure: string;
@@ -52,6 +53,14 @@ export interface Dossier {
     tresorerie: number;
     stress: number;
   };
+  // Enrichissements
+  qualite: number; // 0-100, basée sur les tâches validées + score
+  client_satisfait: boolean;
+  signaux_alerte: string[]; // ex: ["agent_burnout", "retard_J5", "drama_interne"]
+  is_vip: boolean; // dossiers stratégiques (max 3) → impact réputation x3
+  recoverable_until: string | null; // ISO date jusqu'à laquelle on peut tenter récupération (30 jours)
+  cause_perte: string | null; // raison narrative si "perdu"
+  cas_traites: number; // nombre de tâches validées sur ce dossier
 }
 
 export interface ClaudeMsg {
@@ -138,6 +147,11 @@ export interface GameState {
   advanceDeadline: (id: string, amount: number) => void;
   autoAdvanceDeadlines: () => void;
   checkOverdueDeadlines: () => void;
+
+  // Dossiers : enrichissements
+  recomputeAllDossierStatus: () => void;
+  attemptRecoverDossier: (id: string) => boolean;
+  toggleVIP: (id: string) => void;
 }
 
 const xpForLevel = (level: number) => 100 + level * 50;
@@ -293,9 +307,19 @@ export const useGameStore = create<GameState>((set, get) => ({
               tresorerie: 2000 + Math.floor(Math.random() * 8000),
               stress: 3 + Math.floor(Math.random() * 6),
             },
+            qualite: 60,
+            client_satisfait: true,
+            signaux_alerte: [],
+            is_vip: false,
+            recoverable_until: null,
+            cause_perte: null,
+            cas_traites: 0,
           });
         });
       });
+      // Marquer 2 dossiers en VIP (impact x3) — les premiers ou les dossiers importants
+      if (dossiers.length > 0) dossiers[0].is_vip = true;
+      if (dossiers.length > 3) dossiers[3].is_vip = true;
       set({ dossiers });
     }
 
@@ -499,16 +523,20 @@ export const useGameStore = create<GameState>((set, get) => ({
   winDossier: (id) => {
     const state = get();
     const d = state.dossiers.find((x) => x.id === id);
-    if (!d || d.etat !== "en_cours") return;
+    if (!d || (d.etat !== "en_cours" && d.etat !== "surveillance")) return;
     const agent = state.agents.find((a) => a.id === d.agent_id);
+    const multiplier = d.is_vip ? 3 : 1;
+
+    // Statut final selon la qualité
+    const finalStatus: "avance" | "cloture" = d.qualite >= 70 && d.client_satisfait ? "avance" : "cloture";
 
     set((s) => ({
       dossiers: s.dossiers.map((x) =>
-        x.id === id ? { ...x, etat: "gagne" as const, progression: 100 } : x
+        x.id === id ? { ...x, etat: finalStatus, progression: 100 } : x
       ),
-      legitimite: Math.min(100, s.legitimite + d.impact.legitimite),
-      reputation: Math.min(100, s.reputation + d.impact.reputation),
-      tresorerie: s.tresorerie + d.impact.tresorerie,
+      legitimite: Math.min(100, s.legitimite + d.impact.legitimite * multiplier),
+      reputation: Math.min(100, s.reputation + d.impact.reputation * multiplier),
+      tresorerie: s.tresorerie + d.impact.tresorerie * multiplier,
       stress_global: Math.max(0, s.stress_global - Math.floor(d.impact.stress / 2)),
     }));
 
@@ -536,16 +564,28 @@ export const useGameStore = create<GameState>((set, get) => ({
   loseDossier: (id) => {
     const state = get();
     const d = state.dossiers.find((x) => x.id === id);
-    if (!d || d.etat !== "en_cours") return;
+    if (!d || d.etat === "perdu" || d.etat === "avance" || d.etat === "cloture") return;
     const agent = state.agents.find((a) => a.id === d.agent_id);
+    const multiplier = d.is_vip ? 3 : 1;
+
+    // Cause narrative de la perte
+    let cause = "Client mécontent";
+    if (d.signaux_alerte.includes("agent_burnout")) cause = "Agent en burn-out — dossier bloqué";
+    else if (d.signaux_alerte.includes("drama_interne")) cause = "Conflit interne — dossier bloqué";
+    else if (d.signaux_alerte.includes("retard_critique")) cause = "Retard critique";
+    else if (d.signaux_alerte.includes("client_panique")) cause = "Concurrence — client parti";
+
+    // Recoverable pendant 30 jours (jeu)
+    const recoverDate = new Date();
+    recoverDate.setDate(recoverDate.getDate() + 30);
 
     set((s) => ({
       dossiers: s.dossiers.map((x) =>
-        x.id === id ? { ...x, etat: "perdu" as const, progression: 0 } : x
+        x.id === id ? { ...x, etat: "perdu" as const, progression: 0, cause_perte: cause, recoverable_until: recoverDate.toISOString() } : x
       ),
-      legitimite: Math.max(0, s.legitimite - d.impact.legitimite),
-      reputation: Math.max(0, s.reputation - d.impact.reputation),
-      tresorerie: Math.max(0, s.tresorerie - Math.floor(d.impact.tresorerie / 2)),
+      legitimite: Math.max(0, s.legitimite - d.impact.legitimite * multiplier),
+      reputation: Math.max(0, s.reputation - d.impact.reputation * multiplier),
+      tresorerie: Math.max(0, s.tresorerie - Math.floor(d.impact.tresorerie / 2) * multiplier),
       stress_global: Math.min(100, s.stress_global + d.impact.stress),
     }));
 
@@ -730,5 +770,99 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       }
     });
+  },
+
+  // Recalcule statut + signaux d'alerte de tous les dossiers
+  // selon : agent porteur, qualité, progression, durée, conflits
+  recomputeAllDossierStatus: () => {
+    set((state) => ({
+      dossiers: state.dossiers.map((d) => {
+        // Skip dossiers terminés (gagne/perdu/cloture)
+        if (d.etat === "avance" || d.etat === "cloture" || d.etat === "perdu") return d;
+
+        const agent = state.agents.find((a) => a.id === d.agent_id);
+        const signaux: string[] = [];
+
+        if (agent) {
+          // Signal 1 : agent en burn-out
+          if (agent.fatigue > 85 || agent.stress > 90) signaux.push("agent_burnout");
+          // Signal 2 : confiance très basse
+          if (agent.confiance_joueur < 30) signaux.push("confiance_basse");
+          // Signal 3 : arc Rupture (Hugo) → risque départ
+          if ((agent as any).arc_actuel === "Rupture") signaux.push("agent_rupture");
+        }
+
+        // Signal 4 : retard sur progression (devrait être plus avancé selon le jour)
+        const expectedProgress = Math.min(95, 30 + state.game_day * 5);
+        if (d.progression < expectedProgress - 20) signaux.push("retard_critique");
+
+        // Signal 5 : mood cabinet
+        if (state.mood_global === "En Crise") signaux.push("cabinet_crise");
+
+        // Mood client (satisfait si qualité ok et pas trop de signaux)
+        const client_satisfait = d.qualite >= 50 && signaux.length < 2;
+
+        // Détermine le statut
+        let etat: Dossier["etat"] = "en_cours";
+        if (signaux.length >= 2 || (signaux.length >= 1 && d.progression < 50)) etat = "surveillance";
+
+        return { ...d, signaux_alerte: signaux, client_satisfait, etat };
+      }),
+    }));
+  },
+
+  attemptRecoverDossier: (id) => {
+    const state = get();
+    const d = state.dossiers.find((x) => x.id === id);
+    if (!d || d.etat !== "perdu" || !d.recoverable_until) return false;
+    if (new Date(d.recoverable_until) < new Date()) return false; // Trop tard
+    if (state.points_action < 2) return false;
+
+    // Récupération : 60% chance, modulée par niveau joueur et confiance moyenne agents
+    const baseChance = 0.4 + state.player_level * 0.05;
+    const success = Math.random() < baseChance;
+
+    set((s) => ({ points_action: s.points_action - 2 }));
+
+    if (success) {
+      set((s) => ({
+        dossiers: s.dossiers.map((x) =>
+          x.id === id ? { ...x, etat: "avance" as const, progression: 100, cause_perte: null, recoverable_until: null } : x
+        ),
+        // Récupération exceptionnelle : honoraires x1.5
+        tresorerie: s.tresorerie + Math.floor(d.impact.tresorerie * 1.5),
+        legitimite: Math.min(100, s.legitimite + 10),
+        reputation: Math.min(100, s.reputation + 5),
+      }));
+      // Message N1 auto de succès
+      const agent = state.agents.find((a) => a.id === d.agent_id);
+      if (agent) {
+        get().addNewMessage({
+          agent_id: agent.id,
+          niveau: "N1",
+          type: "Information",
+          sujet: `🎯 Récupération réussie — ${d.client}`,
+          contenu: `${agent.nom.split(" ")[0]}: ${d.client} revient chez nous ! Honoraires +50% sur cette mission. Beau coup de pression dans les négos.`,
+          delai_reponse_heures: 24,
+        });
+      }
+      get().addXP(30);
+      return true;
+    } else {
+      // Échec : -3 légitimité
+      set((s) => ({ legitimite: Math.max(0, s.legitimite - 3) }));
+      return false;
+    }
+  },
+
+  toggleVIP: (id) => {
+    const state = get();
+    const d = state.dossiers.find((x) => x.id === id);
+    if (!d) return;
+    const vipCount = state.dossiers.filter(x => x.is_vip).length;
+    if (!d.is_vip && vipCount >= 3) return; // Max 3 VIP
+    set((s) => ({
+      dossiers: s.dossiers.map((x) => x.id === id ? { ...x, is_vip: !x.is_vip } : x),
+    }));
   },
 }));

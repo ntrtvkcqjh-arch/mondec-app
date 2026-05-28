@@ -220,8 +220,8 @@ export default function Home() {
   const [caseSubmitting, setCaseSubmitting] = useState(false);
   const [caseCorrection, setCaseCorrection] = useState<Correction | null>(null);
 
-  // Dossiers filter
-  const [dossiersFilter, setDossiersFilter] = useState<"en_cours" | "gagne" | "perdu" | "tous">("en_cours");
+  // Dossiers filter (5 statuts auto)
+  const [dossiersFilter, setDossiersFilter] = useState<"en_cours" | "surveillance" | "avance" | "cloture" | "perdu" | "tous">("en_cours");
 
   // Claude assistant panel
   const [claudeOpen, setClaudeOpen] = useState(false);
@@ -284,6 +284,7 @@ export default function Home() {
     const t = setInterval(() => {
       store.autoAdvanceDeadlines();
       store.checkOverdueDeadlines();
+      store.recomputeAllDossierStatus();
     }, 8000);
     return () => clearInterval(t);
   }, [store.isAuthenticated, store.isLoading]);
@@ -459,7 +460,9 @@ export default function Home() {
 
   const gameMinutes = store.game_hour * 60 + store.game_minute;
   const dossiersEnCours = store.dossiers.filter(d => d.etat === "en_cours").length;
-  const dossiersGagnes = store.dossiers.filter(d => d.etat === "gagne").length;
+  const dossiersSurveillance = store.dossiers.filter(d => d.etat === "surveillance").length;
+  const dossiersAvances = store.dossiers.filter(d => d.etat === "avance").length;
+  const dossiersClotures = store.dossiers.filter(d => d.etat === "cloture").length;
   const dossiersPerdus = store.dossiers.filter(d => d.etat === "perdu").length;
 
   function handleSelectAgent(agentId: string, messageId: string) {
@@ -849,6 +852,20 @@ export default function Home() {
         if (matchingDeadline && data.score >= 60) {
           store.advanceDeadline(matchingDeadline.id, data.score >= 80 ? 15 : 8);
         }
+        // Si un dossier est lié au client de la task, on update qualité + cas_traites
+        const linkedDossier = store.dossiers.find(d => activeTask.client.toLowerCase().includes(d.client.toLowerCase().split(" ")[0]) || d.client.toLowerCase().includes(activeTask.client.toLowerCase().split(" ")[0]));
+        if (linkedDossier) {
+          useGameStore.setState((s) => ({
+            dossiers: s.dossiers.map(x => x.id === linkedDossier.id ? {
+              ...x,
+              cas_traites: x.cas_traites + 1,
+              qualite: Math.min(100, Math.round((x.qualite * x.cas_traites + data.score) / (x.cas_traites + 1))),
+              progression: Math.min(100, x.progression + (data.score >= 80 ? 15 : data.score >= 60 ? 8 : 3)),
+            } : x),
+          }));
+        }
+        // Recompute statuts après modif
+        store.recomputeAllDossierStatus();
       } else {
         alert("Erreur d'évaluation. Réessaye.");
       }
@@ -933,7 +950,7 @@ export default function Home() {
     { id: "equipe" as Tab, icon: Users, label: "Équipe" },
     { id: "agenda" as Tab, icon: Calendar, label: "Agenda" },
     { id: "tasks" as Tab, icon: ClipboardCheck, label: "Tâches", badge: tasksDispos },
-    { id: "dossiers" as Tab, icon: FolderOpen, label: "Dossiers", badge: dossiersEnCours },
+    { id: "dossiers" as Tab, icon: FolderOpen, label: "Dossiers", badge: dossiersEnCours + dossiersSurveillance },
     { id: "dec" as Tab, icon: GraduationCap, label: "DEC Prep" },
   ];
 
@@ -1622,22 +1639,24 @@ export default function Home() {
               <div className="flex items-end justify-between mb-4">
                 <div>
                   <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Dossiers clients</h2>
-                  <p className="text-[13px] text-[#6e6e73]">Pipeline P1 → P5 · Gains/Pertes influencent vos ressources</p>
+                  <p className="text-[13px] text-[#6e6e73]">5 statuts auto · VIP impacte ×3 · Récupération possible 30 jours</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <DossierStat label="En cours" value={dossiersEnCours} color="#0071e3" />
-                  <DossierStat label="Gagnés" value={dossiersGagnes} color="#34c759" />
+                  <DossierStat label="Surveille" value={dossiersSurveillance} color="#ff9f0a" />
+                  <DossierStat label="Avancés" value={dossiersAvances} color="#34c759" />
+                  <DossierStat label="Clôturés" value={dossiersClotures} color="#8e8e93" />
                   <DossierStat label="Perdus" value={dossiersPerdus} color="#ff3b30" />
                 </div>
               </div>
 
-              <div className="flex gap-1.5 mb-4 bg-[#f5f5f7] p-1 rounded-[12px] inline-flex">
-                {(["en_cours", "gagne", "perdu", "tous"] as const).map(f => (
+              <div className="flex gap-1.5 mb-4 bg-[#f5f5f7] p-1 rounded-[12px] inline-flex flex-wrap">
+                {(["en_cours", "surveillance", "avance", "cloture", "perdu", "tous"] as const).map(f => (
                   <button key={f} onClick={() => setDossiersFilter(f)}
                     className={`px-3 py-1.5 text-[12px] font-medium rounded-[8px] transition-all ${
                       dossiersFilter === f ? "bg-white text-[#1d1d1f] shadow-sm" : "text-[#6e6e73] hover:text-[#1d1d1f]"
                     }`}>
-                    {f === "en_cours" ? "En cours" : f === "gagne" ? "Gagnés" : f === "perdu" ? "Perdus" : "Tous"}
+                    {f === "en_cours" ? "En cours" : f === "surveillance" ? "Surveillance" : f === "avance" ? "Avancés" : f === "cloture" ? "Clôturés" : f === "perdu" ? "Perdus" : "Tous"}
                   </button>
                 ))}
               </div>
@@ -1645,12 +1664,23 @@ export default function Home() {
               <div className="space-y-2">
                 {filteredDossiers.map((d) => {
                   const a = store.agents.find(x => x.id === d.agent_id);
+                  const statusMeta: Record<typeof d.etat, { label: string; color: string; bg: string; border: string }> = {
+                    en_cours: { label: "EN COURS", color: "#0071e3", bg: "bg-[#0071e3]/15", border: "border-[#d2d2d7]/40" },
+                    surveillance: { label: "EN SURVEILLANCE", color: "#ff9f0a", bg: "bg-[#ff9f0a]/15", border: "border-[#ff9f0a]/30" },
+                    avance: { label: "AVANCÉ", color: "#34c759", bg: "bg-[#34c759]/15", border: "border-[#34c759]/30" },
+                    cloture: { label: "CLÔTURÉ", color: "#8e8e93", bg: "bg-[#8e8e93]/15", border: "border-[#8e8e93]/30" },
+                    perdu: { label: "PERDU", color: "#ff3b30", bg: "bg-[#ff3b30]/15", border: "border-[#ff3b30]/30" },
+                  };
+                  const meta = statusMeta[d.etat];
+                  const recoverable = d.etat === "perdu" && d.recoverable_until && new Date(d.recoverable_until) > new Date();
+
                   return (
-                    <div key={d.id} className={`bg-white rounded-[14px] p-4 border transition-all ${
-                      d.etat === "gagne" ? "border-[#34c759]/30 bg-[#34c759]/5" :
-                      d.etat === "perdu" ? "border-[#ff3b30]/30 bg-[#ff3b30]/5 opacity-70" :
-                      d.etat === "alerte" ? "border-[#ff9f0a]/30 bg-[#ff9f0a]/5" :
-                      "border-[#d2d2d7]/40 hover:shadow-md"
+                    <div key={d.id} className={`bg-white rounded-[14px] p-4 border transition-all ${meta.border} ${d.is_vip ? "ring-2 ring-[#bf5af2]/30" : ""} ${
+                      d.etat === "avance" ? "bg-[#34c759]/5" :
+                      d.etat === "perdu" ? "bg-[#ff3b30]/5 opacity-80" :
+                      d.etat === "surveillance" ? "bg-[#ff9f0a]/5" :
+                      d.etat === "cloture" ? "bg-[#8e8e93]/5" :
+                      "hover:shadow-md"
                     }`}>
                       <div className="flex items-start gap-3">
                         {a && (
@@ -1659,52 +1689,114 @@ export default function Home() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="font-semibold text-[14px] text-[#1d1d1f]">{d.client}</span>
+                            {d.is_vip && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-[#bf5af2] to-[#5e5ce6] text-white">⭐ VIP</span>
+                            )}
                             <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${getPhaseColor(d.phase)}`}>{d.phase}</span>
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ml-auto ${
-                              d.etat === "gagne" ? "bg-[#34c759]/15 text-[#34c759]" :
-                              d.etat === "perdu" ? "bg-[#ff3b30]/15 text-[#ff3b30]" :
-                              d.etat === "alerte" ? "bg-[#ff9f0a]/15 text-[#ff9f0a]" :
-                              "bg-[#0071e3]/15 text-[#0071e3]"
-                            }`}>
-                              {d.etat === "en_cours" ? "EN COURS" : d.etat === "gagne" ? "GAGNÉ" : d.etat === "perdu" ? "PERDU" : "ALERTE"}
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ml-auto ${meta.bg}`} style={{ color: meta.color }}>
+                              {meta.label}
                             </span>
                           </div>
-                          <p className="text-[12px] text-[#6e6e73] mb-2">{d.theme} · échéance {d.echeance_heure}</p>
+                          <p className="text-[12px] text-[#6e6e73] mb-2">{d.theme} · échéance {d.echeance_heure} · {d.cas_traites} cas traité{d.cas_traites > 1 ? "s" : ""}</p>
 
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] text-[#8e8e93] w-16">Progression</span>
-                            <div className="flex-1 h-[5px] bg-[#e5e5ea] rounded-full overflow-hidden">
-                              <div className="h-full rounded-full transition-all duration-500" style={{
-                                width: `${d.progression}%`,
-                                backgroundColor: d.etat === "gagne" ? "#34c759" : d.etat === "perdu" ? "#ff3b30" : "#0071e3"
-                              }} />
+                          {/* Progression + Qualité côte à côte */}
+                          <div className="grid grid-cols-2 gap-3 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] text-[#8e8e93] w-14">Progression</span>
+                              <div className="flex-1 h-[4px] bg-[#e5e5ea] rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-500" style={{
+                                  width: `${d.progression}%`,
+                                  backgroundColor: meta.color,
+                                }} />
+                              </div>
+                              <span className="text-[9px] font-semibold tabular-nums w-7 text-right" style={{ color: meta.color }}>{d.progression}%</span>
                             </div>
-                            <span className="text-[10px] font-semibold text-[#3a3a3c] tabular-nums w-8 text-right">{d.progression}%</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] text-[#8e8e93] w-14">Qualité</span>
+                              <div className="flex-1 h-[4px] bg-[#e5e5ea] rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-500" style={{
+                                  width: `${d.qualite}%`,
+                                  backgroundColor: d.qualite >= 70 ? "#34c759" : d.qualite >= 50 ? "#ff9f0a" : "#ff3b30",
+                                }} />
+                              </div>
+                              <span className="text-[9px] font-semibold tabular-nums w-7 text-right" style={{ color: d.qualite >= 70 ? "#34c759" : d.qualite >= 50 ? "#ff9f0a" : "#ff3b30" }}>{d.qualite}%</span>
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-3 text-[10px] text-[#8e8e93]">
-                            <span>Impact si gagné : <span className="text-[#34c759] font-medium">+{d.impact.legitimite} Lég · +{(d.impact.tresorerie / 1000).toFixed(0)}k€</span></span>
-                            <span>Si perdu : <span className="text-[#ff3b30] font-medium">−{d.impact.stress} stress · −{(d.impact.tresorerie / 2 / 1000).toFixed(1)}k€</span></span>
-                          </div>
-
-                          {d.etat === "en_cours" && (
-                            <div className="flex gap-2 mt-2.5">
-                              <button onClick={() => store.advanceDossier(d.id, 10)}
-                                className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#0071e3]/10 text-[#0071e3] hover:bg-[#0071e3]/15 font-medium transition-all">
-                                Avancer +10%
-                              </button>
-                              <button onClick={() => store.winDossier(d.id)}
-                                className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#34c759]/10 text-[#34c759] hover:bg-[#34c759]/15 font-medium transition-all">
-                                Clôturer ✓
-                              </button>
-                              <button onClick={() => store.loseDossier(d.id)}
-                                className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#ff3b30]/10 text-[#ff3b30] hover:bg-[#ff3b30]/15 font-medium transition-all">
-                                Perdre ✗
-                              </button>
+                          {/* Signaux d'alerte */}
+                          {d.signaux_alerte.length > 0 && d.etat !== "perdu" && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {d.signaux_alerte.map((s, i) => {
+                                const labels: Record<string, string> = {
+                                  agent_burnout: "⚠ Agent en burn-out",
+                                  confiance_basse: "⚠ Confiance basse",
+                                  agent_rupture: "⚠ Risque départ agent",
+                                  retard_critique: "⚠ Retard J+5",
+                                  cabinet_crise: "⚠ Mood Crise",
+                                };
+                                return (
+                                  <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-md bg-[#ff9f0a]/10 text-[#ff9f0a] font-medium">
+                                    {labels[s] || s}
+                                  </span>
+                                );
+                              })}
                             </div>
                           )}
+
+                          {/* Cause de la perte */}
+                          {d.etat === "perdu" && d.cause_perte && (
+                            <div className="bg-[#ff3b30]/8 border border-[#ff3b30]/15 rounded-[8px] p-2 mb-2">
+                              <p className="text-[10px] text-[#ff3b30] font-medium">Cause : {d.cause_perte}</p>
+                              {recoverable && (
+                                <p className="text-[9px] text-[#6e6e73] mt-0.5">
+                                  Récupération possible jusqu'au {new Date(d.recoverable_until!).toLocaleDateString("fr-FR")}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-3 text-[9px] text-[#8e8e93]">
+                            <span>Gagné : <span className="text-[#34c759] font-medium">+{d.impact.legitimite * (d.is_vip ? 3 : 1)} Lég · +{((d.impact.tresorerie * (d.is_vip ? 3 : 1)) / 1000).toFixed(0)}k€</span></span>
+                            <span>Perdu : <span className="text-[#ff3b30] font-medium">−{d.impact.reputation * (d.is_vip ? 3 : 1)} Rép · −{((d.impact.tresorerie * (d.is_vip ? 3 : 1)) / 2 / 1000).toFixed(1)}k€</span></span>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex flex-wrap gap-1.5 mt-2.5">
+                            {(d.etat === "en_cours" || d.etat === "surveillance") && (
+                              <>
+                                <button onClick={() => store.advanceDossier(d.id, 10)}
+                                  className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#0071e3]/10 text-[#0071e3] hover:bg-[#0071e3]/15 font-medium transition-all">
+                                  Avancer +10%
+                                </button>
+                                <button onClick={() => store.winDossier(d.id)}
+                                  className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#34c759]/10 text-[#34c759] hover:bg-[#34c759]/15 font-medium transition-all">
+                                  Clôturer ✓
+                                </button>
+                                <button onClick={() => store.loseDossier(d.id)}
+                                  className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#ff3b30]/10 text-[#ff3b30] hover:bg-[#ff3b30]/15 font-medium transition-all">
+                                  Perdre ✗
+                                </button>
+                                <button onClick={() => store.toggleVIP(d.id)}
+                                  className={`text-[11px] px-2.5 py-1 rounded-[8px] font-medium transition-all ${
+                                    d.is_vip ? "bg-[#bf5af2]/15 text-[#bf5af2]" : "bg-[#8e8e93]/10 text-[#6e6e73] hover:bg-[#bf5af2]/10 hover:text-[#bf5af2]"
+                                  }`}>
+                                  {d.is_vip ? "⭐ Retirer VIP" : "Marquer VIP"}
+                                </button>
+                              </>
+                            )}
+                            {recoverable && (
+                              <button onClick={() => {
+                                  const ok = store.attemptRecoverDossier(d.id);
+                                  if (!ok && store.points_action < 2) alert("Il te faut 2 PA pour tenter une récupération.");
+                                  else if (!ok) alert("Tentative ratée. Le client refuse de revenir.");
+                                }}
+                                className="text-[11px] px-2.5 py-1 rounded-[8px] bg-gradient-to-r from-[#bf5af2]/15 to-[#0071e3]/15 text-[#bf5af2] hover:from-[#bf5af2]/25 hover:to-[#0071e3]/25 font-semibold transition-all flex items-center gap-1">
+                                <Sparkles size={11} /> Tentative récupération (2 PA · honoraires ×1,5)
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
