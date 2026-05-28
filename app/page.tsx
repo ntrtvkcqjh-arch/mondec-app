@@ -2148,9 +2148,27 @@ export default function Home() {
               </div>
 
               {apiStatus === "error" && apiStatusReason && (
-                <div className="text-[11px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-[10px] p-2.5 flex items-start gap-2">
-                  <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-                  <span>{apiStatusReason}</span>
+                <div className="text-[11px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-[10px] p-2.5">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+                    <span className="break-words whitespace-pre-wrap leading-relaxed">{apiStatusReason}</span>
+                  </div>
+                  {/* Hints contextuels */}
+                  {(apiStatusReason.toLowerCase().includes("credit") || apiStatusReason.toLowerCase().includes("balance") || apiStatusReason.toLowerCase().includes("billing")) && (
+                    <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener noreferrer"
+                      className="mt-2 flex items-center gap-1 text-[#0071e3] hover:underline">
+                      <ExternalLink size={10} /> Recharger mon compte Anthropic (5€ minimum)
+                    </a>
+                  )}
+                  {apiStatusReason.toLowerCase().includes("deprecated") && (
+                    <div className="mt-2 text-[#6e6e73]">Modèle obsolète côté Anthropic. Réessaie — le code utilise maintenant <code className="bg-[#f5f5f7] px-1 rounded">claude-3-5-haiku-latest</code> qui s'auto-résout.</div>
+                  )}
+                  {apiStatusReason.toLowerCase().includes("invalid") && apiStatusReason.toLowerCase().includes("key") && (
+                    <div className="mt-2 text-[#6e6e73]">Vérifie que tu as bien copié la clé entière (commence par <code className="bg-[#f5f5f7] px-1 rounded">sk-ant-api03-</code>) sans espace.</div>
+                  )}
+                  {apiStatusReason.toLowerCase().includes("permission") && (
+                    <div className="mt-2 text-[#6e6e73]">Ta clé n'a pas les droits pour ce modèle. Sur console.anthropic.com → Settings → Workspaces, vérifie les permissions.</div>
+                  )}
                 </div>
               )}
             </div>
