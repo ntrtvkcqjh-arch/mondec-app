@@ -62,6 +62,7 @@ export interface GameState {
   spendPA: (amount: number) => boolean;
   addConversation: (agentId: string, role: "user" | "assistant", content: string) => Promise<void>;
   loadConversations: (agentId: string) => Promise<void>;
+  addNewMessage: (event: { agent_id: string; niveau: string; type: string; sujet: string; contenu: string; delai_reponse_heures: number }) => Promise<void>;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -309,5 +310,45 @@ export const useGameStore = create<GameState>((set, get) => ({
         },
       }));
     }
+  },
+
+  addNewMessage: async (event) => {
+    const state = get();
+    if (!state.user_id) return;
+
+    const messageId = `msg_auto_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+
+    await supabase.from("messages").insert({
+      user_id: state.user_id,
+      message_id: messageId,
+      agent_id: event.agent_id,
+      niveau: event.niveau,
+      type: event.type,
+      phase: null,
+      sujet: event.sujet,
+      contenu: event.contenu,
+      delai_reponse_heures: event.delai_reponse_heures,
+      timestamp: new Date().toISOString(),
+      lu: false,
+      repondu: false,
+    });
+
+    const newMsg: Message = {
+      id: messageId,
+      message_id: messageId,
+      agent_id: event.agent_id,
+      niveau: event.niveau,
+      type: event.type,
+      phase: null,
+      sujet: event.sujet,
+      contenu: event.contenu,
+      delai_reponse_heures: event.delai_reponse_heures,
+      timestamp: new Date().toISOString(),
+      lu: false,
+      repondu: false,
+      reponse_joueur: null,
+    };
+
+    set((state) => ({ messages: [newMsg, ...state.messages] }));
   },
 }));

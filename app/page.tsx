@@ -7,18 +7,17 @@ import { useGameStore } from "@/lib/supabase-store";
 import { supabase, signOut } from "@/lib/supabase";
 import {
   Mail, Users, Calendar, FolderOpen, GraduationCap, Building2,
-  Send, Clock, LogOut, ChevronRight, Zap, TrendingUp, AlertTriangle,
-  CheckCircle, Archive, CornerDownRight,
+  Send, LogOut, ChevronRight, Zap, AlertTriangle,
+  CheckCircle, Archive, CornerDownRight, Pencil, RefreshCw,
 } from "lucide-react";
 
 type Tab = "messages" | "equipe" | "agenda" | "dossiers" | "dec";
+type SendPhase = "draft" | "picking" | "waiting";
 
 interface GhostVersion { label: string; sublabel: string; text: string; color: string; }
 interface Dilemme { id: string; titre: string; description: string; options: { id: string; label: string; cout_PA: number; consequence_differee: string }[]; }
 
 function parseGhostVersions(content: string): GhostVersion[] | null {
-  const has = (s: string) => content.toLowerCase().includes(s.toLowerCase());
-  if (!has("Standard") || !has("Ferme") || !has("Pédagogue")) return null;
   const defs = [
     { label: "Standard", sublabel: "Professionnel & neutre", color: "border-blue-200 bg-blue-50/50" },
     { label: "Ferme", sublabel: "Autoritaire & direct", color: "border-orange-200 bg-orange-50/50" },
@@ -78,10 +77,11 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("messages");
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [phase, setPhase] = useState<SendPhase>("draft");
   const [ghostVersions, setGhostVersions] = useState<GhostVersion[] | null>(null);
   const [dilemme, setDilemme] = useState<Dilemme | null>(null);
   const [dilemmeResolu, setDilemmeResolu] = useState(false);
+  const [generatingEvents, setGeneratingEvents] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const store = useGameStore();
@@ -99,56 +99,150 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, [router]);
 
-  // Charger le dilemme depuis agents_config.json
   useEffect(() => {
     fetch("/agents_config.json").then(r => r.json()).then(c => {
       if (c.dilemme_actif) setDilemme(c.dilemme_actif);
     }).catch(() => {});
   }, []);
 
+  // Génération autonome des événements agents
+  useEffect(() => {
+    if (!store.isAuthenticated || store.isLoading || store.agents.length === 0) return;
+    const unread = store.messages.filter(m => !m.lu).length;
+    if (unread >= 5) return;
+    const lastGen = typeof window !== "undefined" ? localStorage.getItem("lastEventGen") : null;
+    const now = Date.now();
+    if (lastGen && now - parseInt(lastGen) < 15 * 60 * 1000) return;
+
+    localStorage.setItem("lastEventGen", now.toString());
+    setGeneratingEvents(true);
+
+    const agentsWithUnread = store.messages.filter(m => !m.lu).map(m => m.agent_id);
+
+    fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agents: store.agents,
+        game_state: {
+          date: store.date_simulation,
+          mood: store.mood_global,
+          legitimite: store.legitimite,
+          tresorerie: store.tresorerie,
+          stress_global: store.stress_global,
+          joursRestants: 16,
+        },
+        existing_subjects: store.messages.map(m => m.sujet),
+        agents_with_unread: agentsWithUnread,
+      }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.events?.length) {
+          data.events.forEach((e: any) => store.addNewMessage(e));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setGeneratingEvents(false));
+  }, [store.isAuthenticated, store.isLoading, store.agents.length]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [store.conversation_history, selectedAgent]);
+  }, [store.conversation_history, selectedAgent, ghostVersions]);
 
-  const selectedMessage = store.messages.find((m) => m.agent_id === selectedAgent);
+  const selectedMessage = store.messages.find((m) => m.agent_id === selectedAgent && !m.repondu) || store.messages.find((m) => m.agent_id === selectedAgent);
   const agent = store.agents.find((a) => a.id === selectedAgent);
   const unreadCount = store.messages.filter(m => !m.lu).length;
 
-  async function handleSelectAgent(agentId: string, messageId: string) {
+  function handleSelectAgent(agentId: string, messageId: string) {
     setSelectedAgent(agentId);
     setGhostVersions(null);
+    setPhase("draft");
+    setInputText("");
     store.markMessageRead(messageId);
     store.loadConversations(agentId);
   }
 
-  async function handleSend() {
+  // Étape 1 : le joueur envoie son brouillon → Ghost Writer propose 3 versions
+  async function handleGhostDraft() {
+    if (!inputText.trim() || !agent || phase !== "draft") return;
+    setPhase("picking");
+    setGhostVersions(null);
+
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "ghost",
+        messages: [{ role: "user", content: inputText }],
+        agent_context: { ...agent, sujet: selectedMessage?.sujet },
+      }),
+    });
+    const data = await res.json();
+
+    if (data.content) {
+      const versions = parseGhostVersions(data.content);
+      if (versions) {
+        setGhostVersions(versions);
+      } else {
+        // Ghost Writer n'a pas pu parser → envoi direct
+        setPhase("draft");
+        await sendAndGetResponse(inputText);
+      }
+    } else {
+      setPhase("draft");
+    }
+  }
+
+  // Étape 2 : le joueur choisit une version → l'agent répond
+  async function handlePickVersion(text: string) {
+    setGhostVersions(null);
+    setPhase("draft");
+    setInputText("");
+    await sendAndGetResponse(text);
+  }
+
+  // Bypass : envoyer le brouillon tel quel sans Ghost Writer
+  async function handleDirectSend() {
     if (!inputText.trim() || !agent) return;
+    const text = inputText;
+    setGhostVersions(null);
+    setPhase("draft");
+    setInputText("");
+    await sendAndGetResponse(text);
+  }
+
+  // Core : enregistre le message et récupère la réponse de l'agent
+  async function sendAndGetResponse(text: string) {
+    if (!agent) return;
     const niveau = selectedMessage?.niveau || "N2";
     const cost = getPACost(niveau);
-    if (cost > 0 && !store.spendPA(cost)) { alert("Pas assez de Points d'Action !"); return; }
-    setLoading(true);
-    setGhostVersions(null);
+    if (cost > 0 && !store.spendPA(cost)) {
+      alert("Pas assez de Points d'Action !");
+      setPhase("draft");
+      return;
+    }
+    setPhase("waiting");
+
     const history = store.conversation_history[agent.id] || [];
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: [...history, { role: "user", content: inputText }], agent_context: agent }),
+      body: JSON.stringify({
+        mode: "agent",
+        messages: [...history, { role: "user", content: text }],
+        agent_context: agent,
+        game_state: { date: store.date_simulation, mood: store.mood_global, joursRestants: 16 },
+      }),
     });
     const data = await res.json();
-    setLoading(false);
-    if (data.content) {
-      store.addConversation(agent.id, "user", inputText);
-      store.addConversation(agent.id, "assistant", data.content);
-      store.replyToMessage(selectedMessage?.id || "", inputText);
-      setInputText("");
-      const versions = parseGhostVersions(data.content);
-      if (versions) setGhostVersions(versions);
-    }
-  }
 
-  function handleChooseVersion(text: string) {
-    setInputText(text);
-    setGhostVersions(null);
+    if (data.content) {
+      await store.addConversation(agent.id, "user", text);
+      await store.addConversation(agent.id, "assistant", data.content);
+      if (selectedMessage) await store.replyToMessage(selectedMessage.id, text);
+    }
+    setPhase("draft");
   }
 
   function handleArchive(msgId: string) {
@@ -198,6 +292,12 @@ export default function Home() {
             <span className="text-[11px] text-[#6e6e73]">{store.date_simulation}</span>
             <Clock />
           </div>
+          {generatingEvents && (
+            <div className="flex items-center gap-1 mt-1.5">
+              <RefreshCw size={9} className="text-[#0071e3] animate-spin" />
+              <span className="text-[9px] text-[#6e6e73]">Agents actifs…</span>
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 px-2 py-3 space-y-0.5">
@@ -214,7 +314,7 @@ export default function Home() {
         {/* Ressources */}
         <div className="px-4 py-3 border-t border-[#d2d2d7]/50 space-y-2">
           <MiniStat label="Légitimité" value={store.legitimite} color="#0071e3" />
-          <MiniStat label="Trésorerie" value={store.tresorerie / 2000} color="#34c759" display={`${(store.tresorerie / 1000).toFixed(0)}k€`} />
+          <MiniStat label="Trésorerie" value={Math.min((store.tresorerie / 2000), 100)} color="#34c759" display={`${(store.tresorerie / 1000).toFixed(0)}k€`} />
           <MiniStat label="Réputation" value={store.reputation} color="#ff9f0a" />
           <MiniStat label="Stress" value={store.stress_global} color={store.stress_global > 70 ? "#ff3b30" : "#ff9f0a"} />
           <div className="flex items-center justify-between pt-1">
@@ -254,8 +354,8 @@ export default function Home() {
                   const urgent = msg.delai_reponse_heures <= 6;
                   return (
                     <div key={msg.id}
-                      onClick={() => { handleSelectAgent(msg.agent_id, msg.id); }}
-                      className={`group mx-2 mb-1 p-3 rounded-[12px] cursor-pointer transition-all ${selectedAgent === msg.agent_id ? "bg-[#0071e3] text-white" : "hover:bg-white/70"}`}>
+                      onClick={() => handleSelectAgent(msg.agent_id, msg.id)}
+                      className={`group mx-2 mb-1 p-3 rounded-[12px] cursor-pointer transition-all ${selectedAgent === msg.agent_id ? "bg-[#0071e3] text-white" : msg.lu ? "opacity-70 hover:bg-white/70" : "hover:bg-white/70"}`}>
                       <div className="flex items-start gap-2.5">
                         <div className="relative shrink-0">
                           <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold" style={{ backgroundColor: a.avatar_color }}>
@@ -265,7 +365,10 @@ export default function Home() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-0.5">
-                            <span className={`text-[13px] font-semibold truncate ${selectedAgent === msg.agent_id ? "text-white" : "text-[#1d1d1f]"}`}>{a.nom}</span>
+                            <span className={`text-[13px] font-semibold truncate ${selectedAgent === msg.agent_id ? "text-white" : "text-[#1d1d1f]"}`}>
+                              {a.nom}
+                              {!msg.lu && <span className="ml-1 w-1.5 h-1.5 inline-block rounded-full bg-[#0071e3] align-middle" />}
+                            </span>
                             <span className={`text-[10px] shrink-0 ${urgent ? "text-[#ff3b30]" : selectedAgent === msg.agent_id ? "text-white/60" : "text-[#8e8e93]"}`}>
                               {urgent ? `⚡ ${msg.delai_reponse_heures}h` : `${msg.delai_reponse_heures}h`}
                             </span>
@@ -275,7 +378,6 @@ export default function Home() {
                             <span className={`text-[10px] font-medium ${selectedAgent === msg.agent_id ? "text-white/70" : "text-[#8e8e93]"}`}>
                               {getNiveauLabel(msg.niveau)} · {msg.type}
                             </span>
-                            {/* Archive rapide N1/N2 */}
                             {(msg.niveau === "N1" || msg.niveau === "N2") && !msg.repondu && selectedAgent !== msg.agent_id && (
                               <button onClick={(e) => { e.stopPropagation(); handleArchive(msg.id); }}
                                 className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-black/10 transition-all">
@@ -288,6 +390,12 @@ export default function Home() {
                     </div>
                   );
                 })}
+                {store.messages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-32 text-center px-4">
+                    <p className="text-[12px] text-[#8e8e93]">Aucun message</p>
+                    <p className="text-[10px] text-[#c7c7cc] mt-1">Les agents vont bientôt écrire…</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -345,7 +453,7 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* Message initial */}
+                    {/* Message initial de l'agent */}
                     {selectedMessage && (
                       <div className="flex gap-3 max-w-[78%]">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 mt-1" style={{ backgroundColor: agent.avatar_color }}>
@@ -388,52 +496,106 @@ export default function Home() {
                       </div>
                     ))}
 
+                    {/* Indicateur "agent répond..." */}
+                    {phase === "waiting" && (
+                      <div className="flex gap-3 max-w-[78%]">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: agent.avatar_color }}>
+                          {agent.initiales}
+                        </div>
+                        <div className="bg-white rounded-[18px] rounded-tl-[6px] px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30">
+                          <div className="flex gap-1 items-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "300ms" }} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Ghost Writer — 3 versions */}
-                    {ghostVersions && (
+                    {ghostVersions && phase === "picking" && (
                       <div className="space-y-2 py-2">
-                        <p className="text-[11px] font-semibold text-[#6e6e73] uppercase tracking-wider flex items-center gap-1.5">
-                          <Zap size={11} /> Ghost Writer — Choisis une version
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-[11px] font-semibold text-[#6e6e73] uppercase tracking-wider flex items-center gap-1.5">
+                            <Zap size={11} className="text-[#0071e3]" /> Ghost Writer — Choisis une version
+                          </p>
+                          <button onClick={handleDirectSend}
+                            className="text-[10px] text-[#8e8e93] hover:text-[#ff3b30] flex items-center gap-1 transition-colors">
+                            <Pencil size={10} /> Envoyer mon brouillon
+                          </button>
+                        </div>
                         <div className="grid grid-cols-3 gap-2">
                           {ghostVersions.map((v) => (
-                            <button key={v.label} onClick={() => handleChooseVersion(v.text)}
+                            <button key={v.label} onClick={() => handlePickVersion(v.text)}
                               className={`text-left p-3 rounded-[14px] border-2 ${v.color} hover:border-[#0071e3] hover:bg-[#0071e3]/5 transition-all group`}>
                               <div className="font-semibold text-[12px] text-[#1d1d1f] mb-0.5">{v.label}</div>
                               <div className="text-[10px] text-[#6e6e73] mb-1.5">{v.sublabel}</div>
-                              <div className="text-[11px] text-[#3a3a3c] line-clamp-3">{v.text}</div>
+                              <div className="text-[11px] text-[#3a3a3c] line-clamp-4">{v.text}</div>
                               <div className="flex items-center gap-1 mt-2 text-[10px] text-[#0071e3] opacity-0 group-hover:opacity-100 transition-opacity">
-                                <CornerDownRight size={10} /> Utiliser cette version
+                                <CornerDownRight size={10} /> Utiliser
                               </div>
                             </button>
                           ))}
                         </div>
                       </div>
                     )}
+
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Input */}
+                  {/* Zone de saisie */}
                   <div className="px-6 py-4 glass border-t border-[#d2d2d7]/50">
+                    {phase === "picking" && !ghostVersions && (
+                      <div className="flex items-center gap-2 mb-2 text-[12px] text-[#6e6e73]">
+                        <RefreshCw size={12} className="animate-spin" />
+                        Ghost Writer analyse ton brouillon…
+                      </div>
+                    )}
                     <div className="flex items-end gap-2">
-                      <div className="flex-1 bg-white border border-[#d2d2d7]/80 rounded-[14px] px-4 py-2.5 shadow-sm">
+                      <div className={`flex-1 bg-white border rounded-[14px] px-4 py-2.5 shadow-sm transition-all ${phase !== "draft" ? "border-[#d2d2d7]/40 opacity-60" : "border-[#d2d2d7]/80"}`}>
                         <textarea
                           value={inputText}
-                          onChange={(e) => { setInputText(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px"; }}
-                          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                          placeholder="Rédige une ébauche… l'IA proposera 3 versions (Standard · Ferme · Pédagogue)"
+                          onChange={(e) => {
+                            if (phase !== "draft") return;
+                            setInputText(e.target.value);
+                            e.target.style.height = "auto";
+                            e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              if (phase === "draft") handleGhostDraft();
+                            }
+                          }}
+                          disabled={phase !== "draft"}
+                          placeholder={
+                            phase === "picking" ? "Sélectionne une version Ghost Writer ci-dessus…" :
+                            phase === "waiting" ? `${agent.nom} rédige sa réponse…` :
+                            "Rédige un brouillon… Ghost Writer proposera 3 versions (↵)"
+                          }
                           rows={1}
-                          className="w-full text-[13px] text-[#1d1d1f] placeholder-[#8e8e93] outline-none resize-none leading-relaxed bg-transparent"
+                          className="w-full text-[13px] text-[#1d1d1f] placeholder-[#8e8e93] outline-none resize-none leading-relaxed bg-transparent disabled:cursor-not-allowed"
                           style={{ minHeight: "20px" }}
                         />
                       </div>
-                      <button onClick={handleSend} disabled={loading || !inputText.trim()}
-                        className="w-9 h-9 bg-[#0071e3] rounded-full flex items-center justify-center disabled:opacity-40 hover:bg-[#0077ed] transition-colors shadow-sm shrink-0">
-                        {loading ? <Clock size={15} className="text-white animate-spin" /> : <Send size={15} className="text-white" />}
+                      <button
+                        onClick={phase === "draft" ? handleGhostDraft : undefined}
+                        disabled={phase !== "draft" || !inputText.trim()}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm shrink-0 ${
+                          phase === "draft" && inputText.trim()
+                            ? "bg-[#0071e3] hover:bg-[#0077ed] text-white"
+                            : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"
+                        }`}>
+                        {phase === "waiting" ? (
+                          <div className="w-3 h-3 border-2 border-[#8e8e93] border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Send size={15} />
+                        )}
                       </button>
                     </div>
                     <div className="flex items-center justify-between mt-1.5 px-1">
-                      <span className="text-[10px] text-[#8e8e93]">↵ Envoyer · ⇧↵ Nouvelle ligne</span>
-                      {getPACost(selectedMessage?.niveau || "N1") > 0 && (
+                      <span className="text-[10px] text-[#8e8e93]">↵ Ghost Writer · ⇧↵ Nouvelle ligne</span>
+                      {getPACost(selectedMessage?.niveau || "N1") > 0 && phase === "draft" && (
                         <span className="text-[10px] font-medium text-[#ff9f0a]">
                           −{getPACost(selectedMessage?.niveau || "N1")} PA à l'envoi
                         </span>
@@ -483,6 +645,16 @@ export default function Home() {
                     <span className="text-[10px] text-[#8e8e93] bg-[#f5f5f7] px-2 py-0.5 rounded-full">{a.filiere}</span>
                     <span className={`text-[10px] font-medium ${a.statut === "En ligne" ? "text-[#34c759]" : a.statut === "Occupé" ? "text-[#ff9f0a]" : "text-[#8e8e93]"}`}>{a.statut}</span>
                   </div>
+                  {(a as any).arc_actuel && (a as any).arc_actuel !== "Stable" && (
+                    <div className="mt-1.5">
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                        (a as any).arc_actuel === "Rupture" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
+                        (a as any).arc_actuel === "Trahison" ? "bg-[#ff9f0a]/10 text-[#ff9f0a]" :
+                        (a as any).arc_actuel === "Crise" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
+                        "bg-[#0071e3]/10 text-[#0071e3]"
+                      }`}>Arc : {(a as any).arc_actuel}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -560,18 +732,28 @@ export default function Home() {
                   <span className="ml-auto text-[12px] font-semibold text-[#0071e3]">Vendredi 29 mai</span>
                 </div>
                 <p className="text-[12px] text-[#6e6e73] mb-3">Thème : <strong>Consolidation & IFRS</strong> · 45 min chrono · Jury virtuel</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {["Samuel Dubois", "Naïma Bensaid", "Thomas Lefèvre"].map(j => (
                     <span key={j} className="text-[10px] px-2 py-0.5 bg-white rounded-full border border-[#d2d2d7]/50 text-[#6e6e73]">{j}</span>
                   ))}
                 </div>
               </div>
               <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30">
-                <p className="font-semibold text-[13px] text-[#1d1d1f] mb-2">Ghost Writer DEC</p>
-                <p className="text-[12px] text-[#6e6e73]">
-                  Rédige une ébauche dans le tchat agent → l'IA propose 3 versions corrigées selon les standards EC/PCG.
-                  Chaque réponse est pédagogiquement correcte.
-                </p>
+                <p className="font-semibold text-[13px] text-[#1d1d1f] mb-2">Comment fonctionne le Ghost Writer</p>
+                <ol className="text-[12px] text-[#6e6e73] space-y-1.5 list-none">
+                  <li className="flex gap-2"><span className="w-5 h-5 bg-[#0071e3] text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">1</span>Tu rédiges un brouillon de réponse à un agent</li>
+                  <li className="flex gap-2"><span className="w-5 h-5 bg-[#0071e3] text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">2</span>L'IA propose 3 versions corrigées (Standard · Ferme · Pédagogue)</li>
+                  <li className="flex gap-2"><span className="w-5 h-5 bg-[#0071e3] text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">3</span>Tu choisis une version — l'agent répond en temps réel</li>
+                  <li className="flex gap-2"><span className="w-5 h-5 bg-[#34c759] text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>Tu apprends à écrire comme un EC en voyant tes corrections</li>
+                </ol>
+              </div>
+              <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30">
+                <p className="font-semibold text-[13px] text-[#1d1d1f] mb-2">Score & Légitimité</p>
+                <div className="space-y-1.5 text-[12px] text-[#6e6e73]">
+                  <div className="flex items-center gap-2"><span className="text-[#34c759]">▲ +10</span> Légitimité si QCM ≥ 80%</div>
+                  <div className="flex items-center gap-2"><span className="text-[#ff3b30]">▼ −15</span> Légitimité si QCM &lt; 50%</div>
+                  <div className="flex items-center gap-2"><span className="text-[#0071e3]">✎</span> Personnaliser une version Ghost Writer = +Légitimité si techniquement correct</div>
+                </div>
               </div>
             </div>
           </div>
@@ -583,12 +765,12 @@ export default function Home() {
 }
 
 function MiniStat({ label, value, color, display }: { label: string; value: number; color: string; display?: string }) {
-  const pct = Math.min(value, 100);
+  const pct = Math.min(Math.max(value, 0), 100);
   return (
     <div>
       <div className="flex justify-between text-[10px] mb-0.5">
         <span className="text-[#6e6e73]">{label}</span>
-        <span className="font-medium text-[#3a3a3c]">{display || value}</span>
+        <span className="font-medium text-[#3a3a3c]">{display || Math.round(value)}</span>
       </div>
       <div className="h-[3px] bg-[#e5e5ea] rounded-full overflow-hidden">
         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
@@ -632,6 +814,7 @@ function EmotionChip({ emotion, small }: { emotion: string; small?: boolean }) {
     "Euphorique": "bg-[#bf5af2]/10 text-[#bf5af2]",
     "Surmené": "bg-[#ff3b30]/10 text-[#ff3b30]",
     "Distant": "bg-[#8e8e93]/10 text-[#8e8e93]",
+    "En conflit": "bg-[#ff3b30]/10 text-[#ff3b30]",
   };
   const cls = map[emotion] || "bg-[#e5e5ea] text-[#6e6e73]";
   return (
