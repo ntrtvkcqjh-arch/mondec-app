@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
+        model: "claude-3-5-sonnet-20241022",
         max_tokens: 10,
         messages: [{ role: "user", content: "ping" }],
       }),
@@ -30,15 +30,20 @@ export async function GET(req: NextRequest) {
 
     if (!r.ok) {
       const errText = await r.text();
+      let parsedReason = `API Anthropic répond ${r.status}`;
+      try {
+        const errJson = JSON.parse(errText);
+        if (errJson.error?.message) parsedReason = errJson.error.message;
+      } catch {}
       return NextResponse.json({
         ok: false,
         status: r.status,
-        reason: `API Anthropic répond ${r.status}`,
+        reason: parsedReason,
         details: errText.slice(0, 200),
       });
     }
 
-    return NextResponse.json({ ok: true, status: 200, model: "claude-3-5-haiku" });
+    return NextResponse.json({ ok: true, status: 200, model: "claude-3-5-sonnet" });
   } catch (e: any) {
     return NextResponse.json({
       ok: false,
