@@ -232,7 +232,7 @@ export default function Home() {
   // Statut API (vérifie qu'Anthropic répond)
   const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "error">("checking");
   const [apiStatusReason, setApiStatusReason] = useState("");
-  const [apiStatusDetails, setApiStatusDetails] = useState<{ status?: number; attempts?: Array<{ model: string; status: number; message: string }> } | null>(null);
+  const [apiStatusDetails, setApiStatusDetails] = useState<{ status?: number; attempts?: Array<{ model: string; status: number; message: string }>; diagnostic?: string } | null>(null);
 
   // Modal configuration clé API utilisateur
   const [showKeyModal, setShowKeyModal] = useState(false);
@@ -297,7 +297,7 @@ export default function Home() {
         console.log("[HEALTH]", d);
         setApiStatus(d.ok ? "ok" : "error");
         setApiStatusReason(d.reason || "");
-        setApiStatusDetails({ status: d.status, attempts: d.attempts });
+        setApiStatusDetails({ status: d.status, attempts: d.attempts, diagnostic: d.diagnostic });
         if (!d.ok && d.needs_key && !hasUserApiKey()) {
           setShowKeyModal(true);
         }
@@ -324,7 +324,7 @@ export default function Home() {
       } else {
         setApiStatus("error");
         setApiStatusReason(d.reason || "Clé invalide");
-        setApiStatusDetails({ status: d.status, attempts: d.attempts });
+        setApiStatusDetails({ status: d.status, attempts: d.attempts, diagnostic: d.diagnostic });
       }
     } catch (err: any) {
       setApiStatus("error");
@@ -2254,6 +2254,11 @@ export default function Home() {
                         <div className="font-semibold mb-1">Erreur HTTP {apiStatusDetails.status}</div>
                       ) : null}
                       <div className="break-words whitespace-pre-wrap leading-relaxed">{apiStatusReason}</div>
+                      {apiStatusDetails?.diagnostic && (
+                        <div className="mt-1.5 text-[#1d1d1f] font-medium bg-white/70 rounded px-2 py-1">
+                          💡 {apiStatusDetails.diagnostic}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -2299,13 +2304,18 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <div className="px-6 py-3.5 bg-[#fafafa] border-t border-[#d2d2d7]/40 flex items-center gap-2">
+            <div className="px-6 py-3.5 bg-[#fafafa] border-t border-[#d2d2d7]/40 flex items-center gap-2 flex-wrap">
               {hasUserApiKey() && (
-                <button onClick={() => { clearUserApiKey(); setKeyInput(""); setApiStatus("checking"); }}
+                <button onClick={() => { clearUserApiKey(); setKeyInput(""); setApiStatus("checking"); setApiStatusReason(""); setApiStatusDetails(null); }}
                   className="px-3 py-2 text-[12px] rounded-[10px] bg-[#ff3b30]/10 text-[#ff3b30] hover:bg-[#ff3b30]/15 font-medium transition-all">
                   Supprimer
                 </button>
               )}
+              <button onClick={saveApiKey} disabled={keySaving}
+                title="Re-tester la clé actuelle sans rien changer"
+                className="px-3 py-2 text-[12px] rounded-[10px] bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e5e5ea] transition-all flex items-center gap-1.5">
+                <RefreshCw size={11} className={keySaving ? "animate-spin" : ""} /> Re-tester
+              </button>
               <button onClick={() => setShowKeyModal(false)}
                 className="ml-auto px-3 py-2 text-[12px] rounded-[10px] bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e5e5ea] transition-all">
                 Annuler

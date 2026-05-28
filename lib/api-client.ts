@@ -33,13 +33,20 @@ export function hasUserApiKey(): boolean {
 /**
  * Wrapper de fetch qui injecte automatiquement la clé API utilisateur
  * dans le header X-User-API-Key si elle est définie en localStorage.
+ * Bypass aggressivement les caches navigateur / CDN.
  */
 export async function apiFetch(url: string, options: RequestInit = {}) {
   const userKey = getUserApiKey();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "Cache-Control": "no-cache",
     ...(options.headers as Record<string, string> || {}),
   };
   if (userKey) headers["X-User-API-Key"] = userKey;
-  return fetch(url, { ...options, headers });
+
+  // Cache-busting pour les GET (ajoute timestamp en query string)
+  const isGet = !options.method || options.method.toUpperCase() === "GET";
+  const finalUrl = isGet ? `${url}${url.includes("?") ? "&" : "?"}_t=${Date.now()}` : url;
+
+  return fetch(finalUrl, { ...options, headers, cache: "no-store" });
 }

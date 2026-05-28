@@ -2,27 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const TEST_MODELS = [
-  "claude-3-haiku-20240307",
+  "claude-haiku-4-5",
+  "claude-haiku-4-5-20251001",
   "claude-3-5-haiku-20241022",
-  "claude-3-5-haiku-latest",
+  "claude-3-haiku-20240307",
   "claude-3-5-sonnet-20241022",
-  "claude-3-5-sonnet-latest",
+  "claude-sonnet-4-5",
+  "claude-3-5-haiku-latest",
 ];
+
+function noCacheHeaders() {
+  return {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+  };
+}
 
 export async function GET(req: NextRequest) {
   const apiKey = getApiKey(req);
   if (!apiKey) {
-    return NextResponse.json({
-      ok: false,
-      reason: "Clé API manquante — clique sur ⚙ pour la configurer",
-      needs_key: true,
-    });
+    return NextResponse.json(
+      { ok: false, reason: "Clé API manquante — clique sur ⚙ pour la configurer", needs_key: true },
+      { headers: noCacheHeaders() }
+    );
   }
 
-  // On essaye plusieurs modèles. Si au moins un marche, l'API marche.
   const attempts: { model: string; status: number; message: string }[] = [];
+  let firstAuthError: { status: number; message: string } | null = null;
 
   for (const model of TEST_MODELS) {
     try {
@@ -41,10 +51,12 @@ export async function GET(req: NextRequest) {
       });
 
       if (r.ok) {
-        return NextResponse.json({ ok: true, status: 200, model_used: model });
+        return NextResponse.json(
+          { ok: true, status: 200, model_used: model, attempts_count: attempts.length + 1 },
+          { headers: noCacheHeaders() }
+        );
       }
 
-      // Récupérer le message d'erreur complet
       const errText = await r.text();
       let msg = errText.slice(0, 300);
       try {
@@ -54,26 +66,44 @@ export async function GET(req: NextRequest) {
 
       attempts.push({ model, status: r.status, message: msg });
 
-      // Si c'est un 401 (clé invalide) ou 403 (interdit), inutile de tester d'autres modèles
+      // 401/403 = problème de clé/permission, inutile de continuer
       if (r.status === 401 || r.status === 403) {
-        return NextResponse.json({
-          ok: false,
-          status: r.status,
-          reason: msg,
-          attempts,
-        });
+        if (!firstAuthError) firstAuthError = { status: r.status, message: msg };
+        break;
       }
     } catch (e: any) {
       attempts.push({ model, status: 0, message: e?.message || "network error" });
     }
   }
 
-  // Aucun modèle n'a marché — on renvoie tous les essais
-  const lastAttempt = attempts[attempts.length - 1] || { model: "?", status: 0, message: "Aucune réponse" };
-  return NextResponse.json({
-    ok: false,
-    status: lastAttempt.status,
-    reason: `Aucun modèle Claude accessible. Dernière erreur (${lastAttempt.status}): ${lastAttempt.message}`,
-    attempts,
-  });
+  if (firstAuthError) {
+    return NextResponse.json(
+      {
+        ok: false,
+        status: firstAuthError.status,
+        reason: firstAuthError.message,
+        attempts,
+        diagnostic: firstAuthError.status === 401
+          ? "Clé API invalide ou révoquée"
+          : "Clé API sans accès aux modèles Claude (vérifier Workspaces sur console.anthropic.com)",
+      },
+      { headers: noCacheHeaders() }
+    );
+  }
+
+  const last = attempts[attempts.length - 1] || { model: "?", status: 0, message: "Aucune réponse" };
+  return NextResponse.json(
+    {
+      ok: false,
+      status: last.status,
+      reason: last.message,
+      attempts,
+      diagnostic: last.status === 404
+        ? "Aucun modèle Claude n'est accessible avec cette clé — probablement compte sans crédit"
+        : last.status === 429
+        ? "Quota dépassé ou pas de crédit — recharger sur console.anthropic.com/settings/billing"
+        : "Aucun modèle accessible — voir détails par essai ci-dessous",
+    },
+    { headers: noCacheHeaders() }
+  );
 }
