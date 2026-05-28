@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
+import { callAnthropic } from "@/lib/anthropic-helper";
 
 export async function POST(req: NextRequest) {
   const apiKey = getApiKey(req);
@@ -70,25 +71,13 @@ Réponds UNIQUEMENT en JSON valide, rien d'autre :
 }`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
-        max_tokens: 2000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: "Génère les événements autonomes maintenant." }],
-      }),
+    const result = await callAnthropic(apiKey, {
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: "Génère les événements autonomes maintenant." }],
     });
-
-    if (!response.ok) return NextResponse.json({ events: [] });
-
-    const data = await response.json();
-    const text = data.content?.[0]?.text || "{}";
+    if (!result.ok) return NextResponse.json({ events: [] });
+    const text = result.data.content?.[0]?.text || "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return NextResponse.json({ events: [] });
 

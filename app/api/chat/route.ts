@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
+import { callAnthropic } from "@/lib/anthropic-helper";
 
 const GAME_CONTEXT = `
 # CABINET DEC — SIMULATION STRATÉGIQUE
@@ -74,28 +75,17 @@ export async function POST(req: NextRequest) {
       ? buildGhostPrompt(agent_context)
       : buildAgentPrompt(agent_context, game_state);
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
-        max_tokens: mode === "ghost" ? 1600 : 800,
-        system: systemPrompt,
-        messages,
-      }),
+    const result = await callAnthropic(apiKey, {
+      max_tokens: mode === "ghost" ? 1600 : 800,
+      system: systemPrompt,
+      messages,
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      return NextResponse.json({ error: err.error?.message || "Erreur API Claude" }, { status: response.status });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error || "Erreur API Claude" }, { status: result.status || 500 });
     }
 
-    const data = await response.json();
-    return NextResponse.json({ content: data.content[0].text });
+    return NextResponse.json({ content: result.data.content[0].text });
   } catch (error) {
     console.error("Erreur API chat:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });

@@ -37,6 +37,8 @@ interface TaskResult {
   erreurs_manquees: TaskErreur[];
   fausses_alertes: number[];
   note_score: number;
+  note_score_claude: number | null;
+  analyse_note: string | null;
   ecriture_eval: { ok: boolean; feedback: string } | null;
   feedback_general: string;
   impact_legitimite: number;
@@ -304,9 +306,9 @@ export default function Home() {
   const [missionSubmitting, setMissionSubmitting] = useState(false);
   const [missionResult, setMissionResult] = useState<MissionResult | null>(null);
 
-  // Tasks (validation pédagogique)
+  // Tasks (validation pédagogique) — persistance via store/localStorage
   const [tasksPool, setTasksPool] = useState<TaskDoc[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
+  const completedTasks = new Set(store.completed_tasks);
   const [activeTask, setActiveTask] = useState<TaskDoc | null>(null);
   const [taskFlaggedLines, setTaskFlaggedLines] = useState<Set<number>>(new Set());
   const [taskNote, setTaskNote] = useState("");
@@ -324,7 +326,10 @@ export default function Home() {
   const router = useRouter();
   const store = useGameStore();
 
-  useEffect(() => { store.loadGameState(); }, []);
+  useEffect(() => {
+    store.loadGameState();
+    store.loadLocalPersistence();
+  }, []);
 
   useEffect(() => {
     if (!store.isLoading && !store.isAuthenticated) router.push("/auth");
@@ -533,6 +538,36 @@ export default function Home() {
   const agent = store.agents.find((a) => a.id === selectedAgent);
   const unreadCount = store.messages.filter(m => !m.lu).length;
 
+  // Groupe les messages par agent (1 entrée par agent = 1 conversation continue)
+  const conversationsByAgent = (() => {
+    const map = new Map<string, { agent: any; messages: typeof store.messages; lastMsg: typeof store.messages[0]; unread: number; pendingMsg: typeof store.messages[0] | undefined }>();
+    for (const m of store.messages) {
+      const a = store.agents.find((x) => x.id === m.agent_id);
+      if (!a) continue;
+      const existing = map.get(m.agent_id);
+      if (existing) {
+        existing.messages.push(m);
+        if (!m.lu) existing.unread += 1;
+        // Le "dernier" message = celui avec le timestamp le plus récent
+        if (new Date(m.timestamp).getTime() > new Date(existing.lastMsg.timestamp).getTime()) {
+          existing.lastMsg = m;
+        }
+        if (!m.repondu && !existing.pendingMsg) existing.pendingMsg = m;
+      } else {
+        map.set(m.agent_id, {
+          agent: a,
+          messages: [m],
+          lastMsg: m,
+          unread: m.lu ? 0 : 1,
+          pendingMsg: !m.repondu ? m : undefined,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      new Date(b.lastMsg.timestamp).getTime() - new Date(a.lastMsg.timestamp).getTime()
+    );
+  })();
+
   const gameMinutes = store.game_hour * 60 + store.game_minute;
   const dossiersEnCours = store.dossiers.filter(d => d.etat === "en_cours").length;
   const dossiersSurveillance = store.dossiers.filter(d => d.etat === "surveillance").length;
@@ -546,7 +581,10 @@ export default function Home() {
     setInputText("");
     setScoreResult(null);
     setApiError("");
-    store.markMessageRead(messageId);
+    // Marque TOUS les messages non-lus de cet agent comme lus (conversation unique)
+    store.messages.filter(m => m.agent_id === agentId && !m.lu).forEach(m => {
+      store.markMessageRead(m.id);
+    });
     store.loadConversations(agentId);
   }
 
@@ -921,7 +959,7 @@ export default function Home() {
         if (data.impact_legitimite) {
           store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + data.impact_legitimite)) });
         }
-        setCompletedTasks(prev => new Set(prev).add(activeTask.id));
+        store.markTaskCompleted(activeTask.id);
         // Si la branche est associée à une deadline fiscale, on la fait avancer
         const matchingDeadline = store.fiscal_deadlines.find(d => d.filiere_responsable === activeTask.branche);
         if (matchingDeadline && data.score >= 60) {
@@ -1315,69 +1353,68 @@ export default function Home() {
                 <span className="text-[10px] text-[#8e8e93]">{store.messages.length}</span>
               </div>
               <div className="flex-1 overflow-y-auto py-1">
-                {store.messages.map((msg) => {
-                  const a = store.agents.find((ag) => ag.id === msg.agent_id);
-                  if (!a) return null;
-                  const urgent = msg.delai_reponse_heures <= 6;
-                  const isSelected = selectedAgent === msg.agent_id;
+                {conversationsByAgent.map(({ agent: a, lastMsg, unread, pendingMsg, messages }) => {
+                  const display = pendingMsg || lastMsg;
+                  const urgent = pendingMsg && pendingMsg.delai_reponse_heures <= 6;
+                  const isSelected = selectedAgent === a.id;
                   return (
-                    <div key={msg.id}
-                      onClick={() => handleSelectAgent(msg.agent_id, msg.id)}
-                      className={`group mx-2 mb-1 p-3 rounded-[12px] cursor-pointer transition-all ${isSelected ? "bg-gradient-to-r from-[#0071e3] to-[#0a84ff] text-white shadow-md" : msg.lu ? "opacity-70 hover:bg-white/70" : "hover:bg-white/70"}`}>
+                    <div key={a.id}
+                      onClick={() => handleSelectAgent(a.id, display.id)}
+                      className={`group mx-2 mb-1 p-3 rounded-[14px] cursor-pointer transition-all ${isSelected ? "bg-gradient-to-r from-[#0071e3] to-[#0a84ff] text-white shadow-md" : unread === 0 ? "opacity-75 hover:bg-white/80" : "hover:bg-white/80"}`}>
                       <div className="flex items-start gap-2.5">
                         <div className="relative shrink-0">
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shadow-sm" style={{ backgroundColor: a.avatar_color }}>
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shadow-sm" style={{ backgroundColor: a.avatar_color }}>
                             {a.initiales}
                           </div>
-                          <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${isSelected ? "border-[#0071e3]" : "border-[#f5f5f7]"} ${getNiveauDot(msg.niveau)}`} />
+                          {pendingMsg && (
+                            <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${isSelected ? "border-[#0071e3]" : "border-[#f5f5f7]"} ${getNiveauDot(pendingMsg.niveau)}`} />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-0.5">
+                          <div className="flex items-center justify-between mb-0.5 gap-1">
                             <span className={`text-[13px] font-semibold truncate ${isSelected ? "text-white" : "text-[#1d1d1f]"}`}>
                               {a.nom}
-                              {!msg.lu && <span className="ml-1 w-1.5 h-1.5 inline-block rounded-full bg-[#0071e3] align-middle" />}
                             </span>
-                            <span className={`text-[10px] shrink-0 ${urgent ? (isSelected ? "text-red-200" : "text-[#ff3b30]") : isSelected ? "text-white/60" : "text-[#8e8e93]"}`}>
-                              {urgent ? `⚡ ${msg.delai_reponse_heures}h` : `${msg.delai_reponse_heures}h`}
-                            </span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {unread > 0 && !isSelected && (
+                                <span className="text-[9px] font-bold text-white bg-[#0071e3] rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center">{unread}</span>
+                              )}
+                              {urgent && (
+                                <span className={`text-[10px] ${isSelected ? "text-red-200" : "text-[#ff3b30]"}`}>⚡ {pendingMsg!.delai_reponse_heures}h</span>
+                              )}
+                            </div>
                           </div>
-                          <p className={`text-[12px] truncate mb-1 ${isSelected ? "text-white/80" : "text-[#6e6e73]"}`}>{msg.sujet}</p>
+                          <p className={`text-[12px] truncate mb-1 ${isSelected ? "text-white/80" : "text-[#6e6e73]"}`}>
+                            {display.sujet}
+                          </p>
                           <div className="flex items-center gap-1 flex-wrap">
-                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${
-                              isSelected ? "bg-white/20 text-white" :
-                              msg.niveau === "N5" ? "bg-[#ff3b30]/15 text-[#ff3b30]" :
-                              msg.niveau === "N4" ? "bg-[#ff9f0a]/15 text-[#ff9f0a]" :
-                              msg.niveau === "N3" ? "bg-[#ffd60a]/20 text-[#b07800]" :
-                              "bg-[#0071e3]/10 text-[#0071e3]"}`}>
-                              {msg.niveau}
-                            </span>
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded-md ${isSelected ? "bg-white/15 text-white" : "bg-[#f5f5f7] text-[#6e6e73]"}`}>
-                              {msg.type}
-                            </span>
-                            {msg.phase && (
-                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${isSelected ? "bg-white/20 text-white" : getPhaseColor(msg.phase)}`}>
-                                {msg.phase}
+                            {pendingMsg && (
+                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${
+                                isSelected ? "bg-white/20 text-white" :
+                                pendingMsg.niveau === "N5" ? "bg-[#ff3b30]/15 text-[#ff3b30]" :
+                                pendingMsg.niveau === "N4" ? "bg-[#ff9f0a]/15 text-[#ff9f0a]" :
+                                pendingMsg.niveau === "N3" ? "bg-[#ffd60a]/20 text-[#b07800]" :
+                                "bg-[#0071e3]/10 text-[#0071e3]"}`}>
+                                {pendingMsg.niveau}
                               </span>
                             )}
-                            {(msg.niveau === "N1" || msg.niveau === "N2") && !msg.repondu && !isSelected && (
-                              <button onClick={(e) => { e.stopPropagation(); handleArchive(msg.id); }}
-                                className="opacity-0 group-hover:opacity-100 ml-auto p-0.5 rounded hover:bg-black/10 transition-all">
-                                <Archive size={11} className="text-[#6e6e73]" />
-                              </button>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-md ${isSelected ? "bg-white/15 text-white" : "bg-[#f5f5f7] text-[#6e6e73]"}`}>
+                              {messages.length} message{messages.length > 1 ? "s" : ""}
+                            </span>
+                            {!pendingMsg && (
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-md ${isSelected ? "bg-white/15 text-white" : "bg-[#34c759]/10 text-[#34c759]"}`}>
+                                À jour
+                              </span>
                             )}
-                          </div>
-                          <div className="mt-1.5 h-[2px] bg-[#e5e5ea] rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all ${isSelected ? "bg-white/40" : getUrgencyBarColor(msg.niveau)}`}
-                              style={{ width: getUrgencyWidth(msg.delai_reponse_heures) }} />
                           </div>
                         </div>
                       </div>
                     </div>
                   );
                 })}
-                {store.messages.length === 0 && (
+                {conversationsByAgent.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-32 text-center px-4">
-                    <p className="text-[12px] text-[#8e8e93]">Aucun message</p>
+                    <p className="text-[12px] text-[#8e8e93]">Aucune conversation</p>
                     <p className="text-[10px] text-[#c7c7cc] mt-1">Les agents écrivent…</p>
                   </div>
                 )}
@@ -1414,34 +1451,40 @@ export default function Home() {
                   </header>
 
                   <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-                    {selectedMessage && (
-                      <div className="flex gap-3 max-w-[78%]">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 mt-1" style={{ backgroundColor: agent.avatar_color }}>
-                          {agent.initiales}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[11px] font-medium text-[#1d1d1f]">{agent.nom}</span>
-                            <span className="text-[10px] text-[#8e8e93]">il y a {selectedMessage.delai_reponse_heures}h</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
-                              selectedMessage.niveau === "N5" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
-                              selectedMessage.niveau === "N4" ? "bg-[#ff9f0a]/10 text-[#ff9f0a]" :
-                              selectedMessage.niveau === "N3" ? "bg-[#ffd60a]/15 text-[#b07800]" :
-                              "bg-[#0071e3]/10 text-[#0071e3]"}`}>
-                              {getNiveauLabel(selectedMessage.niveau)}
-                            </span>
-                            {selectedMessage.phase && (
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${getPhaseColor(selectedMessage.phase)}`}>
-                                {selectedMessage.phase}
+                    {/* TOUS les messages reçus de l'agent, classés du + ancien au + récent */}
+                    {store.messages
+                      .filter(m => m.agent_id === agent.id)
+                      .slice()
+                      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+                      .map((m) => (
+                        <div key={m.id} className="flex gap-3 max-w-[78%]">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 mt-1" style={{ backgroundColor: agent.avatar_color }}>
+                            {agent.initiales}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="text-[11px] font-medium text-[#1d1d1f]">{agent.nom}</span>
+                              <span className="text-[10px] text-[#8e8e93]">{new Date(m.timestamp).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
+                                m.niveau === "N5" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
+                                m.niveau === "N4" ? "bg-[#ff9f0a]/10 text-[#ff9f0a]" :
+                                m.niveau === "N3" ? "bg-[#ffd60a]/15 text-[#b07800]" :
+                                "bg-[#0071e3]/10 text-[#0071e3]"}`}>
+                                {getNiveauLabel(m.niveau)}
                               </span>
-                            )}
-                          </div>
-                          <div className="bg-white rounded-[18px] rounded-tl-[6px] px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30">
-                            <p className="text-[13px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">{selectedMessage.contenu}</p>
+                              {m.phase && (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${getPhaseColor(m.phase)}`}>
+                                  {m.phase}
+                                </span>
+                              )}
+                              {m.repondu && <span className="text-[9px] text-[#34c759]">✓ traité</span>}
+                            </div>
+                            <div className="bg-white rounded-[18px] rounded-tl-[6px] px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30">
+                              <p className="text-[13px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">{m.contenu}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      ))}
 
                     {(store.conversation_history[agent.id] || []).map((msg, i) => (
                       <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "gap-3 max-w-[78%]"}`}>
@@ -2676,6 +2719,21 @@ export default function Home() {
                   <div className="bg-[#f5f5f7] rounded-[12px] p-3">
                     <p className="text-[12px] text-[#1d1d1f] italic leading-relaxed">"{taskResult.feedback_general}"</p>
                   </div>
+
+                  {/* Analyse détaillée Claude de la note rédigée par le joueur */}
+                  {taskResult.analyse_note && (
+                    <div className="bg-gradient-to-br from-[#0071e3]/5 to-[#5e5ce6]/5 border border-[#0071e3]/20 rounded-[12px] p-3">
+                      <div className="flex items-start gap-2">
+                        <Sparkles size={13} className="text-[#0071e3] mt-0.5 shrink-0" />
+                        <div>
+                          <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-1">
+                            Analyse critique de ta note rédigée {taskResult.note_score_claude !== null && <span className="text-[#1d1d1f]">({taskResult.note_score_claude}/20)</span>}
+                          </div>
+                          <p className="text-[12px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">{taskResult.analyse_note}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {taskResult.erreurs_trouvees.length > 0 && (
                     <div>

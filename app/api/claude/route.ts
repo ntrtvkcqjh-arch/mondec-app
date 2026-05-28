@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
+import { callAnthropic } from "@/lib/anthropic-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -49,28 +50,13 @@ PRINCIPES :
 - Quand il évoque un agent, prends en compte son état émotionnel`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
-        max_tokens: 800,
-        system: systemPrompt,
-        messages,
-      }),
+    const result = await callAnthropic(apiKey, {
+      max_tokens: 800,
+      system: systemPrompt,
+      messages,
     });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      return NextResponse.json({ error: err.error?.message || `API ${response.status}` }, { status: response.status });
-    }
-
-    const data = await response.json();
-    return NextResponse.json({ content: data.content?.[0]?.text || "" });
+    if (!result.ok) return NextResponse.json({ error: result.error || "Erreur API" }, { status: result.status || 500 });
+    return NextResponse.json({ content: result.data.content?.[0]?.text || "" });
   } catch (err: any) {
     return NextResponse.json({ error: "Erreur serveur", details: err?.message }, { status: 500 });
   }

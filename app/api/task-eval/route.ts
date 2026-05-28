@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
+import { callAnthropic } from "@/lib/anthropic-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -84,40 +85,69 @@ export async function POST(req: NextRequest) {
   const impact_legitimite = score >= 80 ? 10 : score < 50 ? -15 : 0;
   const xp_gagne = Math.round(score / 5) + erreurs_trouvees.length * 5;
 
-  // Si une clé API est dispo, on demande à Claude un feedback narratif court
+  // Si une clé API dispo, Claude lit vraiment la note du joueur et produit une analyse détaillée
   let feedback_general = "";
-  if (apiKey) {
-    try {
-      const prompt = `Tu es un examinateur DEC. Tu évalues la validation d'un document comptable.
-DOCUMENT : ${task.titre} (${task.branche})
-ERREURS PRÉSENTES : ${erreurs.length}
-ERREURS TROUVÉES PAR LE JOUEUR : ${erreurs_trouvees.length}
-ERREURS MANQUÉES : ${erreurs_manquees.length}
-FAUSSES ALERTES : ${fausses_alertes.length}
-DÉCISION : ${decision}
-NOTE DE CORRECTION DU JOUEUR : "${note_correction || "(rien)"}"
-SCORE FINAL : ${score}/100
+  let analyse_note: string | null = null;
+  let note_score_claude: number | null = null;
 
-Écris 1 phrase d'évaluation directe et pédagogique (max 25 mots, ton examinateur DEC). Pas d'introduction.`;
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({
-          model: "claude-3-5-haiku-latest",
-          max_tokens: 150,
-          messages: [{ role: "user", content: prompt }],
-        }),
+  if (apiKey && note_correction && note_correction.length > 10) {
+    try {
+      const erreursRecap = erreurs.map(e =>
+        `L${e.ligne_index + 1} — ${e.description} (${e.reference_legale})`
+      ).join("\n");
+      const prompt = `Tu es un examinateur DEC senior. Analyse la note de correction d'un candidat sur la validation d'un document comptable.
+
+DOCUMENT ANALYSÉ : ${task.titre} (branche ${task.branche})
+ERREURS RÉELLES PRÉSENTES :
+${erreursRecap || "Aucune"}
+
+LIGNES SIGNALÉES PAR LE CANDIDAT : ${(lignes_signalees || []).map((i: number) => "L" + (i + 1)).join(", ") || "Aucune"}
+DÉCISION DU CANDIDAT : ${decision}
+
+NOTE DE CORRECTION RÉDIGÉE PAR LE CANDIDAT :
+"""
+${note_correction}
+"""
+
+CONSIGNE :
+1. Lis attentivement la note du candidat.
+2. Évalue si elle identifie correctement les erreurs (par les bons articles : CGI, PCG, BOFiP, IFRS…).
+3. Note la précision du vocabulaire EC, la clarté du raisonnement, la pertinence des références.
+4. Donne une note sur 20 spécifique à la note rédigée.
+
+Réponds UNIQUEMENT en JSON valide :
+{
+  "note_sur_20": <0-20>,
+  "analyse_detaillee": "<3-5 phrases d'analyse critique détaillée, citant les forces et les faiblesses spécifiques de SA note, avec les vraies références>",
+  "synthese": "<1 phrase examinateur, max 25 mots>"
+}`;
+      const r = await callAnthropic(apiKey, {
+        max_tokens: 600,
+        messages: [{ role: "user", content: prompt }],
       });
       if (r.ok) {
-        const d = await r.json();
-        feedback_general = d.content?.[0]?.text?.trim() || "";
+        const text = r.data.content?.[0]?.text || "";
+        const m = text.match(/\{[\s\S]*\}/);
+        if (m) {
+          try {
+            const parsed = JSON.parse(m[0]);
+            analyse_note = parsed.analyse_detaillee || null;
+            feedback_general = parsed.synthese || "";
+            if (typeof parsed.note_sur_20 === "number") {
+              note_score_claude = parsed.note_sur_20;
+              // Remplace le score_note déterministe par celui de Claude (plus juste)
+              score = score - note_score; // retire l'ancien bonus
+              score = Math.min(100, Math.max(0, score + note_score_claude));
+            }
+          } catch {}
+        }
       }
     } catch {}
   }
 
   if (!feedback_general) {
-    if (score >= 80) feedback_general = "Œil expert confirmé. Toutes les erreurs critiques relevées avec les bons textes.";
-    else if (score >= 50) feedback_general = "Travail correct mais perfectible. Certaines erreurs ont été manquées.";
+    if (score >= 80) feedback_general = "Œil expert confirmé. Erreurs critiques relevées avec les bons textes.";
+    else if (score >= 50) feedback_general = "Travail correct mais perfectible. Certaines erreurs manquées.";
     else feedback_general = "Validation insuffisante. Erreurs importantes manquées — relire les textes applicables.";
   }
 
@@ -127,6 +157,8 @@ SCORE FINAL : ${score}/100
     erreurs_manquees,
     fausses_alertes,
     note_score,
+    note_score_claude,
+    analyse_note,
     ecriture_eval,
     feedback_general,
     impact_legitimite,

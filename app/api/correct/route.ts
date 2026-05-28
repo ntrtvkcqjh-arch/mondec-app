@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
+import { callAnthropic } from "@/lib/anthropic-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -38,28 +39,13 @@ FORMAT JSON OBLIGATOIRE :
 }`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: "Corrige cette réponse maintenant." }],
-      }),
+    const result = await callAnthropic(apiKey, {
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: "Corrige cette réponse maintenant." }],
     });
-
-    if (!response.ok) {
-      const err = await response.text();
-      return NextResponse.json({ error: `API ${response.status}`, details: err }, { status: 500 });
-    }
-
-    const data = await response.json();
-    const text = data.content?.[0]?.text || "{}";
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status || 500 });
+    const text = result.data.content?.[0]?.text || "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return NextResponse.json({ error: "Parse error", raw: text }, { status: 500 });
 

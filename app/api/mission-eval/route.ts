@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
+import { callAnthropic } from "@/lib/anthropic-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -111,19 +112,11 @@ export async function POST(req: NextRequest) {
       const prompt = `Examinateur DEC mission "${mission.titre}". Score global ${score_20}/20.
 Étapes faibles : ${etapesFaibles.join(", ") || "aucune"}.
 Synthèse 2 phrases max (40 mots), ton examinateur. Pas d'intro.`;
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({
-          model: "claude-3-5-haiku-latest",
-          max_tokens: 200,
-          messages: [{ role: "user", content: prompt }],
-        }),
+      const r = await callAnthropic(apiKey, {
+        max_tokens: 200,
+        messages: [{ role: "user", content: prompt }],
       });
-      if (r.ok) {
-        const d = await r.json();
-        synthese = d.content?.[0]?.text?.trim() || "";
-      }
+      if (r.ok) synthese = r.data.content?.[0]?.text?.trim() || "";
     } catch {}
   }
 

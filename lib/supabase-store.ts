@@ -111,6 +111,9 @@ export interface GameState {
   dec_completed_mission_ids: string[];
   dec_badges: string[];
 
+  // Tasks (validation pédagogique) — persistant
+  completed_tasks: string[];
+
   agents: Agent[];
   messages: Message[];
   dossiers: Dossier[];
@@ -167,9 +170,26 @@ export interface GameState {
   markMissionCompleted: (missionId: string) => void;
   addBadge: (badge: string) => void;
   checkDecRollover: () => void;
+
+  // Tasks
+  markTaskCompleted: (taskId: string) => void;
+  loadLocalPersistence: () => void;
 }
 
 const xpForLevel = (level: number) => 100 + level * 50;
+
+function persistDec(s: any) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("dec_state", JSON.stringify({
+      deonto: s.dec_completed_deonto_ids,
+      mission: s.dec_completed_mission_ids,
+      badges: s.dec_badges,
+      streak: s.dec_streak,
+      last_day: s.dec_last_day,
+    }));
+  } catch {}
+}
 
 export const useGameStore = create<GameState>((set, get) => ({
   user_id: null,
@@ -197,6 +217,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   dec_completed_deonto_ids: [],
   dec_completed_mission_ids: [],
   dec_badges: [],
+
+  completed_tasks: [],
 
   agents: [],
   messages: [],
@@ -463,6 +485,32 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   addNewMessage: async (event) => {
     const state = get();
+
+    // Anti-doublon : si un message non-répondu avec un sujet similaire existe déjà
+    // pour cet agent, on ne le réinjecte pas
+    const normSubject = event.sujet.toLowerCase().trim();
+    const dup = state.messages.find(
+      (m) => m.agent_id === event.agent_id && !m.repondu && m.sujet.toLowerCase().trim() === normSubject
+    );
+    if (dup) {
+      console.log("[Store] Doublon évité :", event.sujet);
+      return;
+    }
+
+    // Dedup soft : si > 80% de similarité avec un sujet récent (24h), on skippe aussi
+    const recentSubjects = state.messages
+      .filter((m) => m.agent_id === event.agent_id && !m.repondu)
+      .map((m) => m.sujet.toLowerCase());
+    const tooSimilar = recentSubjects.some((s) => {
+      const shorter = s.length < normSubject.length ? s : normSubject;
+      const longer = s.length < normSubject.length ? normSubject : s;
+      return longer.includes(shorter) && shorter.length > 8;
+    });
+    if (tooSimilar) {
+      console.log("[Store] Sujet trop similaire évité :", event.sujet);
+      return;
+    }
+
     const messageId = `msg_auto_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
 
     const newMsg: Message = {
@@ -914,11 +962,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       dec_today_deonto: true,
       dec_completed_deonto_ids: Array.from(new Set([...s.dec_completed_deonto_ids, ...questionIds])).slice(-200),
     }));
-    // Si déjà mission faite aussi → streak ++
     const s = get();
     if (s.dec_today_mission && s.dec_last_day !== s.game_day) {
       set({ dec_streak: s.dec_streak + 1, dec_last_day: s.game_day });
     }
+    persistDec(get());
   },
 
   markMissionCompleted: (missionId) => {
@@ -930,12 +978,50 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (s.dec_today_deonto && s.dec_last_day !== s.game_day) {
       set({ dec_streak: s.dec_streak + 1, dec_last_day: s.game_day });
     }
+    persistDec(get());
   },
 
   addBadge: (badge) => {
     set((s) => ({
       dec_badges: s.dec_badges.includes(badge) ? s.dec_badges : [...s.dec_badges, badge],
     }));
+    persistDec(get());
+  },
+
+  markTaskCompleted: (taskId) => {
+    set((s) => {
+      const next = Array.from(new Set([...s.completed_tasks, taskId]));
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("completed_tasks", JSON.stringify(next));
+        }
+      } catch {}
+      return { completed_tasks: next };
+    });
+  },
+
+  loadLocalPersistence: () => {
+    if (typeof window === "undefined") return;
+    try {
+      const tasks = localStorage.getItem("completed_tasks");
+      if (tasks) {
+        const arr = JSON.parse(tasks);
+        if (Array.isArray(arr)) set({ completed_tasks: arr });
+      }
+      const dec = localStorage.getItem("dec_state");
+      if (dec) {
+        const d = JSON.parse(dec);
+        set((s) => ({
+          dec_completed_deonto_ids: d.deonto || s.dec_completed_deonto_ids,
+          dec_completed_mission_ids: d.mission || s.dec_completed_mission_ids,
+          dec_badges: d.badges || s.dec_badges,
+          dec_streak: d.streak ?? s.dec_streak,
+          dec_last_day: d.last_day ?? s.dec_last_day,
+        }));
+      }
+    } catch (e) {
+      console.warn("[Store] loadLocalPersistence failed:", e);
+    }
   },
 
   // Réinitialise les drapeaux du jour quand on change de jour de jeu

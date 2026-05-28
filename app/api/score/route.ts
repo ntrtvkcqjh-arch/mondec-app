@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
+import { callAnthropic } from "@/lib/anthropic-helper";
 
 export async function POST(req: NextRequest) {
   const apiKey = getApiKey(req);
@@ -49,23 +50,13 @@ Réponds UNIQUEMENT en JSON valide :
 }`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-3-5-haiku-latest",
-        max_tokens: 800,
-        system: systemPrompt,
-        messages: [{ role: "user", content: "Évalue cette réponse maintenant." }],
-      }),
+    const result = await callAnthropic(apiKey, {
+      max_tokens: 800,
+      system: systemPrompt,
+      messages: [{ role: "user", content: "Évalue cette réponse maintenant." }],
     });
-
-    const data = await response.json();
-    const text = data.content?.[0]?.text || "{}";
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status || 500 });
+    const text = result.data.content?.[0]?.text || "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return NextResponse.json({ error: "Parse error" }, { status: 500 });
 
