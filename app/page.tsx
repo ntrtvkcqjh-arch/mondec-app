@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 
 type Tab = "messages" | "equipe" | "agenda" | "dossiers" | "dec";
-type SendPhase = "draft" | "picking" | "waiting" | "scoring";
 
 interface GhostVersion { label: string; sublabel: string; text: string; color: string; }
 interface Dilemme { id: string; titre: string; description: string; options: { id: string; label: string; cout_PA: number; consequence_differee: string }[]; }
@@ -113,8 +112,10 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("messages");
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
-  const [phase, setPhase] = useState<SendPhase>("draft");
+  const [sending, setSending] = useState(false);
   const [ghostVersions, setGhostVersions] = useState<GhostVersion[] | null>(null);
+  const [gwLoading, setGwLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
   const [dilemme, setDilemme] = useState<Dilemme | null>(null);
   const [dilemmeResolu, setDilemmeResolu] = useState(false);
   const [generatingEvents, setGeneratingEvents] = useState(false);
@@ -180,27 +181,24 @@ export default function Home() {
   function handleSelectAgent(agentId: string, messageId: string) {
     setSelectedAgent(agentId);
     setGhostVersions(null);
-    setPhase("draft");
     setInputText("");
     setScoreResult(null);
+    setApiError("");
     store.markMessageRead(messageId);
     store.loadConversations(agentId);
   }
 
-  // Envoi direct (Enter) — toujours fonctionnel
-  async function handleDirectSend() {
-    if (!inputText.trim() || !agent || phase !== "draft") return;
-    const text = inputText;
-    setGhostVersions(null);
+  function handleDirectSend() {
+    if (!inputText.trim() || !agent || sending) return;
+    const text = inputText.trim();
     setInputText("");
-    await sendAndGetResponse(text);
+    sendMessage(text);
   }
 
-  // Ghost Writer optionnel (bouton ✨) — propose 3 versions avant envoi
   async function handleGhostDraft() {
-    if (!inputText.trim() || !agent || phase !== "draft") return;
-    const savedText = inputText;
-    setPhase("picking");
+    if (!inputText.trim() || !agent || sending || gwLoading) return;
+    const savedText = inputText.trim();
+    setGwLoading(true);
     setGhostVersions(null);
     try {
       const res = await fetch("/api/chat", {
@@ -212,58 +210,86 @@ export default function Home() {
           agent_context: { ...agent, sujet: selectedMessage?.sujet },
         }),
       });
-      if (!res.ok) throw new Error("api_error");
+      if (!res.ok) throw new Error();
       const data = await res.json();
-      if (!data.content) throw new Error("no_content");
+      if (!data.content) throw new Error();
       const versions = parseGhostVersions(data.content);
-      if (versions) { setGhostVersions(versions); }
-      else { setPhase("draft"); setInputText(""); await sendAndGetResponse(savedText); }
+      if (versions) {
+        setGhostVersions(versions);
+      } else {
+        setInputText("");
+        sendMessage(savedText);
+      }
     } catch {
-      // GW échoue → envoi direct en fallback
-      setPhase("draft");
       setInputText("");
-      await sendAndGetResponse(savedText);
+      sendMessage(savedText);
+    } finally {
+      setGwLoading(false);
     }
   }
 
-  async function handlePickVersion(text: string) {
+  function handlePickVersion(text: string) {
     setGhostVersions(null);
-    setPhase("draft");
     setInputText("");
-    await sendAndGetResponse(text);
+    sendMessage(text);
   }
 
-  async function sendAndGetResponse(text: string) {
-    if (!agent) return;
+  async function sendMessage(text: string) {
+    if (!agent || sending) return;
+    const a = agent;
     const niveau = selectedMessage?.niveau || "N2";
     const cost = getPACost(niveau);
-    if (cost > 0 && !store.spendPA(cost)) { alert("Pas assez de Points d'Action !"); setPhase("draft"); return; }
-    setPhase("waiting");
-    setLastPlayerMessage(text);
+    if (cost > 0 && !store.spendPA(cost)) { alert("Pas assez de Points d'Action !"); return; }
+
+    setSending(true);
+    setApiError("");
     setScoreResult(null);
+    setLastPlayerMessage(text);
+
+    const currentHistory = store.conversation_history[a.id] || [];
+    const userMsg = { role: "user" as const, content: text };
+
+    // Optimistic update — direct setState bypasses user_id guard in addConversation
+    useGameStore.setState((s) => ({
+      conversation_history: {
+        ...s.conversation_history,
+        [a.id]: [...(s.conversation_history[a.id] || []), userMsg],
+      },
+    }));
 
     try {
-      const history = store.conversation_history[agent.id] || [];
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "agent",
-          messages: [...history, { role: "user", content: text }],
-          agent_context: agent,
+          messages: [...currentHistory, userMsg],
+          agent_context: a,
           game_state: { date: store.date_simulation, mood: store.mood_global, joursRestants: 16 },
         }),
       });
 
+      if (!res.ok) { setApiError(`Erreur ${res.status}`); return; }
       const data = await res.json();
+      if (data.error) { setApiError(data.error); return; }
 
       if (data.content) {
-        await store.addConversation(agent.id, "user", text);
-        await store.addConversation(agent.id, "assistant", data.content);
-        if (selectedMessage) await store.replyToMessage(selectedMessage.id, text);
+        useGameStore.setState((s) => ({
+          conversation_history: {
+            ...s.conversation_history,
+            [a.id]: [
+              ...(s.conversation_history[a.id] || []),
+              { role: "assistant" as const, content: data.content },
+            ],
+          },
+        }));
 
-        // Score IA en arrière-plan (non-bloquant)
-        setPhase("scoring");
+        if (store.user_id) {
+          store.addConversation(a.id, "user", text).catch(() => {});
+          store.addConversation(a.id, "assistant", data.content).catch(() => {});
+        }
+        if (selectedMessage) store.replyToMessage(selectedMessage.id, text).catch(() => {});
+
         fetch("/api/score", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -271,7 +297,7 @@ export default function Home() {
             player_message: text,
             agent_original_message: selectedMessage?.contenu || "",
             agent_response: data.content,
-            agent_context: agent,
+            agent_context: a,
           }),
         }).then(r => r.json()).then(scoreData => {
           if (scoreData.score_global !== undefined) {
@@ -280,12 +306,12 @@ export default function Home() {
               store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + scoreData.impact.legitimite_delta)) });
             }
           }
-        }).catch(() => {}).finally(() => setPhase("draft"));
-      } else {
-        setPhase("draft");
+        }).catch(() => {});
       }
     } catch {
-      setPhase("draft");
+      setApiError("Erreur réseau");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -562,23 +588,17 @@ export default function Home() {
                     ))}
 
                     {/* Indicateur "agent répond..." */}
-                    {(phase === "waiting" || phase === "scoring") && (
+                    {sending && (
                       <div className="flex gap-3 max-w-[78%]">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: agent.avatar_color }}>
                           {agent.initiales}
                         </div>
                         <div className="bg-white rounded-[18px] rounded-tl-[6px] px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30">
-                          {phase === "scoring" ? (
-                            <span className="text-[12px] text-[#6e6e73] flex items-center gap-1.5">
-                              <Zap size={11} className="text-[#0071e3]" /> Ghost Writer note ta réponse…
-                            </span>
-                          ) : (
-                            <div className="flex gap-1 items-center">
-                              <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "0ms" }} />
-                              <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "150ms" }} />
-                              <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "300ms" }} />
-                            </div>
-                          )}
+                          <div className="flex gap-1 items-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "300ms" }} />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -589,7 +609,7 @@ export default function Home() {
                     )}
 
                     {/* Ghost Writer — 3 versions */}
-                    {ghostVersions && phase === "picking" && (
+                    {ghostVersions && !sending && (
                       <div className="space-y-2 py-2">
                         <div className="flex items-center justify-between">
                           <p className="text-[11px] font-semibold text-[#6e6e73] uppercase tracking-wider flex items-center gap-1.5">
@@ -621,20 +641,25 @@ export default function Home() {
 
                   {/* Zone de saisie */}
                   <div className="px-6 py-3 glass border-t border-[#d2d2d7]/50">
-                    {phase === "picking" && !ghostVersions && (
+                    {gwLoading && (
                       <div className="flex items-center gap-2 mb-2 text-[11px] text-[#6e6e73]">
                         <RefreshCw size={11} className="animate-spin text-[#0071e3]" />
                         Ghost Writer analyse ton brouillon…
                       </div>
                     )}
+                    {apiError && (
+                      <div className="flex items-center gap-2 mb-2 text-[11px] text-[#ff3b30]">
+                        <AlertTriangle size={11} /> {apiError}
+                      </div>
+                    )}
                     <div className="flex items-end gap-2">
                       <div className={`flex-1 bg-white border rounded-[14px] px-4 py-2.5 shadow-sm transition-all ${
-                        phase === "waiting" || phase === "scoring" ? "border-[#d2d2d7]/40 opacity-60" : "border-[#d2d2d7]/80"
+                        sending ? "border-[#d2d2d7]/40 opacity-60" : "border-[#d2d2d7]/80"
                       }`}>
                         <textarea
                           value={inputText}
                           onChange={(e) => {
-                            if (phase === "waiting" || phase === "scoring") return;
+                            if (sending) return;
                             setInputText(e.target.value);
                             e.target.style.height = "auto";
                             e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
@@ -645,11 +670,10 @@ export default function Home() {
                               handleDirectSend();
                             }
                           }}
-                          disabled={phase === "waiting" || phase === "scoring"}
+                          disabled={sending}
                           placeholder={
-                            phase === "waiting" ? `${agent.nom} rédige sa réponse…` :
-                            phase === "scoring" ? "Évaluation en cours…" :
-                            phase === "picking" ? "Choisis une version Ghost Writer ci-dessus, ou continue à écrire…" :
+                            sending ? `${agent.nom} rédige sa réponse…` :
+                            ghostVersions ? "Choisis une version Ghost Writer ci-dessus, ou continue à écrire…" :
                             `Répondre à ${agent.nom}… (↵ Envoyer · ✨ Ghost Writer)`
                           }
                           rows={1}
@@ -660,23 +684,23 @@ export default function Home() {
                       {/* Bouton Ghost Writer */}
                       <button
                         onClick={handleGhostDraft}
-                        disabled={phase !== "draft" || !inputText.trim()}
+                        disabled={sending || gwLoading || !inputText.trim()}
                         title="Ghost Writer — 3 versions corrigées"
                         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 border ${
-                          phase === "draft" && inputText.trim()
+                          !sending && !gwLoading && inputText.trim()
                             ? "border-[#0071e3]/30 bg-[#0071e3]/5 text-[#0071e3] hover:bg-[#0071e3]/10"
                             : "border-[#e5e5ea] bg-white text-[#c7c7cc] cursor-not-allowed"}`}>
-                        <Zap size={14} />
+                        {gwLoading ? <div className="w-3 h-3 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin" /> : <Zap size={14} />}
                       </button>
                       {/* Bouton Envoyer */}
                       <button
                         onClick={handleDirectSend}
-                        disabled={phase !== "draft" || !inputText.trim()}
+                        disabled={sending || !inputText.trim()}
                         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm shrink-0 ${
-                          phase === "draft" && inputText.trim()
+                          !sending && inputText.trim()
                             ? "bg-[#0071e3] hover:bg-[#0077ed] text-white"
                             : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"}`}>
-                        {phase === "waiting" || phase === "scoring" ? (
+                        {sending ? (
                           <div className="w-3 h-3 border-2 border-[#8e8e93] border-t-transparent rounded-full animate-spin" />
                         ) : (
                           <Send size={15} />
