@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "Vercel deployment — serves static GitHub Pages build + Slack bridge API at /api/*",
+  "scripts": {
+    "build": "mkdir -p dist && cp index.html dist/ && cp -r assets dist/"
+  },
   "dependencies": {
     "@vercel/kv": "^1.0.1"
   }
