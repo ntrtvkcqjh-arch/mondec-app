@@ -1,0 +1,8 @@
+# Supabase config — JWT verification DISABLED for Slack webhooks
+# Slack ne peut pas envoyer de JWT, donc les fonctions doivent être publiques.
+
+[functions.events]
+verify_jwt = false
+
+[functions.replies]
+verify_jwt = false
