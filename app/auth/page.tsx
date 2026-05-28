@@ -106,7 +106,7 @@ export default function AuthPage() {
             onClick={() => setIsSignUp(!isSignUp)}
             className="text-indigo-600 font-medium hover:underline"
           >
-            {isSignUp ? "Se connecter" : "S&apos;inscrire"}
+            {isSignUp ? "Se connecter" : "S'inscrire"}
           </button>
         </p>
       </div>
