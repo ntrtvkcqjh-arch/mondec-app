@@ -59,6 +59,19 @@ export interface ClaudeMsg {
   content: string;
 }
 
+export interface FiscalDeadline {
+  id: string;
+  label: string;
+  echeance_label: string;
+  echeance_day: number;
+  echeance_month: number;
+  progression: number;
+  filiere_responsable: string;
+  depend_de: string | null;
+  cout_retard: number;
+  campagne: "IR" | "Bilan" | "Rentree" | "Prep" | "Mensuel";
+}
+
 export interface GameState {
   user_id: string | null;
   legitimite: number;
@@ -83,6 +96,7 @@ export interface GameState {
   agents: Agent[];
   messages: Message[];
   dossiers: Dossier[];
+  fiscal_deadlines: FiscalDeadline[];
   conversation_history: Record<string, { role: string; content: string }[]>;
   claude_history: ClaudeMsg[];
   isLoading: boolean;
@@ -119,6 +133,11 @@ export interface GameState {
   updateAgent: (id: string, patch: Partial<Agent>) => void;
   recomputeMood: () => void;
   applyOutcome: (agentId: string, score: number) => void;
+
+  // Calendrier fiscal
+  advanceDeadline: (id: string, amount: number) => void;
+  autoAdvanceDeadlines: () => void;
+  checkOverdueDeadlines: () => void;
 }
 
 const xpForLevel = (level: number) => 100 + level * 50;
@@ -145,6 +164,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   agents: [],
   messages: [],
   dossiers: [],
+  fiscal_deadlines: [
+    { id: "dsn_mai", label: "DSN mensuelle", echeance_label: "5 mai", echeance_day: 5, echeance_month: 5, progression: 85, filiere_responsable: "Social", depend_de: null, cout_retard: 1500, campagne: "Mensuel" },
+    { id: "is_acompte", label: "Acompte IS", echeance_label: "15 mai", echeance_day: 15, echeance_month: 5, progression: 60, filiere_responsable: "Fiscal", depend_de: null, cout_retard: 5000, campagne: "Mensuel" },
+    { id: "tva_mai", label: "TVA mensuelle", echeance_label: "20 mai", echeance_day: 20, echeance_month: 5, progression: 75, filiere_responsable: "Fiscal", depend_de: null, cout_retard: 3000, campagne: "Mensuel" },
+    { id: "bilan_juin", label: "Bilan + AG (Boss)", echeance_label: "30 juin", echeance_day: 30, echeance_month: 6, progression: 32, filiere_responsable: "Audit & IFRS", depend_de: "tva_mai", cout_retard: 30000, campagne: "Bilan" },
+  ],
   conversation_history: {},
   claude_history: [],
   isLoading: true,
@@ -597,6 +622,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (dossier) {
         get().advanceDossier(dossier.id, 12);
       }
+      // Avance aussi la deadline fiscale de sa filière
+      const deadline = state.fiscal_deadlines.find((d) => d.filiere_responsable === agent.filiere && d.progression < 100);
+      if (deadline) get().advanceDeadline(deadline.id, 5);
     } else if (score >= 55) {
       get().updateAgent(agentId, {
         confiance_joueur: Math.min(100, agent.confiance_joueur + 1),
@@ -609,5 +637,98 @@ export const useGameStore = create<GameState>((set, get) => ({
       });
     }
     get().recomputeMood();
+  },
+
+  advanceDeadline: (id, amount) => {
+    set((state) => ({
+      fiscal_deadlines: state.fiscal_deadlines.map((d) =>
+        d.id === id ? { ...d, progression: Math.min(100, d.progression + amount) } : d
+      ),
+    }));
+  },
+
+  // Auto-progression : chaque agent autonome fait avancer la deadline de sa filière
+  // selon son grade, son stress, sa confiance et sa loyauté
+  autoAdvanceDeadlines: () => {
+    const state = get();
+    const updates: Record<string, number> = {};
+
+    state.agents.forEach((agent) => {
+      if (agent.stress > 85) return; // burn-out = pas d'avancement
+      let contribution = 0;
+      const niveau = (agent as any).niveau || "Collaborateur";
+      if (niveau === "Directeur") contribution = 2.5;
+      else if (niveau === "Manager") contribution = 2.0;
+      else if (niveau === "Collaborateur") contribution = 1.2;
+      else contribution = 0.6; // Stagiaire
+
+      // Modulation par stress (haut stress = moins efficace)
+      if (agent.stress > 70) contribution *= 0.5;
+      // Modulation par confiance (faible confiance = ne bosse pas autant)
+      if (agent.confiance_joueur < 40) contribution *= 0.6;
+      // Modulation par fatigue
+      if (agent.fatigue > 70) contribution *= 0.7;
+
+      // Trouve la deadline correspondante (par filière)
+      const deadlines = state.fiscal_deadlines.filter(
+        (d) => d.filiere_responsable === agent.filiere && d.progression < 100
+      );
+      deadlines.forEach((d) => {
+        // Si la deadline dépend d'une autre, seulement la moitié de la contribution tant que la dépendance n'est pas finie
+        if (d.depend_de) {
+          const dep = state.fiscal_deadlines.find((x) => x.id === d.depend_de);
+          if (dep && dep.progression < 80) {
+            updates[d.id] = (updates[d.id] || 0) + contribution * 0.3;
+          } else {
+            updates[d.id] = (updates[d.id] || 0) + contribution;
+          }
+        } else {
+          updates[d.id] = (updates[d.id] || 0) + contribution;
+        }
+      });
+    });
+
+    set((state) => ({
+      fiscal_deadlines: state.fiscal_deadlines.map((d) =>
+        updates[d.id]
+          ? { ...d, progression: Math.min(100, d.progression + updates[d.id]) }
+          : d
+      ),
+    }));
+  },
+
+  checkOverdueDeadlines: () => {
+    const state = get();
+    // Pour chaque deadline non finie dont la date est passée, appliquer la pénalité une fois
+    const day = state.game_day;
+    state.fiscal_deadlines.forEach((d) => {
+      // Approximation : on simule que day=1 → 14 mai, donc day-1 = +jours
+      const baseDay = 14 + (day - 1);
+      const isOverdue = (d.echeance_month === 5 && baseDay > d.echeance_day) || (d.echeance_month < 5);
+      if (isOverdue && d.progression < 100) {
+        // Pénalité unique : appliquée une fois par jour
+        const flag = `overdue_${d.id}_d${day}`;
+        if (typeof window !== "undefined" && !localStorage.getItem(flag)) {
+          localStorage.setItem(flag, "1");
+          set((s) => ({
+            tresorerie: Math.max(0, s.tresorerie - d.cout_retard),
+            stress_global: Math.min(100, s.stress_global + 5),
+            reputation: Math.max(0, s.reputation - 3),
+          }));
+          // Message N4 auto
+          const responsable = state.agents.find((a) => a.filiere === d.filiere_responsable);
+          if (responsable) {
+            get().addNewMessage({
+              agent_id: responsable.id,
+              niveau: "N4",
+              type: "Probleme",
+              sujet: `⚠ Échéance dépassée — ${d.label}`,
+              contenu: `${responsable.nom.split(" ")[0]}: on a dépassé l'échéance ${d.echeance_label} pour ${d.label}. Pénalité ${(d.cout_retard / 1000).toFixed(1)}k€ encaissée. On rattrape comment ?`,
+              delai_reponse_heures: 6,
+            });
+          }
+        }
+      }
+    });
   },
 }));

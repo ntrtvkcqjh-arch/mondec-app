@@ -1,0 +1,221 @@
+{
+  "tasks": [
+    {
+      "id": "task_liasse_martin",
+      "type": "liasse_2033",
+      "branche": "Comptable",
+      "titre": "Liasse 2033 — Martin SARL",
+      "client": "Martin SARL",
+      "niveau_min": 2,
+      "contexte": "PME industrielle. Tu dois valider la liasse 2033 avant dépôt. Vérifie les retraitements fiscaux.",
+      "lignes": [
+        { "label": "Achats marchandises", "valeur": "182 450 €" },
+        { "label": "Loyer locaux", "valeur": "24 000 €" },
+        { "label": "Charges externes — Honoraires", "valeur": "8 200 €" },
+        { "label": "Amendes et pénalités routières", "valeur": "450 €" },
+        { "label": "Cadeaux clients (12 unités × 110 € HT)", "valeur": "1 320 €" },
+        { "label": "Salaires bruts", "valeur": "168 000 €" },
+        { "label": "Charges sociales", "valeur": "78 000 €" },
+        { "label": "Dotation amortissements", "valeur": "15 600 €" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 3,
+          "description": "Amendes routières comptabilisées en charges déductibles",
+          "reference_legale": "Art. 39-2 du CGI",
+          "correction": "Les amendes pour infraction au code de la route ne sont JAMAIS déductibles fiscalement. Réintégrer 450 €."
+        },
+        {
+          "ligne_index": 4,
+          "description": "Cadeaux clients dépassant le seuil 73 € TTC/bénéficiaire",
+          "reference_legale": "BOFiP-BIC-CHG-40-60-10 et art. 238 bis CGI",
+          "correction": "Cadeaux > 73 € TTC/bénéficiaire/an = non déductibles dans leur intégralité. Réintégrer 1 320 €."
+        }
+      ],
+      "ecriture_correction": {
+        "debit_compte": "658",
+        "credit_compte": "707",
+        "montant": 1770,
+        "libelle": "Réintégration fiscale extra-comptable charges non déductibles"
+      }
+    },
+    {
+      "id": "task_tva_delice",
+      "type": "tva_ca3",
+      "branche": "Fiscal",
+      "titre": "Déclaration TVA CA3 — Restaurant Délice",
+      "client": "Restaurant Délice SARL",
+      "niveau_min": 1,
+      "contexte": "Restaurant traditionnel. La CA3 du mois est préparée par le stagiaire. Période : mai 2026.",
+      "lignes": [
+        { "label": "Ventes restauration sur place — Base HT", "valeur": "48 500 €" },
+        { "label": "Ventes restauration sur place — TVA collectée 20%", "valeur": "9 700 €" },
+        { "label": "Ventes alcools — Base HT", "valeur": "8 200 €" },
+        { "label": "Ventes alcools — TVA collectée 20%", "valeur": "1 640 €" },
+        { "label": "TVA déductible sur immobilisations (matériel cuisine)", "valeur": "1 250 €" },
+        { "label": "TVA déductible autres biens & services", "valeur": "2 100 €" },
+        { "label": "TVA nette à décaisser", "valeur": "7 990 €" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 1,
+          "description": "Taux TVA 20% appliqué à la restauration sur place",
+          "reference_legale": "Art. 279 m du CGI",
+          "correction": "La restauration sur place (hors alcools) est au taux intermédiaire 10%, pas 20%. TVA correcte = 48 500 × 10% = 4 850 €."
+        }
+      ],
+      "ecriture_correction": {
+        "debit_compte": "44571",
+        "credit_compte": "707",
+        "montant": 4850,
+        "libelle": "Régularisation TVA collectée taux 10% restauration"
+      }
+    },
+    {
+      "id": "task_attestation_tva_petit",
+      "type": "attestation_tva",
+      "branche": "Comptable",
+      "titre": "Attestation TVA travaux — Petit",
+      "client": "M. Jean Petit",
+      "niveau_min": 1,
+      "contexte": "Attestation à délivrer pour des travaux dans la résidence principale (logement > 2 ans). Taux réduit 10%.",
+      "lignes": [
+        { "label": "Nature des travaux", "valeur": "Rénovation salle de bain" },
+        { "label": "Adresse du chantier", "valeur": "12 rue des Lilas, Paris" },
+        { "label": "Logement achevé depuis plus de 2 ans", "valeur": "Oui (construit 1985)" },
+        { "label": "Montant HT travaux", "valeur": "8 500 €" },
+        { "label": "Taux TVA applicable", "valeur": "10 %" },
+        { "label": "Mention « certifie exact »", "valeur": "Présente" },
+        { "label": "Signature du client", "valeur": "Manquante" },
+        { "label": "Date de signature", "valeur": "Vide" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 6,
+          "description": "Signature du client manquante sur attestation",
+          "reference_legale": "Art. 279-0 bis CGI, BOI-TVA-LIQ-30-20-90",
+          "correction": "Sans signature du client, l'attestation est invalide. Risque : redressement TVA chez le prestataire (différentiel taux normal/réduit)."
+        },
+        {
+          "ligne_index": 7,
+          "description": "Date de signature absente",
+          "reference_legale": "BOI-TVA-LIQ-30-20-90 §10",
+          "correction": "La date doit être antérieure ou concomitante au début des travaux et à la facturation."
+        }
+      ],
+      "ecriture_correction": null
+    },
+    {
+      "id": "task_dsn_dupont",
+      "type": "dsn_paie",
+      "branche": "Social",
+      "titre": "Bulletin de paie — Mme Dupont",
+      "client": "PME Services / Mme Dupont",
+      "niveau_min": 1,
+      "contexte": "Bulletin de paie préparé pour validation. Salariée à temps plein, embauchée depuis 4 ans, soldée pour fin de contrat (rupture conventionnelle).",
+      "lignes": [
+        { "label": "Salaire de base mensuel brut", "valeur": "3 500,00 €" },
+        { "label": "Heures supplémentaires majorées 25%", "valeur": "0,00 €" },
+        { "label": "Indemnité compensatrice de congés payés (base 25 jours ouvrables)", "valeur": "2 916,67 €" },
+        { "label": "Indemnité rupture conventionnelle", "valeur": "7 200,00 €" },
+        { "label": "Cotisations salariales total", "valeur": "770,00 €" },
+        { "label": "CSG/CRDS sur indemnité rupture (part dépassant exonération)", "valeur": "0,00 €" },
+        { "label": "Net imposable", "valeur": "12 846,67 €" },
+        { "label": "Net à payer", "valeur": "12 846,67 €" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 2,
+          "description": "ICCP calculée sur 25 jours ouvrables au lieu de 30 jours ouvrables",
+          "reference_legale": "Art. L.3141-3 et L.3141-25 du Code du travail",
+          "correction": "Les congés payés se calculent sur 30 jours ouvrables (ou 25 jours ouvrés selon convention). Si on est en jours ouvrables : base correcte = 30 jours, ICCP = (salaire × 10%) ou méthode du maintien."
+        },
+        {
+          "ligne_index": 5,
+          "description": "CSG/CRDS non appliquée sur l'indemnité de rupture",
+          "reference_legale": "Art. L.136-1-1 du CSS",
+          "correction": "La CSG/CRDS s'applique sur la fraction de l'indemnité de rupture dépassant le minimum légal (sans abattement). À recalculer."
+        }
+      ],
+      "ecriture_correction": null
+    },
+    {
+      "id": "task_bilan_vidal",
+      "type": "bilan_notes",
+      "branche": "Audit & IFRS",
+      "titre": "Bilan + Notes — Vidal Industrie",
+      "client": "Vidal Industrie SAS",
+      "niveau_min": 3,
+      "contexte": "Bilan préparé par Naïma. Tu dois faire la revue finale avant signature. Le client Bertrand SAS (créance 45 000€ TTC) est en procédure de sauvegarde depuis 2 mois.",
+      "lignes": [
+        { "label": "Actif — Immobilisations corporelles", "valeur": "1 280 000 €" },
+        { "label": "Actif — Créances clients brutes", "valeur": "385 000 €" },
+        { "label": "Actif — Dépréciation créances clients", "valeur": "− 8 500 €" },
+        { "label": "Actif — Stocks", "valeur": "215 000 €" },
+        { "label": "Actif — Trésorerie", "valeur": "92 000 €" },
+        { "label": "Passif — Capitaux propres", "valeur": "650 000 €" },
+        { "label": "Passif — Provisions pour risques", "valeur": "12 000 €" },
+        { "label": "Note 4 — Filiale étrangère USD : écart de conversion", "valeur": "Non mentionné" },
+        { "label": "Note 7 — Engagements hors bilan", "valeur": "Garantie bancaire 50 k€" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 2,
+          "description": "Provision créance Bertrand insuffisante (8 500 € vs créance 45 000 €)",
+          "reference_legale": "PCG art. 322-1 et 322-5 ; CGI art. 39-1-5",
+          "correction": "Procédure de sauvegarde ouverte = risque probable. Provision à 100% de la créance HT minimum, soit 37 500 €. Manque 29 000 € de provision."
+        },
+        {
+          "ligne_index": 7,
+          "description": "Écart de conversion sur filiale étrangère non mentionné dans les notes",
+          "reference_legale": "PCG art. 832-1, IAS 21",
+          "correction": "Si filiale étrangère, l'écart de conversion doit figurer en capitaux propres et être détaillé en annexe. Information manquante = bilan incomplet."
+        }
+      ],
+      "ecriture_correction": {
+        "debit_compte": "681",
+        "credit_compte": "491",
+        "montant": 29000,
+        "libelle": "Dotation complémentaire dépréciation créance Bertrand (procédure sauvegarde)"
+      }
+    },
+    {
+      "id": "task_ecriture_pme",
+      "type": "ecriture_cloture",
+      "branche": "Comptable",
+      "titre": "Écritures de clôture — PME Services",
+      "client": "PME Services",
+      "niveau_min": 2,
+      "contexte": "Écritures de clôture passées par le stagiaire. Vérifie qu'il n'y a pas d'oubli avant validation.",
+      "lignes": [
+        { "label": "Inventaire physique stocks comptabilisé", "valeur": "Oui (215 000 €)" },
+        { "label": "Charges constatées d'avance (loyer payé jan-mar N+1)", "valeur": "Non régularisé" },
+        { "label": "Produits constatés d'avance (abonnement client encaissé)", "valeur": "Régularisé (8 000 €)" },
+        { "label": "Charges à payer (factures non reçues)", "valeur": "Régularisé (5 200 €)" },
+        { "label": "Provision congés payés à reverser", "valeur": "Régularisé (12 800 €)" },
+        { "label": "Amortissements de l'exercice", "valeur": "Comptabilisés" },
+        { "label": "Régularisation TVA sur factures non parvenues", "valeur": "Oubliée" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 1,
+          "description": "Charges constatées d'avance non régularisées (loyer jan-mar N+1)",
+          "reference_legale": "PCG art. 313-2, principe d'indépendance des exercices",
+          "correction": "Le loyer payé pour janvier-mars N+1 doit être sorti des charges de N. Écriture : 486 CCA / 613 Loyers."
+        },
+        {
+          "ligne_index": 6,
+          "description": "TVA sur factures non parvenues non régularisée",
+          "reference_legale": "Art. 271 du CGI, principe de droit à déduction",
+          "correction": "Les factures non parvenues (FNP) doivent intégrer la TVA estimée en attente : 44586 TVA sur factures non parvenues."
+        }
+      ],
+      "ecriture_correction": {
+        "debit_compte": "486",
+        "credit_compte": "613",
+        "montant": 9000,
+        "libelle": "Charges constatées d'avance — loyer trim. N+1"
+      }
+    }
+  ]
+}

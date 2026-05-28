@@ -12,9 +12,36 @@ import {
   Archive, CornerDownRight, Pencil, RefreshCw, TrendingUp, TrendingDown,
   Sparkles, Clock as ClockIcon, Trophy, X, Coffee, Briefcase, MessageSquare,
   Award, Flame, Target, ChevronUp, Settings, Key, ExternalLink,
+  ClipboardCheck, FileSearch, Calculator, Lock, Unlock,
 } from "lucide-react";
 
-type Tab = "messages" | "equipe" | "agenda" | "dossiers" | "dec";
+type Tab = "messages" | "equipe" | "agenda" | "tasks" | "dossiers" | "dec";
+
+interface TaskLine { label: string; valeur: string; }
+interface TaskErreur { ligne_index: number; description: string; reference_legale: string; correction: string; }
+interface TaskDoc {
+  id: string;
+  type: string;
+  branche: string;
+  titre: string;
+  client: string;
+  niveau_min: number;
+  contexte: string;
+  lignes: TaskLine[];
+  erreurs: TaskErreur[];
+  ecriture_correction: { debit_compte: string; credit_compte: string; montant: number; libelle: string; } | null;
+}
+interface TaskResult {
+  score: number;
+  erreurs_trouvees: TaskErreur[];
+  erreurs_manquees: TaskErreur[];
+  fausses_alertes: number[];
+  note_score: number;
+  ecriture_eval: { ok: boolean; feedback: string } | null;
+  feedback_general: string;
+  impact_legitimite: number;
+  xp_gagne: number;
+}
 
 interface GhostVersion { label: string; sublabel: string; text: string; color: string; }
 interface ScoreResult {
@@ -211,6 +238,21 @@ export default function Home() {
   const [keyInput, setKeyInput] = useState("");
   const [keySaving, setKeySaving] = useState(false);
 
+  // Tasks (validation pédagogique)
+  const [tasksPool, setTasksPool] = useState<TaskDoc[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
+  const [activeTask, setActiveTask] = useState<TaskDoc | null>(null);
+  const [taskFlaggedLines, setTaskFlaggedLines] = useState<Set<number>>(new Set());
+  const [taskNote, setTaskNote] = useState("");
+  const [taskDecision, setTaskDecision] = useState<"valider" | "refuser" | "deleguer" | null>(null);
+  const [taskResult, setTaskResult] = useState<TaskResult | null>(null);
+  const [taskSubmitting, setTaskSubmitting] = useState(false);
+  const [showEcritureModal, setShowEcritureModal] = useState(false);
+  const [ecritureDebit, setEcritureDebit] = useState("");
+  const [ecritureCredit, setEcritureCredit] = useState("");
+  const [ecritureMontant, setEcritureMontant] = useState("");
+  const [ecritureLibelle, setEcritureLibelle] = useState("");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const claudeEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -231,7 +273,19 @@ export default function Home() {
 
   useEffect(() => {
     fetch("/agenda.json").then(r => r.json()).then(d => setAgendaSlots(d.slots_quotidiens || [])).catch(() => {});
+    fetch("/tasks_pool.json").then(r => r.json()).then(d => setTasksPool(d.tasks || [])).catch(() => {});
   }, []);
+
+  // Auto-progression des deadlines fiscales par les agents autonomes
+  // (toutes les 8 secondes réelles ≈ 4 minutes jeu)
+  useEffect(() => {
+    if (!store.isAuthenticated || store.isLoading) return;
+    const t = setInterval(() => {
+      store.autoAdvanceDeadlines();
+      store.checkOverdueDeadlines();
+    }, 8000);
+    return () => clearInterval(t);
+  }, [store.isAuthenticated, store.isLoading]);
 
   // Test santé API au démarrage (et toutes les 5 min)
   useEffect(() => {
@@ -724,6 +778,88 @@ export default function Home() {
     setCaseCorrection(null);
   }
 
+  // Tasks (validation pédagogique)
+  function openTask(task: TaskDoc) {
+    if (store.player_level < task.niveau_min) {
+      alert(`Niveau ${task.niveau_min} requis (tu es niveau ${store.player_level})`);
+      return;
+    }
+    setActiveTask(task);
+    setTaskFlaggedLines(new Set());
+    setTaskNote("");
+    setTaskDecision(null);
+    setTaskResult(null);
+    setEcritureDebit(""); setEcritureCredit(""); setEcritureMontant(""); setEcritureLibelle("");
+  }
+
+  function toggleTaskLine(idx: number) {
+    setTaskFlaggedLines(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  }
+
+  async function submitTask(decision: "valider" | "refuser" | "deleguer") {
+    if (!activeTask || taskSubmitting) return;
+    setTaskDecision(decision);
+
+    // Si refuser et qu'il y a une écriture, ouvrir le mini-jeu d'abord
+    if (decision === "refuser" && activeTask.ecriture_correction && !ecritureDebit) {
+      setShowEcritureModal(true);
+      return;
+    }
+
+    setTaskSubmitting(true);
+    try {
+      const ecriture_proposee = decision === "refuser" && activeTask.ecriture_correction ? {
+        debit_compte: ecritureDebit,
+        credit_compte: ecritureCredit,
+        montant: Number(ecritureMontant) || 0,
+        libelle: ecritureLibelle,
+      } : null;
+
+      const res = await apiFetch("/api/task-eval", {
+        method: "POST",
+        body: JSON.stringify({
+          task: activeTask,
+          decision,
+          lignes_signalees: Array.from(taskFlaggedLines),
+          note_correction: taskNote,
+          ecriture_proposee,
+        }),
+      });
+      const data = await res.json();
+      if (data.score !== undefined) {
+        setTaskResult(data);
+        store.addXP(data.xp_gagne || 0);
+        if (data.impact_legitimite) {
+          store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + data.impact_legitimite)) });
+        }
+        setCompletedTasks(prev => new Set(prev).add(activeTask.id));
+        // Si la branche est associée à une deadline fiscale, on la fait avancer
+        const matchingDeadline = store.fiscal_deadlines.find(d => d.filiere_responsable === activeTask.branche);
+        if (matchingDeadline && data.score >= 60) {
+          store.advanceDeadline(matchingDeadline.id, data.score >= 80 ? 15 : 8);
+        }
+      } else {
+        alert("Erreur d'évaluation. Réessaye.");
+      }
+    } catch (err) {
+      alert("Erreur réseau.");
+    } finally {
+      setTaskSubmitting(false);
+      setShowEcritureModal(false);
+    }
+  }
+
+  function closeTask() {
+    setActiveTask(null);
+    setTaskResult(null);
+    setShowEcritureModal(false);
+  }
+
   // Claude assistant
   async function sendToClaude() {
     const text = claudeInput.trim();
@@ -784,10 +920,13 @@ export default function Home() {
     );
   }
 
+  const tasksDispos = tasksPool.filter(t => !completedTasks.has(t.id) && store.player_level >= t.niveau_min).length;
+
   const navItems = [
     { id: "messages" as Tab, icon: Mail, label: "Messages", badge: unreadCount },
     { id: "equipe" as Tab, icon: Users, label: "Équipe" },
     { id: "agenda" as Tab, icon: Calendar, label: "Agenda" },
+    { id: "tasks" as Tab, icon: ClipboardCheck, label: "Tâches", badge: tasksDispos },
     { id: "dossiers" as Tab, icon: FolderOpen, label: "Dossiers", badge: dossiersEnCours },
     { id: "dec" as Tab, icon: GraduationCap, label: "DEC Prep" },
   ];
@@ -905,6 +1044,39 @@ export default function Home() {
           </div>
           <div className="text-center py-1 px-2 bg-[#f5f5f7] rounded-lg">
             <span className="text-[10px] font-medium text-[#6e6e73]">Mood · {store.mood_global}</span>
+          </div>
+
+          {/* Calendrier fiscal — Échéances */}
+          <div className="pt-2 mt-1 border-t border-[#d2d2d7]/30 space-y-1.5">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[9px] font-semibold text-[#6e6e73] uppercase tracking-wider">Échéances fiscales</span>
+              <Flame size={9} className="text-[#ff9f0a]" />
+            </div>
+            {store.fiscal_deadlines.map((d) => {
+              const color = d.progression >= 80 ? "#34c759" : d.progression >= 50 ? "#ff9f0a" : "#ff3b30";
+              const isBoss = d.campagne === "Bilan";
+              const locked = d.depend_de && (store.fiscal_deadlines.find(x => x.id === d.depend_de)?.progression || 0) < 80;
+              return (
+                <div key={d.id} className={`${isBoss ? "bg-gradient-to-r from-[#ff3b30]/5 to-[#ff9f0a]/5 border border-[#ff3b30]/15 rounded-md p-1.5" : ""}`}>
+                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                    <span className={`text-[9px] truncate ${isBoss ? "font-semibold text-[#1d1d1f]" : "text-[#3a3a3c]"}`} title={d.label}>
+                      {locked && <Lock size={7} className="inline mr-0.5 text-[#8e8e93]" />}
+                      {d.label}
+                    </span>
+                    <span className="text-[8px] text-[#8e8e93] tabular-nums shrink-0">{d.echeance_label}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="flex-1 h-[3px] bg-[#e5e5ea] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${d.progression}%`, backgroundColor: color }} />
+                    </div>
+                    <span className="text-[9px] font-medium tabular-nums w-7 text-right" style={{ color }}>
+                      {Math.round(d.progression)}%
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <button onClick={() => { signOut(); router.push("/auth"); }}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-[#6e6e73] hover:text-[#ff3b30] transition-colors rounded-lg hover:bg-[#ff3b30]/5">
@@ -1369,6 +1541,75 @@ export default function Home() {
           </div>
         )}
 
+        {activeTab === "tasks" && (
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-end justify-between mb-5">
+                <div>
+                  <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Tâches — Validation pédagogique</h2>
+                  <p className="text-[13px] text-[#6e6e73]">Documents préparés par l'équipe à contrôler. Détecte les erreurs DEC.</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] text-[#8e8e93]">Validés / Total</div>
+                  <div className="text-[22px] font-bold text-[#34c759] tabular-nums">{completedTasks.size}/{tasksPool.length}</div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-[#0071e3]/8 to-[#5e5ce6]/8 border border-[#0071e3]/15 rounded-[14px] p-3 mb-4">
+                <div className="flex items-start gap-2">
+                  <FileSearch size={14} className="text-[#0071e3] mt-0.5 shrink-0" />
+                  <p className="text-[12px] text-[#1d1d1f] leading-relaxed">
+                    <strong>Examinateur DEC :</strong> tu dois identifier les erreurs cachées dans chaque document, ajouter une note de correction (cite les articles), puis décider Valider / Refuser / Déléguer.
+                    <span className="text-[#0071e3] font-medium ml-1">+20 par erreur trouvée · −30 par erreur manquée · +10 Légitimité si score &gt;80%.</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {tasksPool.map((task) => {
+                  const isLocked = store.player_level < task.niveau_min;
+                  const isDone = completedTasks.has(task.id);
+                  const branchColor = task.branche === "Comptable" ? "#0071e3" : task.branche === "Fiscal" ? "#ff9f0a" : task.branche === "Audit & IFRS" ? "#bf5af2" : task.branche === "Social" ? "#34c759" : "#8e8e93";
+                  return (
+                    <button key={task.id}
+                      onClick={() => !isLocked && !isDone && openTask(task)}
+                      disabled={isLocked || isDone}
+                      className={`w-full text-left rounded-[14px] p-4 border transition-all flex items-center gap-3 ${
+                        isDone ? "bg-[#34c759]/5 border-[#34c759]/20 cursor-default" :
+                        isLocked ? "bg-[#f5f5f7] border-[#d2d2d7]/30 opacity-50 cursor-not-allowed" :
+                        "bg-white border-[#d2d2d7]/40 hover:border-[#0071e3]/40 hover:shadow cursor-pointer"
+                      }`}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${branchColor}15` }}>
+                        <ClipboardCheck size={18} style={{ color: branchColor }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-semibold text-[14px] text-[#1d1d1f]">{task.titre}</span>
+                          {isDone && <span className="text-[9px] font-semibold text-[#34c759] bg-[#34c759]/10 px-1.5 py-0.5 rounded-full">VALIDÉ</span>}
+                          {isLocked && <span className="text-[9px] font-medium text-[#8e8e93] flex items-center gap-0.5"><Lock size={9} /> Niveau {task.niveau_min}</span>}
+                        </div>
+                        <p className="text-[11px] text-[#6e6e73] truncate mb-1">{task.client} · {task.contexte}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md" style={{ backgroundColor: `${branchColor}15`, color: branchColor }}>{task.branche}</span>
+                          <span className="text-[9px] text-[#8e8e93]">{task.erreurs.length} erreur{task.erreurs.length > 1 ? "s" : ""} possible{task.erreurs.length > 1 ? "s" : ""}</span>
+                          {task.ecriture_correction && <span className="text-[9px] text-[#0071e3] flex items-center gap-0.5"><Calculator size={9} /> Mini-jeu écriture</span>}
+                        </div>
+                      </div>
+                      {!isLocked && !isDone && <ChevronRight size={14} className="text-[#c7c7cc] shrink-0" />}
+                    </button>
+                  );
+                })}
+                {tasksPool.length === 0 && (
+                  <div className="text-center py-12 text-[#8e8e93]">
+                    <ClipboardCheck size={32} className="mx-auto mb-2 opacity-40" />
+                    <p className="text-[13px]">Chargement des documents…</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === "dossiers" && (
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-4xl mx-auto">
@@ -1645,6 +1886,223 @@ export default function Home() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL TASK (validation pédagogique) ── */}
+      {activeTask && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 flex items-center justify-between bg-gradient-to-r from-[#0071e3]/5 to-[#5e5ce6]/5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0071e3] to-[#0040a3] flex items-center justify-center shadow-md">
+                  <ClipboardCheck size={18} className="text-white" />
+                </div>
+                <div>
+                  <div className="font-semibold text-[15px] text-[#1d1d1f]">{activeTask.titre}</div>
+                  <div className="text-[11px] text-[#6e6e73]">{activeTask.client} · Branche {activeTask.branche}</div>
+                </div>
+              </div>
+              <button onClick={closeTask} className="w-8 h-8 rounded-full bg-[#f5f5f7] hover:bg-[#e5e5ea] flex items-center justify-center transition-colors">
+                <X size={14} className="text-[#6e6e73]" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {!taskResult && (
+                <>
+                  <div className="bg-[#f5f5f7] rounded-[12px] p-3 mb-4">
+                    <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-1">Contexte</div>
+                    <p className="text-[12px] text-[#1d1d1f] leading-relaxed">{activeTask.contexte}</p>
+                  </div>
+
+                  <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-2">
+                    Document · clique sur les lignes suspectes
+                  </div>
+                  <div className="bg-white border border-[#d2d2d7]/60 rounded-[12px] overflow-hidden mb-4">
+                    {activeTask.lignes.map((ligne, i) => {
+                      const flagged = taskFlaggedLines.has(i);
+                      return (
+                        <button key={i} onClick={() => toggleTaskLine(i)}
+                          className={`w-full text-left px-3 py-2.5 flex items-center justify-between gap-3 border-b border-[#d2d2d7]/30 last:border-0 transition-all ${
+                            flagged ? "bg-[#ff9f0a]/10 border-l-4 border-l-[#ff9f0a]" : "hover:bg-[#f5f5f7]"
+                          }`}>
+                          <div className="flex items-start gap-2 min-w-0">
+                            <span className={`text-[9px] tabular-nums font-mono ${flagged ? "text-[#ff9f0a]" : "text-[#c7c7cc]"} mt-0.5`}>L{i + 1}</span>
+                            <span className={`text-[12px] ${flagged ? "text-[#1d1d1f] font-medium" : "text-[#3a3a3c]"}`}>{ligne.label}</span>
+                          </div>
+                          <span className={`text-[12px] font-mono tabular-nums shrink-0 ${flagged ? "text-[#ff9f0a] font-semibold" : "text-[#1d1d1f]"}`}>{ligne.valeur}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5">
+                      Note de correction (optionnelle, +20 pts si précise)
+                    </div>
+                    <textarea
+                      value={taskNote}
+                      onChange={(e) => setTaskNote(e.target.value)}
+                      placeholder="Ex : « L'amende de 450€ est non déductible (art. 39-2 CGI). À réintégrer extra-comptablement. »"
+                      rows={3}
+                      className="w-full text-[12px] p-3 border border-[#d2d2d7] rounded-[10px] outline-none focus:border-[#0071e3] resize-none leading-relaxed"
+                    />
+                    <p className="text-[9px] text-[#8e8e93] mt-1">Cite les articles (CGI, PCG, IFRS, BOFiP…) pour maximiser ton score.</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button onClick={() => submitTask("valider")} disabled={taskSubmitting}
+                      className="flex-1 py-2.5 rounded-[10px] bg-[#34c759]/10 text-[#34c759] hover:bg-[#34c759]/15 font-medium text-[12px] transition-all flex items-center justify-center gap-1.5">
+                      <CheckCircle size={13} /> Valider
+                    </button>
+                    <button onClick={() => submitTask("refuser")} disabled={taskSubmitting}
+                      className="flex-1 py-2.5 rounded-[10px] bg-[#ff3b30]/10 text-[#ff3b30] hover:bg-[#ff3b30]/15 font-medium text-[12px] transition-all flex items-center justify-center gap-1.5">
+                      <X size={13} /> Refuser avec correction
+                    </button>
+                    <button onClick={() => submitTask("deleguer")} disabled={taskSubmitting}
+                      className="flex-1 py-2.5 rounded-[10px] bg-[#8e8e93]/10 text-[#6e6e73] hover:bg-[#8e8e93]/15 font-medium text-[12px] transition-all flex items-center justify-center gap-1.5">
+                      <CornerDownRight size={13} /> Déléguer
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {taskResult && (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#0071e3]/5 to-[#34c759]/5 rounded-[16px] p-5">
+                      <div className="text-[56px] font-bold tabular-nums leading-none" style={{
+                        color: taskResult.score >= 80 ? "#34c759" : taskResult.score >= 50 ? "#ff9f0a" : "#ff3b30"
+                      }}>
+                        {taskResult.score}
+                      </div>
+                      <div className="text-[13px] font-medium text-[#1d1d1f] mt-1">Score Examinateur DEC</div>
+                      <div className="flex items-center gap-3 text-[11px] mt-2">
+                        <span className="text-[#34c759]">+{taskResult.xp_gagne} XP</span>
+                        {taskResult.impact_legitimite !== 0 && (
+                          <span className={taskResult.impact_legitimite > 0 ? "text-[#34c759]" : "text-[#ff3b30]"}>
+                            {taskResult.impact_legitimite > 0 ? "+" : ""}{taskResult.impact_legitimite} Légitimité
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#f5f5f7] rounded-[12px] p-3">
+                    <p className="text-[12px] text-[#1d1d1f] italic leading-relaxed">"{taskResult.feedback_general}"</p>
+                  </div>
+
+                  {taskResult.erreurs_trouvees.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#34c759] uppercase tracking-wider mb-2">✓ Erreurs trouvées (+20 chacune)</div>
+                      {taskResult.erreurs_trouvees.map((e, i) => (
+                        <div key={i} className="bg-[#34c759]/5 border border-[#34c759]/20 rounded-[10px] p-2.5 mb-1.5">
+                          <p className="text-[12px] font-medium text-[#1d1d1f]">L{e.ligne_index + 1} · {e.description}</p>
+                          <p className="text-[10px] text-[#6e6e73] mt-0.5">{e.reference_legale}</p>
+                          <p className="text-[11px] text-[#3a3a3c] mt-1 leading-relaxed">{e.correction}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {taskResult.erreurs_manquees.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#ff3b30] uppercase tracking-wider mb-2">✗ Erreurs manquées (−30 chacune)</div>
+                      {taskResult.erreurs_manquees.map((e, i) => (
+                        <div key={i} className="bg-[#ff3b30]/5 border border-[#ff3b30]/20 rounded-[10px] p-2.5 mb-1.5">
+                          <p className="text-[12px] font-medium text-[#1d1d1f]">L{e.ligne_index + 1} · {e.description}</p>
+                          <p className="text-[10px] text-[#6e6e73] mt-0.5">{e.reference_legale}</p>
+                          <p className="text-[11px] text-[#3a3a3c] mt-1 leading-relaxed">{e.correction}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {taskResult.fausses_alertes.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#ff9f0a] uppercase tracking-wider mb-2">⚠ Fausses alertes (−10 chacune)</div>
+                      <p className="text-[11px] text-[#6e6e73]">Lignes signalées à tort : {taskResult.fausses_alertes.map(i => `L${i + 1}`).join(", ")}</p>
+                    </div>
+                  )}
+
+                  {taskResult.ecriture_eval && (
+                    <div className={`rounded-[12px] p-3 ${taskResult.ecriture_eval.ok ? "bg-[#34c759]/5 border border-[#34c759]/20" : "bg-[#ff3b30]/5 border border-[#ff3b30]/20"}`}>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: taskResult.ecriture_eval.ok ? "#34c759" : "#ff3b30" }}>
+                        Écriture comptable {taskResult.ecriture_eval.ok ? "validée ✓" : "à revoir ✗"}
+                      </div>
+                      <p className="text-[12px] text-[#1d1d1f]">{taskResult.ecriture_eval.feedback}</p>
+                    </div>
+                  )}
+
+                  <button onClick={closeTask}
+                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white font-medium text-[13px] shadow-md hover:shadow-lg transition-all">
+                    Terminer
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL ÉCRITURE COMPTABLE (mini-jeu) ── */}
+      {showEcritureModal && activeTask?.ecriture_correction && (
+        <div className="fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#d2d2d7]/40 bg-gradient-to-r from-[#0071e3]/5 to-[#34c759]/5 flex items-center gap-2.5">
+              <Calculator size={16} className="text-[#0071e3]" />
+              <div>
+                <h3 className="font-semibold text-[14px] text-[#1d1d1f]">Écriture de correction</h3>
+                <p className="text-[11px] text-[#6e6e73]">Propose l'écriture comptable de la régularisation</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-wider block mb-1">Compte Débit</label>
+                  <input value={ecritureDebit} onChange={e => setEcritureDebit(e.target.value)}
+                    placeholder="Ex : 658"
+                    className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#0071e3] font-mono tabular-nums" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-wider block mb-1">Compte Crédit</label>
+                  <input value={ecritureCredit} onChange={e => setEcritureCredit(e.target.value)}
+                    placeholder="Ex : 707"
+                    className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#0071e3] font-mono tabular-nums" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-wider block mb-1">Montant (€)</label>
+                <input value={ecritureMontant} onChange={e => setEcritureMontant(e.target.value)} type="number"
+                  placeholder="Ex : 1770"
+                  className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#0071e3] tabular-nums" />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-wider block mb-1">Libellé</label>
+                <input value={ecritureLibelle} onChange={e => setEcritureLibelle(e.target.value)}
+                  placeholder="Ex : Réintégration extra-comptable"
+                  className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#0071e3]" />
+              </div>
+              <p className="text-[10px] text-[#8e8e93] leading-relaxed">
+                Bonus : +5 Légitimité si écriture parfaite · −10 si imprécise (ton équipe doit refaire = coût trésorerie)
+              </p>
+            </div>
+            <div className="px-5 py-3 bg-[#fafafa] border-t border-[#d2d2d7]/40 flex gap-2">
+              <button onClick={() => setShowEcritureModal(false)}
+                className="px-3 py-2 text-[12px] rounded-[10px] bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e5e5ea] transition-all">
+                Annuler
+              </button>
+              <button onClick={() => submitTask("refuser")} disabled={!ecritureDebit || !ecritureCredit || !ecritureMontant || taskSubmitting}
+                className={`ml-auto px-4 py-2 text-[12px] font-medium rounded-[10px] transition-all flex items-center gap-1.5 ${
+                  ecritureDebit && ecritureCredit && ecritureMontant && !taskSubmitting
+                    ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white shadow-md"
+                    : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"
+                }`}>
+                {taskSubmitting ? <><RefreshCw size={11} className="animate-spin" /> Évaluation…</> : "Soumettre"}
+              </button>
             </div>
           </div>
         </div>
