@@ -6,7 +6,5 @@
   "scripts": {
     "build": "mkdir -p dist && cp index.html dist/ && cp -r assets dist/"
   },
-  "dependencies": {
-    "@vercel/kv": "^1.0.1"
-  }
+  "dependencies": {}
 }
