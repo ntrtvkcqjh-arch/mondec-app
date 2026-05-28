@@ -10,9 +10,16 @@ export async function POST(req: NextRequest) {
 
 CABINET : Cabinet Morel & Associés
 DATE SIMULÉE : ${game_state?.date || "14 mai 2026"}
+HEURE JEU : ${String(game_state?.hour ?? 9).padStart(2, "0")}h${String(game_state?.minute ?? 0).padStart(2, "0")} (jour ${game_state?.day || 1})
 MOOD : ${game_state?.mood || "Sous Pression"}
 RESSOURCES : Légitimité ${game_state?.legitimite}/100 · Trésorerie ${((game_state?.tresorerie || 0) / 1000).toFixed(0)}k€ · Stress global ${game_state?.stress_global}/100
 BOSS : Clôture bilan 30/06/2026 (J-${game_state?.joursRestants || 16})
+
+ADAPTE LE TIMING DU MESSAGE À L'HEURE :
+- Matin (8h-12h) : urgences clients, briefings, démarrages dossiers
+- Midi (12h-14h) : courts, plutôt informationnels (pause)
+- Après-midi (14h-17h) : décisions, validations, conflits internes
+- Fin de journée (17h-19h) : récap, alertes deadline, dossiers à signer demain
 
 AGENTS (état actuel) :
 ${(agents || []).map((a: any) =>

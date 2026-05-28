@@ -3,18 +3,19 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useGameStore } from "@/lib/supabase-store";
+import { useGameStore, Dossier } from "@/lib/supabase-store";
 import { supabase, signOut } from "@/lib/supabase";
 import {
   Mail, Users, Calendar, FolderOpen, GraduationCap, Building2,
   Send, LogOut, ChevronRight, Zap, AlertTriangle, CheckCircle,
   Archive, CornerDownRight, Pencil, RefreshCw, TrendingUp, TrendingDown,
+  Sparkles, Clock as ClockIcon, Trophy, X, Coffee, Briefcase, MessageSquare,
+  Award, Flame, Target, ChevronUp,
 } from "lucide-react";
 
 type Tab = "messages" | "equipe" | "agenda" | "dossiers" | "dec";
 
 interface GhostVersion { label: string; sublabel: string; text: string; color: string; }
-interface Dilemme { id: string; titre: string; description: string; options: { id: string; label: string; cout_PA: number; consequence_differee: string }[]; }
 interface ScoreResult {
   score_global: number;
   breakdown: { precision: number; redaction: number; deontologie: number; contexte: number; operationnel: number };
@@ -22,6 +23,36 @@ interface ScoreResult {
   points_forts: string[];
   axes_amelioration: string[];
   impact: { legitimite_delta: number; confiance_agent_delta: number };
+}
+interface AgendaSlot {
+  heure: string;
+  type: "briefing" | "cas_pratique" | "rdv_client" | "mediation" | "validation" | "debrief" | "pause";
+  titre: string;
+  theme: string;
+  agent_id?: string;
+  duree_min: number;
+  xp_max: number;
+  niveau_requis: number;
+}
+interface CaseStudy {
+  titre: string;
+  client: string;
+  contexte: string;
+  enonce: string;
+  question: string;
+  xp_potentiel: number;
+  criteres: string[];
+}
+interface Correction {
+  score: number;
+  verdict: string;
+  analogie: string;
+  correction: string;
+  points_forts: string[];
+  axes_amelioration: string[];
+  xp_gagne: number;
+  impact_legitimite: number;
+  impact_stress: number;
 }
 
 function parseGhostVersions(content: string): GhostVersion[] | null {
@@ -44,15 +75,15 @@ function parseGhostVersions(content: string): GhostVersion[] | null {
   return result;
 }
 
-function Clock() {
+function RealClock() {
   const [time, setTime] = useState("");
   useEffect(() => {
-    const update = () => setTime(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    const update = () => setTime(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
     update();
     const t = setInterval(update, 1000);
     return () => clearInterval(t);
   }, []);
-  return <span className="font-mono text-sm text-[#1d1d1f] tabular-nums">{time}</span>;
+  return <span className="font-mono text-[11px] text-[#8e8e93] tabular-nums">{time}</span>;
 }
 
 function getNiveauDot(n: string) {
@@ -108,6 +139,37 @@ function getPACost(n: string) {
   return 0;
 }
 
+function getSlotIcon(type: AgendaSlot["type"]) {
+  switch (type) {
+    case "briefing": return Users;
+    case "cas_pratique": return GraduationCap;
+    case "rdv_client": return Briefcase;
+    case "mediation": return MessageSquare;
+    case "validation": return CheckCircle;
+    case "debrief": return Target;
+    case "pause": return Coffee;
+    default: return Calendar;
+  }
+}
+
+function getSlotColor(type: AgendaSlot["type"]) {
+  switch (type) {
+    case "cas_pratique": return "#0071e3";
+    case "rdv_client": return "#bf5af2";
+    case "mediation": return "#ff9f0a";
+    case "validation": return "#34c759";
+    case "briefing": return "#5e5ce6";
+    case "debrief": return "#64d2ff";
+    case "pause": return "#8e8e93";
+    default: return "#8e8e93";
+  }
+}
+
+function timeToMinutes(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("messages");
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -116,12 +178,31 @@ export default function Home() {
   const [ghostVersions, setGhostVersions] = useState<GhostVersion[] | null>(null);
   const [gwLoading, setGwLoading] = useState(false);
   const [apiError, setApiError] = useState("");
-  const [dilemme, setDilemme] = useState<Dilemme | null>(null);
-  const [dilemmeResolu, setDilemmeResolu] = useState(false);
   const [generatingEvents, setGeneratingEvents] = useState(false);
   const [scoreResult, setScoreResult] = useState<ScoreResult | null>(null);
   const [lastPlayerMessage, setLastPlayerMessage] = useState("");
+
+  // Agenda + cas pratique
+  const [agendaSlots, setAgendaSlots] = useState<AgendaSlot[]>([]);
+  const [completedSlots, setCompletedSlots] = useState<Set<string>>(new Set());
+  const [activeSlot, setActiveSlot] = useState<AgendaSlot | null>(null);
+  const [activeCase, setActiveCase] = useState<CaseStudy | null>(null);
+  const [caseLoading, setCaseLoading] = useState(false);
+  const [caseResponse, setCaseResponse] = useState("");
+  const [caseSubmitting, setCaseSubmitting] = useState(false);
+  const [caseCorrection, setCaseCorrection] = useState<Correction | null>(null);
+
+  // Dossiers filter
+  const [dossiersFilter, setDossiersFilter] = useState<"en_cours" | "gagne" | "perdu" | "tous">("en_cours");
+
+  // Claude assistant panel
+  const [claudeOpen, setClaudeOpen] = useState(false);
+  const [claudeInput, setClaudeInput] = useState("");
+  const [claudeSending, setClaudeSending] = useState(false);
+  const [claudeError, setClaudeError] = useState("");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const claudeEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const store = useGameStore();
 
@@ -139,12 +220,29 @@ export default function Home() {
   }, [router]);
 
   useEffect(() => {
-    fetch("/agents_config.json").then(r => r.json()).then(c => {
-      if (c.dilemme_actif) setDilemme(c.dilemme_actif);
-    }).catch(() => {});
+    fetch("/agenda.json").then(r => r.json()).then(d => setAgendaSlots(d.slots_quotidiens || [])).catch(() => {});
   }, []);
 
-  // Génération autonome des événements agents
+  // Horloge de jeu — 1 seconde réelle = 3 minutes jeu (journée 8h-19h ≈ 3m40s réelles)
+  useEffect(() => {
+    if (!store.isAuthenticated || store.isLoading) return;
+    const t = setInterval(() => store.tickClock(3), 1000);
+    return () => clearInterval(t);
+  }, [store.isAuthenticated, store.isLoading]);
+
+  // Auto-progression dossiers : à 18h chaque jour, résolution probabiliste
+  useEffect(() => {
+    if (store.game_hour === 18 && store.game_minute === 0) {
+      store.dossiers.filter(d => d.etat === "en_cours").forEach((d) => {
+        const luck = Math.random() * 100;
+        const seuil = d.progression + (store.player_level * 3);
+        if (luck < seuil - 20) store.winDossier(d.id);
+        else if (luck > seuil + 50) store.loseDossier(d.id);
+      });
+    }
+  }, [store.game_hour, store.game_minute]);
+
+  // Génération autonome des événements
   useEffect(() => {
     if (!store.isAuthenticated || store.isLoading || store.agents.length === 0) return;
     const unread = store.messages.filter(m => !m.lu).length;
@@ -173,10 +271,19 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [store.conversation_history, selectedAgent, ghostVersions, scoreResult]);
 
+  useEffect(() => {
+    claudeEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [store.claude_history, claudeOpen]);
+
   const selectedMessage = store.messages.find((m) => m.agent_id === selectedAgent && !m.repondu)
     || store.messages.find((m) => m.agent_id === selectedAgent);
   const agent = store.agents.find((a) => a.id === selectedAgent);
   const unreadCount = store.messages.filter(m => !m.lu).length;
+
+  const gameMinutes = store.game_hour * 60 + store.game_minute;
+  const dossiersEnCours = store.dossiers.filter(d => d.etat === "en_cours").length;
+  const dossiersGagnes = store.dossiers.filter(d => d.etat === "gagne").length;
+  const dossiersPerdus = store.dossiers.filter(d => d.etat === "perdu").length;
 
   function handleSelectAgent(agentId: string, messageId: string) {
     setSelectedAgent(agentId);
@@ -200,6 +307,7 @@ export default function Home() {
     const savedText = inputText.trim();
     setGwLoading(true);
     setGhostVersions(null);
+    setApiError("");
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -210,9 +318,9 @@ export default function Home() {
           agent_context: { ...agent, sujet: selectedMessage?.sujet },
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(`API ${res.status}`);
       const data = await res.json();
-      if (!data.content) throw new Error();
+      if (!data.content) throw new Error("no_content");
       const versions = parseGhostVersions(data.content);
       if (versions) {
         setGhostVersions(versions);
@@ -220,7 +328,8 @@ export default function Home() {
         setInputText("");
         sendMessage(savedText);
       }
-    } catch {
+    } catch (err: any) {
+      setApiError(`Ghost Writer indisponible — envoi direct`);
       setInputText("");
       sendMessage(savedText);
     } finally {
@@ -239,7 +348,10 @@ export default function Home() {
     const a = agent;
     const niveau = selectedMessage?.niveau || "N2";
     const cost = getPACost(niveau);
-    if (cost > 0 && !store.spendPA(cost)) { alert("Pas assez de Points d'Action !"); return; }
+    if (cost > 0 && !store.spendPA(cost)) {
+      setApiError("Pas assez de Points d'Action — repos requis.");
+      return;
+    }
 
     setSending(true);
     setApiError("");
@@ -249,7 +361,7 @@ export default function Home() {
     const currentHistory = store.conversation_history[a.id] || [];
     const userMsg = { role: "user" as const, content: text };
 
-    // Optimistic update — direct setState bypasses user_id guard in addConversation
+    // Optimistic update — UI réagit immédiatement
     useGameStore.setState((s) => ({
       conversation_history: {
         ...s.conversation_history,
@@ -258,6 +370,7 @@ export default function Home() {
     }));
 
     try {
+      console.log("[CHAT] Envoi message à", a.nom, ":", text.slice(0, 50));
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -265,51 +378,76 @@ export default function Home() {
           mode: "agent",
           messages: [...currentHistory, userMsg],
           agent_context: a,
-          game_state: { date: store.date_simulation, mood: store.mood_global, joursRestants: 16 },
+          game_state: {
+            date: store.date_simulation,
+            mood: store.mood_global,
+            joursRestants: 16,
+            hour: store.game_hour,
+            minute: store.game_minute,
+            day: store.game_day,
+            player_level: store.player_level,
+          },
         }),
       });
 
-      if (!res.ok) { setApiError(`Erreur ${res.status}`); return; }
-      const data = await res.json();
-      if (data.error) { setApiError(data.error); return; }
-
-      if (data.content) {
-        useGameStore.setState((s) => ({
-          conversation_history: {
-            ...s.conversation_history,
-            [a.id]: [
-              ...(s.conversation_history[a.id] || []),
-              { role: "assistant" as const, content: data.content },
-            ],
-          },
-        }));
-
-        if (store.user_id) {
-          store.addConversation(a.id, "user", text).catch(() => {});
-          store.addConversation(a.id, "assistant", data.content).catch(() => {});
-        }
-        if (selectedMessage) store.replyToMessage(selectedMessage.id, text).catch(() => {});
-
-        fetch("/api/score", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            player_message: text,
-            agent_original_message: selectedMessage?.contenu || "",
-            agent_response: data.content,
-            agent_context: a,
-          }),
-        }).then(r => r.json()).then(scoreData => {
-          if (scoreData.score_global !== undefined) {
-            setScoreResult(scoreData);
-            if (scoreData.impact?.legitimite_delta) {
-              store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + scoreData.impact.legitimite_delta)) });
-            }
-          }
-        }).catch(() => {});
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("[CHAT] HTTP error", res.status, errText);
+        setApiError(`Erreur ${res.status} — ${errText.slice(0, 100)}`);
+        return;
       }
-    } catch {
-      setApiError("Erreur réseau");
+
+      const data = await res.json();
+      console.log("[CHAT] Réponse reçue:", data.content?.slice(0, 50) || "(vide)");
+
+      if (data.error) {
+        setApiError(`API: ${data.error}`);
+        return;
+      }
+      if (!data.content) {
+        setApiError("Réponse vide — réessaye");
+        return;
+      }
+
+      useGameStore.setState((s) => ({
+        conversation_history: {
+          ...s.conversation_history,
+          [a.id]: [
+            ...(s.conversation_history[a.id] || []),
+            { role: "assistant" as const, content: data.content },
+          ],
+        },
+      }));
+
+      if (store.user_id) {
+        store.addConversation(a.id, "user", text).catch(() => {});
+        store.addConversation(a.id, "assistant", data.content).catch(() => {});
+      }
+      if (selectedMessage) store.replyToMessage(selectedMessage.id, text).catch(() => {});
+
+      // Score en arrière-plan
+      fetch("/api/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          player_message: text,
+          agent_original_message: selectedMessage?.contenu || "",
+          agent_response: data.content,
+          agent_context: a,
+        }),
+      }).then(r => r.json()).then(scoreData => {
+        if (scoreData.score_global !== undefined) {
+          setScoreResult(scoreData);
+          if (scoreData.impact?.legitimite_delta) {
+            store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + scoreData.impact.legitimite_delta)) });
+          }
+          const xpGain = Math.round(scoreData.score_global / 5);
+          store.addXP(xpGain);
+        }
+      }).catch(() => {});
+    } catch (err: any) {
+      console.error("[CHAT] Exception:", err);
+      setApiError(`Erreur réseau — ${err?.message || "inconnue"}`);
     } finally {
       setSending(false);
     }
@@ -320,16 +458,136 @@ export default function Home() {
     store.replyToMessage(msgId, "[archivé]");
   }
 
-  function handleDilemme(optionId: string, coutPA: number) {
-    if (coutPA > 0 && !store.spendPA(coutPA)) { alert("Pas assez de Points d'Action !"); return; }
-    setDilemmeResolu(true);
+  // Cas pratique
+  async function openCasePratique(slot: AgendaSlot) {
+    if (slot.type === "pause") return;
+    if (store.player_level < slot.niveau_requis) {
+      alert(`Niveau ${slot.niveau_requis} requis (tu es niveau ${store.player_level})`);
+      return;
+    }
+    setActiveSlot(slot);
+    setActiveCase(null);
+    setCaseResponse("");
+    setCaseCorrection(null);
+    setCaseLoading(true);
+    try {
+      const a = slot.agent_id ? store.agents.find(x => x.id === slot.agent_id) : null;
+      const res = await fetch("/api/case-study", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          theme: slot.theme,
+          player_level: store.player_level,
+          hour: store.game_hour,
+          day: store.game_day,
+          agent_context: a,
+        }),
+      });
+      const data = await res.json();
+      if (data.titre) setActiveCase(data);
+      else alert("Impossible de générer le cas pratique. Réessaye.");
+    } catch (err) {
+      alert("Erreur réseau — cas pratique indisponible.");
+    } finally {
+      setCaseLoading(false);
+    }
+  }
+
+  async function submitCaseResponse() {
+    if (!activeCase || !caseResponse.trim() || caseSubmitting) return;
+    setCaseSubmitting(true);
+    try {
+      const res = await fetch("/api/correct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          case_study: activeCase,
+          player_response: caseResponse,
+          player_level: store.player_level,
+        }),
+      });
+      const data = await res.json();
+      if (data.score !== undefined) {
+        setCaseCorrection(data);
+        store.addXP(data.xp_gagne || 0);
+        if (data.impact_legitimite) {
+          store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + data.impact_legitimite)) });
+        }
+        if (data.impact_stress) {
+          store.setResources({ stress_global: Math.max(0, Math.min(100, store.stress_global + data.impact_stress)) });
+        }
+        if (activeSlot) {
+          setCompletedSlots(prev => new Set(prev).add(activeSlot.heure));
+        }
+      } else {
+        alert("Erreur correction. Réessaye.");
+      }
+    } catch (err) {
+      alert("Erreur réseau.");
+    } finally {
+      setCaseSubmitting(false);
+    }
+  }
+
+  function closeCasePratique() {
+    setActiveSlot(null);
+    setActiveCase(null);
+    setCaseResponse("");
+    setCaseCorrection(null);
+  }
+
+  // Claude assistant
+  async function sendToClaude() {
+    const text = claudeInput.trim();
+    if (!text || claudeSending) return;
+    setClaudeInput("");
+    setClaudeError("");
+    store.addClaudeMessage({ role: "user", content: text });
+    setClaudeSending(true);
+    try {
+      const history = store.claude_history;
+      const res = await fetch("/api/claude", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...history, { role: "user", content: text }],
+          game_state: {
+            day: store.game_day,
+            hour: store.game_hour,
+            minute: store.game_minute,
+            player_level: store.player_level,
+            legitimite: store.legitimite,
+            tresorerie: store.tresorerie,
+            stress_global: store.stress_global,
+            points_action: store.points_action,
+            points_action_max: store.points_action_max,
+            mood_global: store.mood_global,
+          },
+          agents: store.agents,
+          dossiers: store.dossiers,
+        }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        setClaudeError(`Erreur ${res.status}`);
+        console.error("[CLAUDE]", t);
+        return;
+      }
+      const data = await res.json();
+      if (data.error) { setClaudeError(data.error); return; }
+      if (data.content) store.addClaudeMessage({ role: "assistant", content: data.content });
+    } catch (err: any) {
+      setClaudeError("Erreur réseau");
+    } finally {
+      setClaudeSending(false);
+    }
   }
 
   if (store.isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f7]">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#f5f5f7] to-[#e5e5ea]">
         <div className="text-center space-y-3">
-          <div className="w-16 h-16 bg-[#0071e3] rounded-[18px] flex items-center justify-center mx-auto shadow-lg">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#0071e3] to-[#0040a3] rounded-[18px] flex items-center justify-center mx-auto shadow-xl">
             <Building2 size={32} className="text-white" />
           </div>
           <p className="text-[#6e6e73] text-sm">Chargement du cabinet…</p>
@@ -342,28 +600,62 @@ export default function Home() {
     { id: "messages" as Tab, icon: Mail, label: "Messages", badge: unreadCount },
     { id: "equipe" as Tab, icon: Users, label: "Équipe" },
     { id: "agenda" as Tab, icon: Calendar, label: "Agenda" },
-    { id: "dossiers" as Tab, icon: FolderOpen, label: "Dossiers" },
+    { id: "dossiers" as Tab, icon: FolderOpen, label: "Dossiers", badge: dossiersEnCours },
     { id: "dec" as Tab, icon: GraduationCap, label: "DEC Prep" },
   ];
 
+  const filteredDossiers = dossiersFilter === "tous"
+    ? store.dossiers
+    : store.dossiers.filter(d => d.etat === dossiersFilter);
+
   return (
-    <div className="flex h-screen bg-[#f5f5f7] overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-[#f5f5f7] via-[#fafafa] to-[#eeeef0] overflow-hidden">
 
       {/* ── SIDEBAR ── */}
-      <aside className="w-56 glass border-r border-[#d2d2d7]/50 flex flex-col z-10">
-        <div className="px-4 py-5 border-b border-[#d2d2d7]/50">
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 bg-[#0071e3] rounded-lg flex items-center justify-center">
-              <Building2 size={16} className="text-white" />
+      <aside className="w-60 glass border-r border-[#d2d2d7]/50 flex flex-col z-10">
+        <div className="px-4 py-4 border-b border-[#d2d2d7]/40">
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-[#0071e3] to-[#0040a3] rounded-[10px] flex items-center justify-center shadow-md">
+              <Building2 size={18} className="text-white" />
             </div>
-            <span className="font-semibold text-[15px] text-[#1d1d1f]">Cabinet DEC</span>
+            <div>
+              <div className="font-semibold text-[14px] text-[#1d1d1f] leading-tight">Cabinet DEC</div>
+              <div className="text-[10px] text-[#8e8e93]">Morel & Associés</div>
+            </div>
           </div>
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-[11px] text-[#6e6e73]">{store.date_simulation}</span>
-            <Clock />
+
+          {/* Horloge JEU */}
+          <div className="mt-3 bg-gradient-to-r from-[#0071e3]/10 to-[#5e5ce6]/10 rounded-[10px] p-2.5 border border-[#0071e3]/15">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <ClockIcon size={11} className="text-[#0071e3]" />
+                <span className="text-[10px] font-medium text-[#0071e3] uppercase tracking-wide">Jour {store.game_day}</span>
+              </div>
+              <RealClock />
+            </div>
+            <div className="font-mono text-[24px] font-bold text-[#1d1d1f] tabular-nums leading-none mt-1">
+              {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")}
+            </div>
+            <div className="text-[9px] text-[#8e8e93] mt-0.5">{store.date_simulation}</div>
           </div>
+
+          {/* Niveau joueur */}
+          <div className="mt-2.5 bg-white/70 rounded-[10px] p-2.5 border border-[#d2d2d7]/40">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <Trophy size={11} className="text-[#ff9f0a]" />
+                <span className="text-[10px] font-semibold text-[#1d1d1f] uppercase">Niveau {store.player_level}</span>
+              </div>
+              <span className="text-[10px] text-[#6e6e73] tabular-nums">{store.player_xp}/{store.xp_to_next} XP</span>
+            </div>
+            <div className="h-[5px] bg-[#e5e5ea] rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#ff9f0a] to-[#ff3b30] rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, (store.player_xp / store.xp_to_next) * 100)}%` }} />
+            </div>
+          </div>
+
           {generatingEvents && (
-            <div className="flex items-center gap-1 mt-1.5">
+            <div className="flex items-center gap-1.5 mt-2">
               <RefreshCw size={9} className="text-[#0071e3] animate-spin" />
               <span className="text-[9px] text-[#6e6e73]">Agents actifs…</span>
             </div>
@@ -373,15 +665,15 @@ export default function Home() {
         <nav className="flex-1 px-2 py-3 space-y-0.5">
           {navItems.map(({ id, icon: Icon, label, badge }) => (
             <button key={id} onClick={() => setActiveTab(id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] transition-all ${activeTab === id ? "bg-[#0071e3] text-white shadow-sm" : "text-[#1d1d1f] hover:bg-black/5"}`}>
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] transition-all ${activeTab === id ? "bg-gradient-to-r from-[#0071e3] to-[#0a84ff] text-white shadow-md" : "text-[#1d1d1f] hover:bg-black/5"}`}>
               <Icon size={16} />
               <span className="flex-1 text-left">{label}</span>
-              {badge ? <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${activeTab === id ? "bg-white/20 text-white" : "bg-[#ff3b30] text-white"}`}>{badge}</span> : null}
+              {badge ? <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${activeTab === id ? "bg-white/25 text-white" : "bg-[#ff3b30] text-white"}`}>{badge}</span> : null}
             </button>
           ))}
         </nav>
 
-        <div className="px-4 py-3 border-t border-[#d2d2d7]/50 space-y-2">
+        <div className="px-3 py-3 border-t border-[#d2d2d7]/40 space-y-2">
           <MiniStat label="Légitimité" value={store.legitimite} color="#0071e3" />
           <MiniStat label="Trésorerie" value={Math.min((store.tresorerie / 2000), 100)} color="#34c759" display={`${(store.tresorerie / 1000).toFixed(0)}k€`} />
           <MiniStat label="Réputation" value={store.reputation} color="#ff9f0a" />
@@ -390,12 +682,12 @@ export default function Home() {
             <span className="text-[11px] text-[#6e6e73]">Points d'Action</span>
             <div className="flex gap-1">
               {Array.from({ length: store.points_action_max }).map((_, i) => (
-                <div key={i} className={`w-2 h-2 rounded-full ${i < store.points_action ? "bg-[#0071e3]" : "bg-[#d2d2d7]"}`} />
+                <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < store.points_action ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3]" : "bg-[#d2d2d7]"}`} />
               ))}
             </div>
           </div>
           <div className="text-center py-1 px-2 bg-[#f5f5f7] rounded-lg">
-            <span className="text-[10px] font-medium text-[#6e6e73]">Mood : {store.mood_global}</span>
+            <span className="text-[10px] font-medium text-[#6e6e73]">Mood · {store.mood_global}</span>
           </div>
           <button onClick={() => { signOut(); router.push("/auth"); }}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-[#6e6e73] hover:text-[#ff3b30] transition-colors rounded-lg hover:bg-[#ff3b30]/5">
@@ -411,9 +703,9 @@ export default function Home() {
           <>
             {/* Liste messages */}
             <div className="w-72 glass border-r border-[#d2d2d7]/50 flex flex-col">
-              <div className="px-3 py-3 border-b border-[#d2d2d7]/50">
-                <input placeholder="Rechercher…"
-                  className="w-full px-3 py-1.5 bg-[#e5e5ea] rounded-[10px] text-[13px] outline-none placeholder-[#8e8e93] text-[#1d1d1f]" />
+              <div className="px-3 py-3 border-b border-[#d2d2d7]/40 flex items-center justify-between">
+                <h3 className="text-[13px] font-semibold text-[#1d1d1f]">Messagerie</h3>
+                <span className="text-[10px] text-[#8e8e93]">{store.messages.length}</span>
               </div>
               <div className="flex-1 overflow-y-auto py-1">
                 {store.messages.map((msg) => {
@@ -424,10 +716,10 @@ export default function Home() {
                   return (
                     <div key={msg.id}
                       onClick={() => handleSelectAgent(msg.agent_id, msg.id)}
-                      className={`group mx-2 mb-1 p-3 rounded-[12px] cursor-pointer transition-all ${isSelected ? "bg-[#0071e3] text-white" : msg.lu ? "opacity-70 hover:bg-white/70" : "hover:bg-white/70"}`}>
+                      className={`group mx-2 mb-1 p-3 rounded-[12px] cursor-pointer transition-all ${isSelected ? "bg-gradient-to-r from-[#0071e3] to-[#0a84ff] text-white shadow-md" : msg.lu ? "opacity-70 hover:bg-white/70" : "hover:bg-white/70"}`}>
                       <div className="flex items-start gap-2.5">
                         <div className="relative shrink-0">
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold" style={{ backgroundColor: a.avatar_color }}>
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shadow-sm" style={{ backgroundColor: a.avatar_color }}>
                             {a.initiales}
                           </div>
                           <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${isSelected ? "border-[#0071e3]" : "border-[#f5f5f7]"} ${getNiveauDot(msg.niveau)}`} />
@@ -443,7 +735,6 @@ export default function Home() {
                             </span>
                           </div>
                           <p className={`text-[12px] truncate mb-1 ${isSelected ? "text-white/80" : "text-[#6e6e73]"}`}>{msg.sujet}</p>
-                          {/* Chips niveau + phase */}
                           <div className="flex items-center gap-1 flex-wrap">
                             <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${
                               isSelected ? "bg-white/20 text-white" :
@@ -468,7 +759,6 @@ export default function Home() {
                               </button>
                             )}
                           </div>
-                          {/* Barre d'urgence */}
                           <div className="mt-1.5 h-[2px] bg-[#e5e5ea] rounded-full overflow-hidden">
                             <div className={`h-full rounded-full transition-all ${isSelected ? "bg-white/40" : getUrgencyBarColor(msg.niveau)}`}
                               style={{ width: getUrgencyWidth(msg.delai_reponse_heures) }} />
@@ -488,12 +778,12 @@ export default function Home() {
             </div>
 
             {/* Zone conversation */}
-            <main className="flex-1 flex flex-col bg-white/60">
+            <main className="flex-1 flex flex-col bg-white/40">
               {agent ? (
                 <>
                   <header className="px-6 py-3.5 glass border-b border-[#d2d2d7]/50 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold" style={{ backgroundColor: agent.avatar_color }}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm" style={{ backgroundColor: agent.avatar_color }}>
                         {agent.initiales}
                       </div>
                       <div>
@@ -517,29 +807,6 @@ export default function Home() {
                   </header>
 
                   <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-                    {/* Dilemme actif */}
-                    {dilemme && !dilemmeResolu && (
-                      <div className="bg-[#fff3cd] border border-[#ffc107]/30 rounded-[16px] p-4">
-                        <div className="flex items-start gap-2 mb-3">
-                          <AlertTriangle size={16} className="text-[#ff9f0a] mt-0.5 shrink-0" />
-                          <div>
-                            <p className="font-semibold text-[13px] text-[#1d1d1f]">Dilemme : {dilemme.titre}</p>
-                            <p className="text-[12px] text-[#6e6e73] mt-0.5">{dilemme.description}</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 flex-wrap">
-                          {dilemme.options.map((opt) => (
-                            <button key={opt.id} onClick={() => handleDilemme(opt.id, opt.cout_PA)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-[10px] text-[12px] font-medium text-[#1d1d1f] border border-[#d2d2d7]/50 hover:bg-[#0071e3] hover:text-white hover:border-transparent transition-all shadow-sm">
-                              {opt.label}
-                              {opt.cout_PA > 0 && <span className="text-[10px] opacity-60">−{opt.cout_PA} PA</span>}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Message initial de l'agent */}
                     {selectedMessage && (
                       <div className="flex gap-3 max-w-[78%]">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 mt-1" style={{ backgroundColor: agent.avatar_color }}>
@@ -563,13 +830,12 @@ export default function Home() {
                             )}
                           </div>
                           <div className="bg-white rounded-[18px] rounded-tl-[6px] px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30">
-                            <p className="text-[13px] text-[#1d1d1f] leading-relaxed">{selectedMessage.contenu}</p>
+                            <p className="text-[13px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">{selectedMessage.contenu}</p>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Historique conversation */}
                     {(store.conversation_history[agent.id] || []).map((msg, i) => (
                       <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "gap-3 max-w-[78%]"}`}>
                         {msg.role === "assistant" && (
@@ -579,7 +845,7 @@ export default function Home() {
                         )}
                         <div className={`px-4 py-3 rounded-[18px] text-[13px] leading-relaxed whitespace-pre-wrap max-w-[75%] ${
                           msg.role === "user"
-                            ? "bg-[#0071e3] text-white rounded-br-[6px]"
+                            ? "bg-gradient-to-br from-[#0071e3] to-[#0a84ff] text-white rounded-br-[6px] shadow-md"
                             : "bg-white text-[#1d1d1f] rounded-tl-[6px] shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30"
                         }`}>
                           {msg.content}
@@ -587,7 +853,6 @@ export default function Home() {
                       </div>
                     ))}
 
-                    {/* Indicateur "agent répond..." */}
                     {sending && (
                       <div className="flex gap-3 max-w-[78%]">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: agent.avatar_color }}>
@@ -603,12 +868,10 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* Score IA */}
                     {scoreResult && (
                       <ScoreCard score={scoreResult} playerMessage={lastPlayerMessage} onClose={() => setScoreResult(null)} />
                     )}
 
-                    {/* Ghost Writer — 3 versions */}
                     {ghostVersions && !sending && (
                       <div className="space-y-2 py-2">
                         <div className="flex items-center justify-between">
@@ -639,7 +902,6 @@ export default function Home() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Zone de saisie */}
                   <div className="px-6 py-3 glass border-t border-[#d2d2d7]/50">
                     {gwLoading && (
                       <div className="flex items-center gap-2 mb-2 text-[11px] text-[#6e6e73]">
@@ -648,8 +910,9 @@ export default function Home() {
                       </div>
                     )}
                     {apiError && (
-                      <div className="flex items-center gap-2 mb-2 text-[11px] text-[#ff3b30]">
+                      <div className="flex items-center gap-2 mb-2 text-[11px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-lg px-2 py-1">
                         <AlertTriangle size={11} /> {apiError}
+                        <button onClick={() => setApiError("")} className="ml-auto opacity-60 hover:opacity-100"><X size={11} /></button>
                       </div>
                     )}
                     <div className="flex items-end gap-2">
@@ -674,14 +937,13 @@ export default function Home() {
                           placeholder={
                             sending ? `${agent.nom} rédige sa réponse…` :
                             ghostVersions ? "Choisis une version Ghost Writer ci-dessus, ou continue à écrire…" :
-                            `Répondre à ${agent.nom}… (↵ Envoyer · ✨ Ghost Writer)`
+                            `Répondre à ${agent.nom}…  (↵ Envoyer · ✨ Ghost Writer)`
                           }
                           rows={1}
                           className="w-full text-[13px] text-[#1d1d1f] placeholder-[#8e8e93] outline-none resize-none leading-relaxed bg-transparent disabled:cursor-not-allowed"
                           style={{ minHeight: "20px" }}
                         />
                       </div>
-                      {/* Bouton Ghost Writer */}
                       <button
                         onClick={handleGhostDraft}
                         disabled={sending || gwLoading || !inputText.trim()}
@@ -692,13 +954,12 @@ export default function Home() {
                             : "border-[#e5e5ea] bg-white text-[#c7c7cc] cursor-not-allowed"}`}>
                         {gwLoading ? <div className="w-3 h-3 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin" /> : <Zap size={14} />}
                       </button>
-                      {/* Bouton Envoyer */}
                       <button
                         onClick={handleDirectSend}
                         disabled={sending || !inputText.trim()}
                         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm shrink-0 ${
                           !sending && inputText.trim()
-                            ? "bg-[#0071e3] hover:bg-[#0077ed] text-white"
+                            ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] hover:from-[#0077ed] hover:to-[#0050b3] text-white"
                             : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"}`}>
                         {sending ? (
                           <div className="w-3 h-3 border-2 border-[#8e8e93] border-t-transparent rounded-full animate-spin" />
@@ -737,19 +998,23 @@ export default function Home() {
 
         {activeTab === "equipe" && (
           <div className="flex-1 overflow-y-auto p-6">
-            <h2 className="text-[22px] font-bold text-[#1d1d1f] mb-1">Équipe</h2>
-            <p className="text-[13px] text-[#6e6e73] mb-5">{store.agents.length} collaborateurs · Cabinet Morel & Associés</p>
+            <div className="flex items-end justify-between mb-5">
+              <div>
+                <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Équipe</h2>
+                <p className="text-[13px] text-[#6e6e73]">{store.agents.length} collaborateurs · Cabinet Morel & Associés</p>
+              </div>
+            </div>
             <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
               {store.agents.map((a) => (
-                <div key={a.id} className="bg-white rounded-[18px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30">
+                <div key={a.id} className="bg-white rounded-[18px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all">
                   <div className="flex items-start gap-3 mb-3">
-                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold" style={{ backgroundColor: a.avatar_color }}>
+                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold shadow-sm" style={{ backgroundColor: a.avatar_color }}>
                       {a.initiales}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[14px] text-[#1d1d1f] truncate">{a.nom}</div>
                       <div className="text-[11px] text-[#6e6e73] truncate">{a.role}</div>
-                      <EmotionChip emotion={(a as any).emotion || "Stable"} small />
+                      <div className="mt-1"><EmotionChip emotion={(a as any).emotion || "Stable"} small /></div>
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -780,32 +1045,108 @@ export default function Home() {
 
         {activeTab === "agenda" && (
           <div className="flex-1 overflow-y-auto p-6">
-            <h2 className="text-[22px] font-bold text-[#1d1d1f] mb-1">Agenda</h2>
-            <p className="text-[13px] text-[#6e6e73] mb-5">Mai — Juin 2026 · Campagne Bilan & AG</p>
-            <div className="max-w-lg space-y-3">
-              <div className="bg-[#ff3b30]/5 border border-[#ff3b30]/20 rounded-[16px] p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle size={15} className="text-[#ff3b30]" />
-                  <span className="font-semibold text-[14px] text-[#1d1d1f]">Boss Fight — Clôture bilan</span>
-                  <span className="ml-auto text-[12px] font-bold text-[#ff3b30]">J-16</span>
+            <div className="max-w-3xl mx-auto">
+              <div className="flex items-end justify-between mb-5">
+                <div>
+                  <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Agenda du jour</h2>
+                  <p className="text-[13px] text-[#6e6e73]">Jour {store.game_day} · {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")} · Campagne Bilan & AG</p>
                 </div>
-                <p className="text-[12px] text-[#6e6e73]">Signature bilan Vidal Industrie · RDV demain 10h avec Naïma</p>
+                <div className="text-right">
+                  <div className="text-[11px] text-[#8e8e93]">Cas pratiques validés</div>
+                  <div className="text-[22px] font-bold text-[#34c759] tabular-nums">{completedSlots.size}/{agendaSlots.filter(s => s.type !== "pause").length}</div>
+                </div>
               </div>
-              <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30">
+
+              <div className="bg-gradient-to-br from-[#ff3b30]/8 to-[#ff9f0a]/8 border border-[#ff3b30]/20 rounded-[18px] p-4 mb-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle size={15} className="text-[#34c759]" />
-                  <span className="font-semibold text-[14px] text-[#1d1d1f]">Déclarations IS</span>
-                  <span className="ml-auto text-[12px] text-[#34c759] font-medium">Demain matin</span>
+                  <Flame size={16} className="text-[#ff3b30]" />
+                  <span className="font-semibold text-[14px] text-[#1d1d1f]">Boss Fight — Clôture bilan 30/06</span>
+                  <span className="ml-auto text-[13px] font-bold text-[#ff3b30]">J-16</span>
                 </div>
-                <p className="text-[12px] text-[#6e6e73]">Dossier Martin SARL — Thomas attend validation taux acompte IS</p>
+                <p className="text-[12px] text-[#6e6e73]">Signature bilan Vidal Industrie · Provision risque client en suspens</p>
               </div>
-              <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30">
-                <div className="flex items-center gap-2 mb-1">
-                  <Calendar size={15} className="text-[#0071e3]" />
-                  <span className="font-semibold text-[14px] text-[#1d1d1f]">AG Groupe Dubois</span>
-                  <span className="ml-auto text-[12px] text-[#6e6e73]">Juin 2026</span>
+
+              <div className="relative">
+                <div className="absolute left-[68px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-[#d2d2d7]/0 via-[#d2d2d7] to-[#d2d2d7]/0" />
+                <div className="space-y-2">
+                  {agendaSlots.map((slot) => {
+                    const slotMin = timeToMinutes(slot.heure);
+                    const isPast = gameMinutes > slotMin + slot.duree_min;
+                    const isActive = gameMinutes >= slotMin && gameMinutes <= slotMin + slot.duree_min;
+                    const isFuture = gameMinutes < slotMin;
+                    const isCompleted = completedSlots.has(slot.heure);
+                    const Icon = getSlotIcon(slot.type);
+                    const color = getSlotColor(slot.type);
+                    const isLocked = store.player_level < slot.niveau_requis;
+                    const canOpen = !isFuture && !isCompleted && slot.type !== "pause" && !isLocked;
+                    const agent = slot.agent_id ? store.agents.find(a => a.id === slot.agent_id) : null;
+
+                    return (
+                      <div key={slot.heure} className="flex items-start gap-3 relative">
+                        <div className="w-14 text-right pt-3 shrink-0">
+                          <div className={`text-[13px] font-mono font-semibold tabular-nums ${isActive ? "text-[#0071e3]" : isFuture ? "text-[#c7c7cc]" : "text-[#1d1d1f]"}`}>
+                            {slot.heure}
+                          </div>
+                          <div className="text-[9px] text-[#8e8e93]">{slot.duree_min}min</div>
+                        </div>
+
+                        <div className="relative shrink-0 pt-3">
+                          <div className={`w-4 h-4 rounded-full border-2 transition-all ${
+                            isCompleted ? "bg-[#34c759] border-[#34c759]" :
+                            isActive ? "border-[#0071e3] bg-white animate-pulse" :
+                            isPast ? "bg-[#e5e5ea] border-[#e5e5ea]" :
+                            "border-[#c7c7cc] bg-white"
+                          }`}>
+                            {isCompleted && <CheckCircle size={10} className="text-white -mt-px -ml-px" />}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => canOpen && openCasePratique(slot)}
+                          disabled={!canOpen}
+                          className={`flex-1 text-left rounded-[14px] p-3 border transition-all ${
+                            isCompleted ? "bg-[#34c759]/5 border-[#34c759]/20" :
+                            isActive ? "bg-white border-[#0071e3]/40 shadow-md hover:shadow-lg cursor-pointer" :
+                            isFuture ? "bg-white/40 border-[#d2d2d7]/30 opacity-60" :
+                            isLocked ? "bg-[#f5f5f7] border-[#d2d2d7]/30 opacity-50 cursor-not-allowed" :
+                            "bg-white border-[#d2d2d7]/40 hover:border-[#0071e3]/40 hover:shadow cursor-pointer"
+                          }`}>
+                          <div className="flex items-start gap-2.5">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15` }}>
+                              <Icon size={14} style={{ color }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="font-semibold text-[13px] text-[#1d1d1f]">{slot.titre}</span>
+                                {isCompleted && <span className="text-[9px] font-medium text-[#34c759]">✓ Validé</span>}
+                                {isActive && !isCompleted && <span className="text-[9px] font-semibold text-[#0071e3] bg-[#0071e3]/10 px-1.5 py-0.5 rounded-full animate-pulse">EN COURS</span>}
+                                {isLocked && <span className="text-[9px] font-medium text-[#8e8e93]">🔒 Niveau {slot.niveau_requis}</span>}
+                              </div>
+                              <p className="text-[11px] text-[#6e6e73] truncate">{slot.theme}</p>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                {agent && (
+                                  <span className="flex items-center gap-1 text-[10px] text-[#8e8e93]">
+                                    <div className="w-3 h-3 rounded-full text-white text-[7px] flex items-center justify-center font-semibold" style={{ backgroundColor: agent.avatar_color }}>
+                                      {agent.initiales[0]}
+                                    </div>
+                                    {agent.nom}
+                                  </span>
+                                )}
+                                {slot.xp_max > 0 && (
+                                  <span className="text-[9px] font-medium text-[#ff9f0a] flex items-center gap-0.5">
+                                    <Trophy size={9} /> +{slot.xp_max} XP max
+                                  </span>
+                                )}
+                                <span className="text-[9px] text-[#8e8e93] ml-auto capitalize">{slot.type.replace("_", " ")}</span>
+                              </div>
+                            </div>
+                            {canOpen && !isCompleted && <ChevronRight size={14} className="text-[#c7c7cc] mt-2" />}
+                          </div>
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
-                <p className="text-[12px] text-[#6e6e73]">Écart de conversion 340k€ non résolu · Samuel en attente</p>
               </div>
             </div>
           </div>
@@ -813,46 +1154,135 @@ export default function Home() {
 
         {activeTab === "dossiers" && (
           <div className="flex-1 overflow-y-auto p-6">
-            <h2 className="text-[22px] font-bold text-[#1d1d1f] mb-1">Dossiers actifs</h2>
-            <p className="text-[13px] text-[#6e6e73] mb-5">Pipeline P1 → P5</p>
-            <div className="space-y-2">
-              {store.agents.flatMap((a) =>
-                ((a as any).dossiers_actifs ?? []).map((d: string, i: number) => (
-                  <div key={`${a.id}-${i}`} className="bg-white rounded-[14px] px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.05)] border border-[#d2d2d7]/30 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: a.avatar_color }}>
-                      {a.initiales}
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Dossiers clients</h2>
+                  <p className="text-[13px] text-[#6e6e73]">Pipeline P1 → P5 · Gains/Pertes influencent vos ressources</p>
+                </div>
+                <div className="flex gap-2">
+                  <DossierStat label="En cours" value={dossiersEnCours} color="#0071e3" />
+                  <DossierStat label="Gagnés" value={dossiersGagnes} color="#34c759" />
+                  <DossierStat label="Perdus" value={dossiersPerdus} color="#ff3b30" />
+                </div>
+              </div>
+
+              <div className="flex gap-1.5 mb-4 bg-[#f5f5f7] p-1 rounded-[12px] inline-flex">
+                {(["en_cours", "gagne", "perdu", "tous"] as const).map(f => (
+                  <button key={f} onClick={() => setDossiersFilter(f)}
+                    className={`px-3 py-1.5 text-[12px] font-medium rounded-[8px] transition-all ${
+                      dossiersFilter === f ? "bg-white text-[#1d1d1f] shadow-sm" : "text-[#6e6e73] hover:text-[#1d1d1f]"
+                    }`}>
+                    {f === "en_cours" ? "En cours" : f === "gagne" ? "Gagnés" : f === "perdu" ? "Perdus" : "Tous"}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                {filteredDossiers.map((d) => {
+                  const a = store.agents.find(x => x.id === d.agent_id);
+                  return (
+                    <div key={d.id} className={`bg-white rounded-[14px] p-4 border transition-all ${
+                      d.etat === "gagne" ? "border-[#34c759]/30 bg-[#34c759]/5" :
+                      d.etat === "perdu" ? "border-[#ff3b30]/30 bg-[#ff3b30]/5 opacity-70" :
+                      d.etat === "alerte" ? "border-[#ff9f0a]/30 bg-[#ff9f0a]/5" :
+                      "border-[#d2d2d7]/40 hover:shadow-md"
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        {a && (
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 shadow-sm" style={{ backgroundColor: a.avatar_color }}>
+                            {a.initiales}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-[14px] text-[#1d1d1f]">{d.client}</span>
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${getPhaseColor(d.phase)}`}>{d.phase}</span>
+                            <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ml-auto ${
+                              d.etat === "gagne" ? "bg-[#34c759]/15 text-[#34c759]" :
+                              d.etat === "perdu" ? "bg-[#ff3b30]/15 text-[#ff3b30]" :
+                              d.etat === "alerte" ? "bg-[#ff9f0a]/15 text-[#ff9f0a]" :
+                              "bg-[#0071e3]/15 text-[#0071e3]"
+                            }`}>
+                              {d.etat === "en_cours" ? "EN COURS" : d.etat === "gagne" ? "GAGNÉ" : d.etat === "perdu" ? "PERDU" : "ALERTE"}
+                            </span>
+                          </div>
+                          <p className="text-[12px] text-[#6e6e73] mb-2">{d.theme} · échéance {d.echeance_heure}</p>
+
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[10px] text-[#8e8e93] w-16">Progression</span>
+                            <div className="flex-1 h-[5px] bg-[#e5e5ea] rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-500" style={{
+                                width: `${d.progression}%`,
+                                backgroundColor: d.etat === "gagne" ? "#34c759" : d.etat === "perdu" ? "#ff3b30" : "#0071e3"
+                              }} />
+                            </div>
+                            <span className="text-[10px] font-semibold text-[#3a3a3c] tabular-nums w-8 text-right">{d.progression}%</span>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-[10px] text-[#8e8e93]">
+                            <span>Impact si gagné : <span className="text-[#34c759] font-medium">+{d.impact.legitimite} Lég · +{(d.impact.tresorerie / 1000).toFixed(0)}k€</span></span>
+                            <span>Si perdu : <span className="text-[#ff3b30] font-medium">−{d.impact.stress} stress · −{(d.impact.tresorerie / 2 / 1000).toFixed(1)}k€</span></span>
+                          </div>
+
+                          {d.etat === "en_cours" && (
+                            <div className="flex gap-2 mt-2.5">
+                              <button onClick={() => store.advanceDossier(d.id, 10)}
+                                className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#0071e3]/10 text-[#0071e3] hover:bg-[#0071e3]/15 font-medium transition-all">
+                                Avancer +10%
+                              </button>
+                              <button onClick={() => store.winDossier(d.id)}
+                                className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#34c759]/10 text-[#34c759] hover:bg-[#34c759]/15 font-medium transition-all">
+                                Clôturer ✓
+                              </button>
+                              <button onClick={() => store.loseDossier(d.id)}
+                                className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#ff3b30]/10 text-[#ff3b30] hover:bg-[#ff3b30]/15 font-medium transition-all">
+                                Perdre ✗
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-[#1d1d1f] truncate">{d}</p>
-                      <p className="text-[11px] text-[#6e6e73]">{a.nom} · {a.filiere}</p>
-                    </div>
-                    <ChevronRight size={14} className="text-[#c7c7cc] shrink-0" />
+                  );
+                })}
+                {filteredDossiers.length === 0 && (
+                  <div className="text-center py-12 text-[#8e8e93]">
+                    <FolderOpen size={32} className="mx-auto mb-2 opacity-40" />
+                    <p className="text-[13px]">Aucun dossier dans cette catégorie</p>
                   </div>
-                ))
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}
 
         {activeTab === "dec" && (
           <div className="flex-1 overflow-y-auto p-6">
-            <h2 className="text-[22px] font-bold text-[#1d1d1f] mb-1">DEC Prep</h2>
-            <p className="text-[13px] text-[#6e6e73] mb-5">Préparation Diplôme d'Expertise Comptable</p>
-            <div className="max-w-lg space-y-3">
-              <div className="bg-[#0071e3]/5 border border-[#0071e3]/20 rounded-[16px] p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <GraduationCap size={15} className="text-[#0071e3]" />
-                  <span className="font-semibold text-[14px] text-[#1d1d1f]">Prochain QCM blanc</span>
-                  <span className="ml-auto text-[12px] font-semibold text-[#0071e3]">Vendredi 29 mai</span>
+            <div className="max-w-3xl mx-auto">
+              <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">DEC Prep</h2>
+              <p className="text-[13px] text-[#6e6e73] mb-5">Niveau {store.player_level}/10 · {store.player_xp} XP</p>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-gradient-to-br from-[#ff9f0a]/10 to-[#ff3b30]/10 border border-[#ff9f0a]/20 rounded-[16px] p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award size={16} className="text-[#ff9f0a]" />
+                    <span className="font-semibold text-[13px] text-[#1d1d1f]">Niveau actuel</span>
+                  </div>
+                  <div className="text-[36px] font-bold text-[#1d1d1f] tabular-nums leading-none">{store.player_level}</div>
+                  <div className="text-[11px] text-[#6e6e73] mt-1">{store.xp_to_next - store.player_xp} XP avant niveau {store.player_level + 1}</div>
                 </div>
-                <p className="text-[12px] text-[#6e6e73] mb-3">Thème : <strong>Consolidation & IFRS</strong> · 45 min chrono · Jury virtuel</p>
-                <div className="flex gap-2 flex-wrap">
-                  {["Samuel Dubois", "Naïma Bensaid", "Thomas Lefèvre"].map(j => (
-                    <span key={j} className="text-[10px] px-2 py-0.5 bg-white rounded-full border border-[#d2d2d7]/50 text-[#6e6e73]">{j}</span>
-                  ))}
+                <div className="bg-gradient-to-br from-[#0071e3]/10 to-[#5e5ce6]/10 border border-[#0071e3]/20 rounded-[16px] p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles size={16} className="text-[#0071e3]" />
+                    <span className="font-semibold text-[13px] text-[#1d1d1f]">Total XP</span>
+                  </div>
+                  <div className="text-[36px] font-bold text-[#1d1d1f] tabular-nums leading-none">{store.player_xp}</div>
+                  <div className="text-[11px] text-[#6e6e73] mt-1">Gagné en répondant et cas pratiques</div>
                 </div>
               </div>
-              <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30">
+
+              <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30 mb-3">
                 <p className="font-semibold text-[13px] text-[#1d1d1f] mb-3">Grille d'évaluation Ghost Writer</p>
                 <div className="space-y-2">
                   {[["Précision technique", 30, "#0071e3"],["Rédaction professionnelle", 20, "#34c759"],["Déontologie", 20, "#ff9f0a"],["Contexte & empathie", 15, "#bf5af2"],["Opérationnel", 15, "#ff3b30"]].map(([label, pts, color]) => (
@@ -866,10 +1296,235 @@ export default function Home() {
                   ))}
                 </div>
               </div>
+
+              <div className="bg-white rounded-[16px] p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] border border-[#d2d2d7]/30">
+                <p className="font-semibold text-[13px] text-[#1d1d1f] mb-2">Progression par niveau</p>
+                <div className="space-y-1.5 text-[11px] text-[#6e6e73]">
+                  <div><strong>N1-2</strong> : Saisie comptable, TVA, paie simple</div>
+                  <div><strong>N3-4</strong> : Bilan, liasse fiscale, IS, contentieux</div>
+                  <div><strong>N5-6</strong> : Audit, CAC, provisions, contrôle</div>
+                  <div><strong>N7-8</strong> : Consolidation, IFRS, fusion</div>
+                  <div><strong>N9-10</strong> : Stratégie cabinet, expertise judiciaire</div>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
+      </div>
+
+      {/* ── MODAL CAS PRATIQUE ── */}
+      {activeSlot && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 flex items-center justify-between bg-gradient-to-r from-[#0071e3]/5 to-[#5e5ce6]/5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0071e3] to-[#0040a3] flex items-center justify-center shadow-md">
+                  <GraduationCap size={18} className="text-white" />
+                </div>
+                <div>
+                  <div className="font-semibold text-[15px] text-[#1d1d1f]">{activeSlot.titre}</div>
+                  <div className="text-[11px] text-[#6e6e73]">{activeSlot.heure} · {activeSlot.duree_min}min · +{activeSlot.xp_max} XP max</div>
+                </div>
+              </div>
+              <button onClick={closeCasePratique} className="w-8 h-8 rounded-full bg-[#f5f5f7] hover:bg-[#e5e5ea] flex items-center justify-center transition-colors">
+                <X size={14} className="text-[#6e6e73]" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {caseLoading && (
+                <div className="text-center py-12">
+                  <RefreshCw size={28} className="text-[#0071e3] animate-spin mx-auto mb-3" />
+                  <p className="text-[13px] text-[#6e6e73]">Génération du cas pratique…</p>
+                </div>
+              )}
+
+              {activeCase && !caseCorrection && (
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-1">Client</div>
+                    <div className="text-[15px] font-bold text-[#1d1d1f]">{activeCase.client}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1">Contexte</div>
+                    <p className="text-[13px] text-[#1d1d1f] leading-relaxed">{activeCase.contexte}</p>
+                  </div>
+                  <div className="bg-[#f5f5f7] rounded-[12px] p-4">
+                    <div className="text-[10px] font-semibold text-[#1d1d1f] uppercase tracking-wider mb-2">Énoncé</div>
+                    <p className="text-[13px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">{activeCase.enonce}</p>
+                  </div>
+                  <div className="bg-[#0071e3]/5 border border-[#0071e3]/20 rounded-[12px] p-4">
+                    <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-1">Question</div>
+                    <p className="text-[14px] font-medium text-[#1d1d1f] leading-relaxed">{activeCase.question}</p>
+                  </div>
+                  <div>
+                    <textarea
+                      value={caseResponse}
+                      onChange={(e) => setCaseResponse(e.target.value)}
+                      placeholder="Ta réponse… (sois précis, cite les références techniques)"
+                      rows={6}
+                      className="w-full text-[13px] p-3 border border-[#d2d2d7] rounded-[12px] outline-none focus:border-[#0071e3] resize-none leading-relaxed"
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-[10px] text-[#8e8e93]">Critères : {activeCase.criteres.join(" · ")}</span>
+                      <button onClick={submitCaseResponse} disabled={!caseResponse.trim() || caseSubmitting}
+                        className={`px-4 py-2 rounded-[10px] text-[13px] font-medium transition-all ${
+                          caseResponse.trim() && !caseSubmitting
+                            ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white shadow-md hover:shadow-lg"
+                            : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"
+                        }`}>
+                        {caseSubmitting ? "Correction…" : "Soumettre ma réponse"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {caseCorrection && (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#0071e3]/5 to-[#34c759]/5 rounded-[16px] p-5">
+                      <div className="text-[56px] font-bold tabular-nums leading-none" style={{
+                        color: caseCorrection.score >= 75 ? "#34c759" : caseCorrection.score >= 50 ? "#ff9f0a" : "#ff3b30"
+                      }}>
+                        {caseCorrection.score}
+                      </div>
+                      <div className="text-[13px] font-medium text-[#1d1d1f] mt-1">{caseCorrection.verdict}</div>
+                      <div className="text-[11px] text-[#0071e3] mt-1 flex items-center gap-1">
+                        <Sparkles size={11} /> +{caseCorrection.xp_gagne} XP
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-[#f5f5f7] rounded-[12px] p-3 flex gap-2 items-start">
+                    <Zap size={14} className="text-[#0071e3] mt-0.5 shrink-0" />
+                    <p className="text-[13px] text-[#1d1d1f] italic leading-relaxed">{caseCorrection.analogie}</p>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-2">Correction</div>
+                    <p className="text-[13px] text-[#1d1d1f] leading-relaxed">{caseCorrection.correction}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#34c759] uppercase tracking-wider mb-1.5">Points forts</div>
+                      {caseCorrection.points_forts.map((p, i) => (
+                        <p key={i} className="text-[12px] text-[#1d1d1f] flex gap-1.5 items-start mb-1">
+                          <span className="text-[#34c759] font-bold mt-0.5">✓</span>{p}
+                        </p>
+                      ))}
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-1.5">À améliorer</div>
+                      {caseCorrection.axes_amelioration.map((p, i) => (
+                        <p key={i} className="text-[12px] text-[#1d1d1f] flex gap-1.5 items-start mb-1">
+                          <span className="text-[#0071e3] font-bold mt-0.5">→</span>{p}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                  <button onClick={closeCasePratique}
+                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white font-medium text-[13px] shadow-md hover:shadow-lg transition-all">
+                    Terminer
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CLAUDE ASSISTANT FLOTTANT ── */}
+      <div className="fixed bottom-5 right-5 z-40">
+        {claudeOpen ? (
+          <div className="bg-white rounded-[18px] shadow-2xl w-[380px] h-[500px] flex flex-col border border-[#d2d2d7]/40 overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#d2d2d7]/40 bg-gradient-to-r from-[#0071e3] to-[#5e5ce6] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                  <Sparkles size={13} className="text-white" />
+                </div>
+                <div>
+                  <div className="font-semibold text-[13px] text-white">Claude</div>
+                  <div className="text-[10px] text-white/70">Conseil stratégique cabinet</div>
+                </div>
+              </div>
+              <button onClick={() => setClaudeOpen(false)} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+                <X size={13} className="text-white" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+              {store.claude_history.length === 0 && (
+                <div className="text-center py-6 px-2">
+                  <Sparkles size={24} className="text-[#0071e3] mx-auto mb-2" />
+                  <p className="text-[12px] text-[#1d1d1f] font-medium mb-1">Bonjour 👋</p>
+                  <p className="text-[11px] text-[#6e6e73] leading-relaxed">Je suis Claude. Je vois tout le cabinet en temps réel. Demande-moi des conseils sur les agents, dossiers, agenda, ou un rappel technique DEC.</p>
+                  <div className="mt-3 flex flex-col gap-1.5">
+                    {["Que faire en priorité ?", "État du cabinet ?", "Rappel sur les IFRS"].map(s => (
+                      <button key={s} onClick={() => { setClaudeInput(s); }}
+                        className="text-[11px] text-[#0071e3] bg-[#0071e3]/8 hover:bg-[#0071e3]/12 px-2.5 py-1 rounded-full transition-colors">
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {store.claude_history.map((m, i) => (
+                <div key={i} className={`flex ${m.role === "user" ? "justify-end" : ""}`}>
+                  <div className={`max-w-[85%] px-3 py-2 rounded-[14px] text-[12px] leading-relaxed whitespace-pre-wrap ${
+                    m.role === "user"
+                      ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white rounded-br-[4px]"
+                      : "bg-[#f5f5f7] text-[#1d1d1f] rounded-tl-[4px]"
+                  }`}>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {claudeSending && (
+                <div className="flex">
+                  <div className="bg-[#f5f5f7] rounded-[14px] rounded-tl-[4px] px-3 py-2 flex gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+              )}
+              <div ref={claudeEndRef} />
+            </div>
+
+            {claudeError && (
+              <div className="px-3 py-1.5 bg-[#ff3b30]/8 border-t border-[#ff3b30]/15 text-[11px] text-[#ff3b30] flex items-center gap-1.5">
+                <AlertTriangle size={11} /> {claudeError}
+              </div>
+            )}
+
+            <div className="px-3 py-2 border-t border-[#d2d2d7]/40">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={claudeInput}
+                  onChange={(e) => setClaudeInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendToClaude(); }}}
+                  disabled={claudeSending}
+                  placeholder="Demande à Claude…"
+                  className="flex-1 text-[12px] px-3 py-2 bg-[#f5f5f7] rounded-full outline-none placeholder-[#8e8e93] disabled:opacity-60"
+                />
+                <button onClick={sendToClaude} disabled={!claudeInput.trim() || claudeSending}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                    claudeInput.trim() && !claudeSending
+                      ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white shadow-sm"
+                      : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"
+                  }`}>
+                  <Send size={12} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setClaudeOpen(true)}
+            className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0071e3] via-[#5e5ce6] to-[#bf5af2] shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center group">
+            <Sparkles size={22} className="text-white group-hover:rotate-12 transition-transform" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -889,7 +1544,6 @@ function ScoreCard({ score, playerMessage, onClose }: { score: ScoreResult; play
 
   return (
     <div className="bg-white rounded-[18px] border border-[#d2d2d7]/40 shadow-[0_4px_24px_rgba(0,0,0,0.10)] p-4 my-2">
-      {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-[16px] shadow-sm" style={{ backgroundColor: color }}>
@@ -911,7 +1565,6 @@ function ScoreCard({ score, playerMessage, onClose }: { score: ScoreResult; play
         </div>
       </div>
 
-      {/* Barres de score */}
       <div className="space-y-1.5 mb-3">
         {bars.map(b => (
           <div key={b.label} className="flex items-center gap-2">
@@ -924,7 +1577,6 @@ function ScoreCard({ score, playerMessage, onClose }: { score: ScoreResult; play
         ))}
       </div>
 
-      {/* Feedback avec analogie */}
       <div className="bg-[#f5f5f7] rounded-[12px] p-3 mb-2.5">
         <div className="flex items-start gap-2">
           <Zap size={12} className="text-[#0071e3] mt-0.5 shrink-0" />
@@ -932,7 +1584,6 @@ function ScoreCard({ score, playerMessage, onClose }: { score: ScoreResult; play
         </div>
       </div>
 
-      {/* Points forts + Axes */}
       <div className="flex gap-3">
         {score.points_forts?.length > 0 && (
           <div className="flex-1">
@@ -973,7 +1624,7 @@ function MiniStat({ label, value, color, display }: { label: string; value: numb
         <span className="font-medium text-[#3a3a3c]">{display || Math.round(value)}</span>
       </div>
       <div className="h-[3px] bg-[#e5e5ea] rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
     </div>
   );
@@ -1021,5 +1672,14 @@ function EmotionChip({ emotion, small }: { emotion: string; small?: boolean }) {
     <span className={`inline-block px-1.5 py-0.5 rounded-md font-medium ${small ? "text-[9px]" : "text-[11px]"} ${cls}`}>
       {emotion}
     </span>
+  );
+}
+
+function DossierStat({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="bg-white px-3 py-2 rounded-[12px] border border-[#d2d2d7]/40 text-center min-w-[78px] shadow-sm">
+      <div className="text-[18px] font-bold tabular-nums" style={{ color }}>{value}</div>
+      <div className="text-[10px] text-[#6e6e73]">{label}</div>
+    </div>
   );
 }

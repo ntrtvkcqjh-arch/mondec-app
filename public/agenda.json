@@ -1,0 +1,110 @@
+{
+  "slots_quotidiens": [
+    {
+      "heure": "08:30",
+      "type": "briefing",
+      "titre": "Briefing matinal équipe",
+      "theme": "Revue rapide des dossiers du jour",
+      "agent_id": "naima_bensaid",
+      "duree_min": 30,
+      "xp_max": 15,
+      "niveau_requis": 1
+    },
+    {
+      "heure": "09:30",
+      "type": "cas_pratique",
+      "titre": "Calcul acompte IS — Martin SARL",
+      "theme": "Acompte IS et taux applicable post-réforme",
+      "agent_id": "thomas_lefevre",
+      "duree_min": 45,
+      "xp_max": 25,
+      "niveau_requis": 1
+    },
+    {
+      "heure": "10:30",
+      "type": "rdv_client",
+      "titre": "RDV client Vidal Industrie",
+      "theme": "Provision risque client sous-évaluée — arbitrage",
+      "agent_id": "naima_bensaid",
+      "duree_min": 60,
+      "xp_max": 40,
+      "niveau_requis": 3
+    },
+    {
+      "heure": "11:30",
+      "type": "cas_pratique",
+      "titre": "Traitement écart de conversion IFRS",
+      "theme": "Écart de conversion sur filiale étrangère — IFRS",
+      "agent_id": "samuel_dubois",
+      "duree_min": 45,
+      "xp_max": 35,
+      "niveau_requis": 4
+    },
+    {
+      "heure": "12:30",
+      "type": "pause",
+      "titre": "Pause déjeuner",
+      "theme": "Pause obligatoire",
+      "duree_min": 60,
+      "xp_max": 0,
+      "niveau_requis": 1
+    },
+    {
+      "heure": "14:00",
+      "type": "cas_pratique",
+      "titre": "Liasse fiscale — petite SARL",
+      "theme": "Constitution liasse 2065 — entreprise individuelle",
+      "agent_id": "lea_garnier",
+      "duree_min": 45,
+      "xp_max": 20,
+      "niveau_requis": 1
+    },
+    {
+      "heure": "15:00",
+      "type": "mediation",
+      "titre": "Médiation conflit Hugo / Amélie",
+      "theme": "Gestion conflit interne — répartition dossiers",
+      "agent_id": "lea_garnier",
+      "duree_min": 45,
+      "xp_max": 30,
+      "niveau_requis": 2
+    },
+    {
+      "heure": "16:00",
+      "type": "cas_pratique",
+      "titre": "Provision pour risque — méthodologie",
+      "theme": "Évaluation provision risque client (CRC 99-02)",
+      "agent_id": "naima_bensaid",
+      "duree_min": 45,
+      "xp_max": 30,
+      "niveau_requis": 3
+    },
+    {
+      "heure": "17:00",
+      "type": "validation",
+      "titre": "Validation bilan Petit",
+      "theme": "Phase P4 — vérification cohérence bilan PME",
+      "agent_id": "amelie_durand",
+      "duree_min": 30,
+      "xp_max": 25,
+      "niveau_requis": 2
+    },
+    {
+      "heure": "18:00",
+      "type": "debrief",
+      "titre": "Debrief fin de journée",
+      "theme": "Bilan du jour — préparation lendemain",
+      "agent_id": "thomas_lefevre",
+      "duree_min": 30,
+      "xp_max": 15,
+      "niveau_requis": 1
+    }
+  ],
+  "evenements_recurrents": [
+    {
+      "frequence": "quotidien",
+      "heure_declenchement": "10:00",
+      "description": "Possibilité d'événement aléatoire (mail client, alerte dossier)"
+    }
+  ]
+}

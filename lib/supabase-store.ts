@@ -37,6 +37,28 @@ export interface Message {
   reponse_joueur: string | null;
 }
 
+export interface Dossier {
+  id: string;
+  client: string;
+  theme: string;
+  agent_id: string;
+  etat: "en_cours" | "alerte" | "gagne" | "perdu";
+  progression: number;
+  phase: "P1" | "P2" | "P3" | "P4" | "P5";
+  echeance_heure: string;
+  impact: {
+    legitimite: number;
+    reputation: number;
+    tresorerie: number;
+    stress: number;
+  };
+}
+
+export interface ClaudeMsg {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface GameState {
   user_id: string | null;
   legitimite: number;
@@ -47,9 +69,22 @@ export interface GameState {
   points_action_max: number;
   date_simulation: string;
   mood_global: string;
+
+  // Horloge jeu — temps simulé qui avance
+  game_hour: number;
+  game_minute: number;
+  game_day: number;
+
+  // Niveau joueur — progression XP
+  player_level: number;
+  player_xp: number;
+  xp_to_next: number;
+
   agents: Agent[];
   messages: Message[];
+  dossiers: Dossier[];
   conversation_history: Record<string, { role: string; content: string }[]>;
+  claude_history: ClaudeMsg[];
   isLoading: boolean;
   isAuthenticated: boolean;
 
@@ -63,7 +98,25 @@ export interface GameState {
   addConversation: (agentId: string, role: "user" | "assistant", content: string) => Promise<void>;
   loadConversations: (agentId: string) => Promise<void>;
   addNewMessage: (event: { agent_id: string; niveau: string; type: string; sujet: string; contenu: string; delai_reponse_heures: number }) => Promise<void>;
+
+  // Horloge
+  tickClock: (minutes: number) => void;
+
+  // XP / Niveau
+  addXP: (amount: number) => void;
+
+  // Dossiers
+  setDossiers: (d: Dossier[]) => void;
+  winDossier: (id: string) => void;
+  loseDossier: (id: string) => void;
+  advanceDossier: (id: string, amount: number) => void;
+
+  // Claude
+  addClaudeMessage: (msg: ClaudeMsg) => void;
+  clearClaude: () => void;
 }
+
+const xpForLevel = (level: number) => 100 + level * 50;
 
 export const useGameStore = create<GameState>((set, get) => ({
   user_id: null,
@@ -75,9 +128,20 @@ export const useGameStore = create<GameState>((set, get) => ({
   points_action_max: 3,
   date_simulation: "14 mai 2026",
   mood_global: "Sous Pression",
+
+  game_hour: 9,
+  game_minute: 0,
+  game_day: 1,
+
+  player_level: 1,
+  player_xp: 0,
+  xp_to_next: 100,
+
   agents: [],
   messages: [],
+  dossiers: [],
   conversation_history: {},
+  claude_history: [],
   isLoading: true,
   isAuthenticated: false,
 
@@ -92,7 +156,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     set({ user_id: user.id, isAuthenticated: true, isLoading: true });
 
-    // Charger ou créer le profil
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
@@ -114,14 +177,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       await supabase.from("profiles").insert({ user_id: user.id });
     }
 
-    // Vérifier si les agents existent déjà
     const { data: existingAgents } = await supabase
       .from("agents_state")
       .select("agent_id")
       .eq("user_id", user.id)
       .limit(1);
 
-    // Seed pour les nouveaux joueurs
     if (!existingAgents || existingAgents.length === 0) {
       try {
         const res = await fetch("/agents_config.json");
@@ -170,22 +231,44 @@ export const useGameStore = create<GameState>((set, get) => ({
           }))
         );
       } catch (err) {
-        console.error("Erreur initialisation données:", err);
+        console.error("[Store] Erreur seed initial :", err);
       }
     }
 
-    // Charger les agents (après seed éventuel)
     const { data: agentsData } = await supabase
       .from("agents_state")
       .select("*")
       .eq("user_id", user.id);
 
     if (agentsData && agentsData.length > 0) {
-      // On mappe agent_id → id pour compatibilité avec l'UI
       set({ agents: agentsData.map((a) => ({ ...a, id: a.agent_id })) });
+
+      // Seed dossiers dynamiques à partir des dossiers_actifs des agents
+      const dossiers: Dossier[] = [];
+      agentsData.forEach((a: any) => {
+        (a.dossiers_actifs || []).forEach((d: string, i: number) => {
+          const [client, theme] = d.includes(" - ") ? d.split(" - ") : [d, "Dossier"];
+          dossiers.push({
+            id: `${a.agent_id}_d${i}`,
+            client: client.trim(),
+            theme: theme.trim(),
+            agent_id: a.agent_id,
+            etat: "en_cours",
+            progression: 30 + Math.floor(Math.random() * 50),
+            phase: ["P2", "P3", "P4"][Math.floor(Math.random() * 3)] as "P2" | "P3" | "P4",
+            echeance_heure: `${10 + Math.floor(Math.random() * 7)}:00`,
+            impact: {
+              legitimite: 2 + Math.floor(Math.random() * 5),
+              reputation: 1 + Math.floor(Math.random() * 4),
+              tresorerie: 2000 + Math.floor(Math.random() * 8000),
+              stress: 3 + Math.floor(Math.random() * 6),
+            },
+          });
+        });
+      });
+      set({ dossiers });
     }
 
-    // Charger les messages
     const { data: messagesData } = await supabase
       .from("messages")
       .select("*")
@@ -224,37 +307,32 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   markMessageRead: async (id) => {
     const state = get();
-    if (!state.user_id) return;
-
-    await supabase
-      .from("messages")
-      .update({ lu: true })
-      .eq("message_id", id)
-      .eq("user_id", state.user_id);
-
     set((state) => ({
       messages: state.messages.map((m) =>
         m.id === id ? { ...m, lu: true } : m
       ),
     }));
+    if (!state.user_id) return;
+    await supabase
+      .from("messages")
+      .update({ lu: true })
+      .eq("message_id", id)
+      .eq("user_id", state.user_id);
   },
 
   replyToMessage: async (id, reply) => {
     const state = get();
-    if (!state.user_id) return;
-
-    await supabase
-      .from("messages")
-      .update({ repondu: true, reponse_joueur: reply })
-      .eq("message_id", id)
-      .eq("user_id", state.user_id);
-
     set((state) => ({
       messages: state.messages.map((m) =>
         m.id === id ? { ...m, repondu: true, reponse_joueur: reply } : m
       ),
     }));
-
+    if (!state.user_id) return;
+    await supabase
+      .from("messages")
+      .update({ repondu: true, reponse_joueur: reply })
+      .eq("message_id", id)
+      .eq("user_id", state.user_id);
     get().saveGameState();
   },
 
@@ -272,22 +350,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (!state.user_id) return;
 
-    await supabase.from("conversations").insert({
-      user_id: state.user_id,
-      agent_id: agentId,
-      role,
-      content,
-    });
-
-    set((state) => ({
-      conversation_history: {
-        ...state.conversation_history,
-        [agentId]: [
-          ...(state.conversation_history[agentId] || []),
-          { role, content },
-        ].slice(-20),
-      },
-    }));
+    try {
+      await supabase.from("conversations").insert({
+        user_id: state.user_id,
+        agent_id: agentId,
+        role,
+        content,
+      });
+    } catch (err) {
+      console.error("[Store] Save conversation failed:", err);
+    }
   },
 
   loadConversations: async (agentId) => {
@@ -314,24 +386,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   addNewMessage: async (event) => {
     const state = get();
-    if (!state.user_id) return;
-
     const messageId = `msg_auto_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-
-    await supabase.from("messages").insert({
-      user_id: state.user_id,
-      message_id: messageId,
-      agent_id: event.agent_id,
-      niveau: event.niveau,
-      type: event.type,
-      phase: null,
-      sujet: event.sujet,
-      contenu: event.contenu,
-      delai_reponse_heures: event.delai_reponse_heures,
-      timestamp: new Date().toISOString(),
-      lu: false,
-      repondu: false,
-    });
 
     const newMsg: Message = {
       id: messageId,
@@ -350,5 +405,114 @@ export const useGameStore = create<GameState>((set, get) => ({
     };
 
     set((state) => ({ messages: [newMsg, ...state.messages] }));
+
+    if (!state.user_id) return;
+    try {
+      await supabase.from("messages").insert({
+        user_id: state.user_id,
+        message_id: messageId,
+        agent_id: event.agent_id,
+        niveau: event.niveau,
+        type: event.type,
+        phase: null,
+        sujet: event.sujet,
+        contenu: event.contenu,
+        delai_reponse_heures: event.delai_reponse_heures,
+        timestamp: new Date().toISOString(),
+        lu: false,
+        repondu: false,
+      });
+    } catch (err) {
+      console.error("[Store] Insert new message failed:", err);
+    }
   },
+
+  tickClock: (minutes) => {
+    set((state) => {
+      let totalMinutes = state.game_hour * 60 + state.game_minute + minutes;
+      let day = state.game_day;
+      // Journée 8h–19h. Au-delà → jour suivant 8h.
+      if (totalMinutes >= 19 * 60) {
+        day += 1;
+        totalMinutes = 8 * 60;
+        return {
+          game_hour: 8,
+          game_minute: 0,
+          game_day: day,
+          points_action: state.points_action_max,
+        };
+      }
+      if (totalMinutes < 8 * 60) totalMinutes = 8 * 60;
+      return {
+        game_hour: Math.floor(totalMinutes / 60),
+        game_minute: totalMinutes % 60,
+      };
+    });
+  },
+
+  addXP: (amount) => {
+    set((state) => {
+      let newXP = state.player_xp + amount;
+      let level = state.player_level;
+      let toNext = state.xp_to_next;
+      while (newXP >= toNext) {
+        newXP -= toNext;
+        level += 1;
+        toNext = xpForLevel(level);
+      }
+      return { player_xp: newXP, player_level: level, xp_to_next: toNext };
+    });
+  },
+
+  setDossiers: (d) => set({ dossiers: d }),
+
+  winDossier: (id) => {
+    set((state) => {
+      const d = state.dossiers.find((x) => x.id === id);
+      if (!d || d.etat !== "en_cours") return state;
+      const updated = state.dossiers.map((x) =>
+        x.id === id ? { ...x, etat: "gagne" as const, progression: 100 } : x
+      );
+      return {
+        dossiers: updated,
+        legitimite: Math.min(100, state.legitimite + d.impact.legitimite),
+        reputation: Math.min(100, state.reputation + d.impact.reputation),
+        tresorerie: state.tresorerie + d.impact.tresorerie,
+        stress_global: Math.max(0, state.stress_global - Math.floor(d.impact.stress / 2)),
+      };
+    });
+    get().saveGameState();
+  },
+
+  loseDossier: (id) => {
+    set((state) => {
+      const d = state.dossiers.find((x) => x.id === id);
+      if (!d || d.etat !== "en_cours") return state;
+      const updated = state.dossiers.map((x) =>
+        x.id === id ? { ...x, etat: "perdu" as const, progression: 0 } : x
+      );
+      return {
+        dossiers: updated,
+        legitimite: Math.max(0, state.legitimite - d.impact.legitimite),
+        reputation: Math.max(0, state.reputation - d.impact.reputation),
+        tresorerie: Math.max(0, state.tresorerie - Math.floor(d.impact.tresorerie / 2)),
+        stress_global: Math.min(100, state.stress_global + d.impact.stress),
+      };
+    });
+    get().saveGameState();
+  },
+
+  advanceDossier: (id, amount) => {
+    set((state) => ({
+      dossiers: state.dossiers.map((x) =>
+        x.id === id ? { ...x, progression: Math.min(100, x.progression + amount) } : x
+      ),
+    }));
+  },
+
+  addClaudeMessage: (msg) => {
+    set((state) => ({ claude_history: [...state.claude_history, msg].slice(-30) }));
+  },
+
+  clearClaude: () => set({ claude_history: [] }),
 }));
