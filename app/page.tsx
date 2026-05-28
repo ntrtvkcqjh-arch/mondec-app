@@ -201,6 +201,10 @@ export default function Home() {
   const [claudeSending, setClaudeSending] = useState(false);
   const [claudeError, setClaudeError] = useState("");
 
+  // Statut API (vérifie qu'Anthropic répond)
+  const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "error">("checking");
+  const [apiStatusReason, setApiStatusReason] = useState("");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const claudeEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -222,6 +226,20 @@ export default function Home() {
   useEffect(() => {
     fetch("/agenda.json").then(r => r.json()).then(d => setAgendaSlots(d.slots_quotidiens || [])).catch(() => {});
   }, []);
+
+  // Test santé API au démarrage (et toutes les 5 min)
+  useEffect(() => {
+    if (!store.isAuthenticated) return;
+    const check = () => {
+      fetch("/api/health").then(r => r.json()).then(d => {
+        setApiStatus(d.ok ? "ok" : "error");
+        setApiStatusReason(d.reason || "");
+      }).catch(() => { setApiStatus("error"); setApiStatusReason("Réseau indisponible"); });
+    };
+    check();
+    const t = setInterval(check, 5 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [store.isAuthenticated]);
 
   // Horloge de jeu — 1 seconde réelle = 3 minutes jeu (journée 8h-19h ≈ 3m40s réelles)
   useEffect(() => {
@@ -443,6 +461,8 @@ export default function Home() {
           }
           const xpGain = Math.round(scoreData.score_global / 5);
           store.addXP(xpGain);
+          // Effet en chaîne : agent gagne/perd confiance + dossier lié avance
+          store.applyOutcome(a.id, scoreData.score_global);
         }
       }).catch(() => {});
     } catch (err: any) {
@@ -518,6 +538,10 @@ export default function Home() {
         }
         if (activeSlot) {
           setCompletedSlots(prev => new Set(prev).add(activeSlot.heure));
+          // Effet en chaîne sur l'agent associé au slot
+          if (activeSlot.agent_id) {
+            store.applyOutcome(activeSlot.agent_id, data.score);
+          }
         }
       } else {
         alert("Erreur correction. Réessaye.");
@@ -654,10 +678,32 @@ export default function Home() {
             </div>
           </div>
 
-          {generatingEvents && (
-            <div className="flex items-center gap-1.5 mt-2">
+          {/* Statut API */}
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5" title={apiStatusReason}>
+              <div className={`w-1.5 h-1.5 rounded-full ${
+                apiStatus === "ok" ? "bg-[#34c759] animate-pulse" :
+                apiStatus === "error" ? "bg-[#ff3b30]" :
+                "bg-[#ff9f0a]"
+              }`} />
+              <span className={`text-[9px] font-medium ${
+                apiStatus === "ok" ? "text-[#34c759]" :
+                apiStatus === "error" ? "text-[#ff3b30]" :
+                "text-[#ff9f0a]"
+              }`}>
+                {apiStatus === "ok" ? "IA Claude connectée" :
+                 apiStatus === "error" ? "IA hors ligne" :
+                 "Vérification…"}
+              </span>
+            </div>
+            {generatingEvents && (
               <RefreshCw size={9} className="text-[#0071e3] animate-spin" />
-              <span className="text-[9px] text-[#6e6e73]">Agents actifs…</span>
+            )}
+          </div>
+
+          {apiStatus === "error" && apiStatusReason && (
+            <div className="mt-1.5 text-[9px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-md px-1.5 py-1 leading-tight">
+              {apiStatusReason}
             </div>
           )}
         </div>

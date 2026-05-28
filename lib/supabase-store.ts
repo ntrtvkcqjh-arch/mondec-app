@@ -114,6 +114,11 @@ export interface GameState {
   // Claude
   addClaudeMessage: (msg: ClaudeMsg) => void;
   clearClaude: () => void;
+
+  // Corrélations cross-systèmes
+  updateAgent: (id: string, patch: Partial<Agent>) => void;
+  recomputeMood: () => void;
+  applyOutcome: (agentId: string, score: number) => void;
 }
 
 const xpForLevel = (level: number) => 100 + level * 50;
@@ -467,38 +472,74 @@ export const useGameStore = create<GameState>((set, get) => ({
   setDossiers: (d) => set({ dossiers: d }),
 
   winDossier: (id) => {
-    set((state) => {
-      const d = state.dossiers.find((x) => x.id === id);
-      if (!d || d.etat !== "en_cours") return state;
-      const updated = state.dossiers.map((x) =>
+    const state = get();
+    const d = state.dossiers.find((x) => x.id === id);
+    if (!d || d.etat !== "en_cours") return;
+    const agent = state.agents.find((a) => a.id === d.agent_id);
+
+    set((s) => ({
+      dossiers: s.dossiers.map((x) =>
         x.id === id ? { ...x, etat: "gagne" as const, progression: 100 } : x
-      );
-      return {
-        dossiers: updated,
-        legitimite: Math.min(100, state.legitimite + d.impact.legitimite),
-        reputation: Math.min(100, state.reputation + d.impact.reputation),
-        tresorerie: state.tresorerie + d.impact.tresorerie,
-        stress_global: Math.max(0, state.stress_global - Math.floor(d.impact.stress / 2)),
-      };
-    });
+      ),
+      legitimite: Math.min(100, s.legitimite + d.impact.legitimite),
+      reputation: Math.min(100, s.reputation + d.impact.reputation),
+      tresorerie: s.tresorerie + d.impact.tresorerie,
+      stress_global: Math.max(0, s.stress_global - Math.floor(d.impact.stress / 2)),
+    }));
+
+    // Message N1 auto "Dossier clôturé" de l'agent associé
+    if (agent) {
+      get().addNewMessage({
+        agent_id: agent.id,
+        niveau: "N1",
+        type: "Information",
+        sujet: `✓ Dossier clôturé — ${d.client}`,
+        contenu: `Bonne nouvelle, on a clôturé le dossier ${d.client} (${d.theme}). Le client est satisfait, facturation envoyée. Honoraires +${(d.impact.tresorerie/1000).toFixed(1)}k€ encaissés ce jour. Beau travail collectif.`,
+        delai_reponse_heures: 24,
+      });
+      // +confiance + -stress agent qui a porté le dossier
+      get().updateAgent(agent.id, {
+        confiance_joueur: Math.min(100, agent.confiance_joueur + 5),
+        stress: Math.max(0, agent.stress - 8),
+      });
+    }
+    get().addXP(20);
+    get().recomputeMood();
     get().saveGameState();
   },
 
   loseDossier: (id) => {
-    set((state) => {
-      const d = state.dossiers.find((x) => x.id === id);
-      if (!d || d.etat !== "en_cours") return state;
-      const updated = state.dossiers.map((x) =>
+    const state = get();
+    const d = state.dossiers.find((x) => x.id === id);
+    if (!d || d.etat !== "en_cours") return;
+    const agent = state.agents.find((a) => a.id === d.agent_id);
+
+    set((s) => ({
+      dossiers: s.dossiers.map((x) =>
         x.id === id ? { ...x, etat: "perdu" as const, progression: 0 } : x
-      );
-      return {
-        dossiers: updated,
-        legitimite: Math.max(0, state.legitimite - d.impact.legitimite),
-        reputation: Math.max(0, state.reputation - d.impact.reputation),
-        tresorerie: Math.max(0, state.tresorerie - Math.floor(d.impact.tresorerie / 2)),
-        stress_global: Math.min(100, state.stress_global + d.impact.stress),
-      };
-    });
+      ),
+      legitimite: Math.max(0, s.legitimite - d.impact.legitimite),
+      reputation: Math.max(0, s.reputation - d.impact.reputation),
+      tresorerie: Math.max(0, s.tresorerie - Math.floor(d.impact.tresorerie / 2)),
+      stress_global: Math.min(100, s.stress_global + d.impact.stress),
+    }));
+
+    // Message N4 auto "Dossier perdu"
+    if (agent) {
+      get().addNewMessage({
+        agent_id: agent.id,
+        niveau: "N4",
+        type: "Probleme",
+        sujet: `⚠ Dossier perdu — ${d.client}`,
+        contenu: `Le client ${d.client} part chez le concurrent. On perd ${(d.impact.tresorerie/2/1000).toFixed(1)}k€ d'honoraires et −${d.impact.reputation} de réputation. Faut-il qu'on fasse un debrief équipe demain matin ?`,
+        delai_reponse_heures: 12,
+      });
+      get().updateAgent(agent.id, {
+        confiance_joueur: Math.max(0, agent.confiance_joueur - 3),
+        stress: Math.min(100, agent.stress + 6),
+      });
+    }
+    get().recomputeMood();
     get().saveGameState();
   },
 
@@ -515,4 +556,58 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   clearClaude: () => set({ claude_history: [] }),
+
+  updateAgent: (id, patch) => {
+    set((state) => ({
+      agents: state.agents.map((a) => a.id === id ? { ...a, ...patch } : a),
+    }));
+  },
+
+  recomputeMood: () => {
+    set((state) => {
+      const stressMoyen = state.agents.length > 0
+        ? state.agents.reduce((s, a) => s + a.stress, 0) / state.agents.length
+        : 50;
+      const score = (state.legitimite * 0.3) + ((100 - stressMoyen) * 0.3) + (state.reputation * 0.2) + (Math.min(100, state.tresorerie / 2000) * 0.2);
+
+      let mood = "Sous Pression";
+      if (score >= 80) mood = "Euphorique";
+      else if (score >= 65) mood = "Serein";
+      else if (score >= 50) mood = "Tendu";
+      else if (score >= 35) mood = "Sous Pression";
+      else mood = "En Crise";
+
+      return { mood_global: mood, stress_global: Math.round(stressMoyen) };
+    });
+  },
+
+  applyOutcome: (agentId, score) => {
+    const state = get();
+    const agent = state.agents.find((a) => a.id === agentId);
+    if (!agent) return;
+
+    if (score >= 75) {
+      get().updateAgent(agentId, {
+        confiance_joueur: Math.min(100, agent.confiance_joueur + 4),
+        stress: Math.max(0, agent.stress - 3),
+        respect: Math.min(100, agent.respect + 2),
+      });
+      // Avance le dossier lié à cet agent
+      const dossier = state.dossiers.find((d) => d.agent_id === agentId && d.etat === "en_cours");
+      if (dossier) {
+        get().advanceDossier(dossier.id, 12);
+      }
+    } else if (score >= 55) {
+      get().updateAgent(agentId, {
+        confiance_joueur: Math.min(100, agent.confiance_joueur + 1),
+        stress: Math.max(0, agent.stress - 1),
+      });
+    } else if (score < 40) {
+      get().updateAgent(agentId, {
+        confiance_joueur: Math.max(0, agent.confiance_joueur - 4),
+        stress: Math.min(100, agent.stress + 5),
+      });
+    }
+    get().recomputeMood();
+  },
 }));
