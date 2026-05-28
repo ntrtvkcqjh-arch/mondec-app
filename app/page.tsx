@@ -1,31 +1,52 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useGameStore } from "@/lib/store";
-import { loadAgentsConfig } from "@/lib/agents";
-import { Mail, Users, Calendar, FolderOpen, GraduationCap, Building2, Send, Clock, AlertTriangle, CheckCircle, MessageSquare } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useGameStore } from "@/lib/supabase-store";
+import { supabase, signOut } from "@/lib/supabase";
+import {
+  Mail, Users, Calendar, FolderOpen, GraduationCap,
+  Building2, Send, Clock, MessageSquare, LogOut,
+} from "lucide-react";
 
 export default function Home() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [ghostVersions, setGhostVersions] = useState<string[] | null>(null);
-
+  const router = useRouter();
   const store = useGameStore();
 
+  // Chargement initial de l'état du jeu
   useEffect(() => {
-    async function init() {
-      const config = await loadAgentsConfig();
-      useGameStore.setState({
-        agents: config.agents,
-        messages: config.messages_en_attente.map((m: any) => ({ ...m, lu: false, repondu: false })),
-      });
-    }
-    init();
+    store.loadGameState();
   }, []);
+
+  // Redirection si non authentifié
+  useEffect(() => {
+    if (!store.isLoading && !store.isAuthenticated) {
+      router.push("/auth");
+    }
+  }, [store.isLoading, store.isAuthenticated, router]);
+
+  // Écoute des changements d'auth Supabase
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        router.push("/auth");
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   const selectedMessage = store.messages.find((m) => m.agent_id === selectedAgent);
   const agent = store.agents.find((a) => a.id === selectedAgent);
+
+  async function handleSelectAgent(agentId: string, messageId: string) {
+    setSelectedAgent(agentId);
+    store.markMessageRead(messageId);
+    store.loadConversations(agentId);
+  }
 
   async function handleSend() {
     if (!inputText.trim() || !agent) return;
@@ -49,10 +70,7 @@ export default function Home() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        messages: [
-          ...history,
-          { role: "user", content: inputText },
-        ],
+        messages: [...history, { role: "user", content: inputText }],
         agent_context: agent,
       }),
     });
@@ -66,6 +84,11 @@ export default function Home() {
       store.replyToMessage(selectedMessage?.id || "", inputText);
       setInputText("");
     }
+  }
+
+  async function handleLogout() {
+    await signOut();
+    router.push("/auth");
   }
 
   function getNiveauColor(n: string) {
@@ -85,6 +108,18 @@ export default function Home() {
     if (p === "P4") return "text-orange-600 font-semibold";
     if (p === "P3") return "text-yellow-600";
     return "text-gray-500";
+  }
+
+  // Écran de chargement
+  if (store.isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Building2 size={48} className="mx-auto mb-4 text-indigo-600 animate-pulse" />
+          <p className="text-gray-500 text-sm">Chargement du cabinet...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -110,7 +145,7 @@ export default function Home() {
         <div className="p-4 border-t bg-gray-50">
           <div className="space-y-2 text-xs">
             <ResourceBar label="Légitimité" value={store.legitimite} color="bg-indigo-500" />
-            <ResourceBar label="Trésorerie" value={store.tresorerie / 2000} max={100} color="bg-emerald-500" display={`${(store.tresorerie/1000).toFixed(0)}k€`} />
+            <ResourceBar label="Trésorerie" value={store.tresorerie / 2000} max={100} color="bg-emerald-500" display={`${(store.tresorerie / 1000).toFixed(0)}k€`} />
             <ResourceBar label="Réputation" value={store.reputation} color="bg-amber-500" />
             <ResourceBar label="Stress" value={store.stress_global} color="bg-rose-500" />
             <div className="flex items-center justify-between pt-2 font-semibold">
@@ -123,6 +158,12 @@ export default function Home() {
           <div className="mt-3 px-2 py-1 bg-indigo-50 text-indigo-700 text-xs rounded text-center font-medium">
             Mood : {store.mood_global}
           </div>
+          <button
+            onClick={handleLogout}
+            className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <LogOut size={14} /> Déconnexion
+          </button>
         </div>
       </aside>
 
@@ -142,7 +183,7 @@ export default function Home() {
             return (
               <div
                 key={msg.id}
-                onClick={() => { setSelectedAgent(msg.agent_id); store.markMessageRead(msg.id); }}
+                onClick={() => handleSelectAgent(msg.agent_id, msg.id)}
                 className={`p-3 border-b cursor-pointer hover:bg-gray-50 transition-colors ${selectedAgent === msg.agent_id ? "bg-indigo-50" : ""} ${!msg.lu ? "border-l-4 border-l-indigo-500" : ""}`}
               >
                 <div className="flex items-center gap-3">
@@ -210,7 +251,9 @@ export default function Home() {
               {selectedMessage && (
                 <div className="bg-gray-50 rounded-2xl p-4 max-w-2xl">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-semibold text-gray-500">Envoyé il y a {selectedMessage.delai_reponse_heures}h</span>
+                    <span className="text-xs font-semibold text-gray-500">
+                      Envoyé il y a {selectedMessage.delai_reponse_heures}h
+                    </span>
                   </div>
                   <div className="flex gap-3">
                     <div
@@ -228,7 +271,7 @@ export default function Home() {
 
               {(store.conversation_history[agent.id] || []).map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm ${
+                  <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap ${
                     msg.role === "user"
                       ? "bg-indigo-600 text-white rounded-tr-none"
                       : "bg-gray-100 text-gray-800 rounded-tl-none"
@@ -273,7 +316,8 @@ export default function Home() {
               </div>
               <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
                 <MessageSquare size={10} />
-                L&apos;IA corrigera selon les standards EC / PCG · Coût : {selectedMessage?.niveau === "N3" ? "1 PA" : selectedMessage?.niveau === "N4" ? "1 PA" : selectedMessage?.niveau === "N5" ? "2 PA" : "0 PA"}
+                L&apos;IA corrigera selon les standards EC / PCG · Coût :{" "}
+                {selectedMessage?.niveau === "N5" ? "2 PA" : selectedMessage?.niveau === "N3" || selectedMessage?.niveau === "N4" ? "1 PA" : "0 PA"}
               </p>
             </div>
           </>
@@ -290,7 +334,12 @@ export default function Home() {
   );
 }
 
-function SidebarItem({ icon, label, active, badge }: { icon: React.ReactNode; label: string; active?: boolean; badge?: number }) {
+function SidebarItem({ icon, label, active, badge }: {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  badge?: number;
+}) {
   return (
     <div className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-sm ${active ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-100"}`}>
       {icon}
@@ -304,7 +353,13 @@ function SidebarItem({ icon, label, active, badge }: { icon: React.ReactNode; la
   );
 }
 
-function ResourceBar({ label, value, max = 100, color, display }: { label: string; value: number; max?: number; color: string; display?: string }) {
+function ResourceBar({ label, value, max = 100, color, display }: {
+  label: string;
+  value: number;
+  max?: number;
+  color: string;
+  display?: string;
+}) {
   const pct = Math.min((value / max) * 100, 100);
   return (
     <div>
