@@ -1,14 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getApiKey } from "@/lib/api-key";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+export async function GET(req: NextRequest) {
+  const apiKey = getApiKey(req);
   if (!apiKey) {
     return NextResponse.json({
       ok: false,
-      reason: "ANTHROPIC_API_KEY non configurée sur le serveur",
-      hint: "Vérifie Vercel → Settings → Environment Variables",
+      reason: "Clé API manquante — clique sur ⚙ pour la configurer",
+      needs_key: true,
     });
   }
 

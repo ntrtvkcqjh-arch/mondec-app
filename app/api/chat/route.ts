@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getApiKey } from "@/lib/api-key";
 
 const GAME_CONTEXT = `
 # CABINET DEC — SIMULATION STRATÉGIQUE
@@ -64,9 +65,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { messages, agent_context, mode, game_state } = body;
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = getApiKey(req);
     if (!apiKey) {
-      return NextResponse.json({ error: "ANTHROPIC_API_KEY non configurée" }, { status: 500 });
+      return NextResponse.json({ error: "Clé API manquante — configure-la dans l'app (bouton ⚙ Configurer ma clé)" }, { status: 401 });
     }
 
     const systemPrompt = mode === "ghost"

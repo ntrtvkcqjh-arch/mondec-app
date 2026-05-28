@@ -5,12 +5,13 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useGameStore, Dossier } from "@/lib/supabase-store";
 import { supabase, signOut } from "@/lib/supabase";
+import { apiFetch, getUserApiKey, setUserApiKey, clearUserApiKey, hasUserApiKey } from "@/lib/api-client";
 import {
   Mail, Users, Calendar, FolderOpen, GraduationCap, Building2,
   Send, LogOut, ChevronRight, Zap, AlertTriangle, CheckCircle,
   Archive, CornerDownRight, Pencil, RefreshCw, TrendingUp, TrendingDown,
   Sparkles, Clock as ClockIcon, Trophy, X, Coffee, Briefcase, MessageSquare,
-  Award, Flame, Target, ChevronUp,
+  Award, Flame, Target, ChevronUp, Settings, Key, ExternalLink,
 } from "lucide-react";
 
 type Tab = "messages" | "equipe" | "agenda" | "dossiers" | "dec";
@@ -205,6 +206,11 @@ export default function Home() {
   const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "error">("checking");
   const [apiStatusReason, setApiStatusReason] = useState("");
 
+  // Modal configuration clé API utilisateur
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [keyInput, setKeyInput] = useState("");
+  const [keySaving, setKeySaving] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const claudeEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -231,9 +237,12 @@ export default function Home() {
   useEffect(() => {
     if (!store.isAuthenticated) return;
     const check = () => {
-      fetch("/api/health").then(r => r.json()).then(d => {
+      apiFetch("/api/health").then(r => r.json()).then(d => {
         setApiStatus(d.ok ? "ok" : "error");
         setApiStatusReason(d.reason || "");
+        if (!d.ok && d.needs_key && !hasUserApiKey()) {
+          setShowKeyModal(true);
+        }
       }).catch(() => { setApiStatus("error"); setApiStatusReason("Réseau indisponible"); });
     };
     check();
@@ -241,12 +250,102 @@ export default function Home() {
     return () => clearInterval(t);
   }, [store.isAuthenticated]);
 
-  // Horloge de jeu — 1 seconde réelle = 3 minutes jeu (journée 8h-19h ≈ 3m40s réelles)
+  async function saveApiKey() {
+    if (!keyInput.trim()) return;
+    setKeySaving(true);
+    setUserApiKey(keyInput.trim());
+    try {
+      const r = await apiFetch("/api/health");
+      const d = await r.json();
+      if (d.ok) {
+        setApiStatus("ok");
+        setApiStatusReason("");
+        setShowKeyModal(false);
+      } else {
+        setApiStatus("error");
+        setApiStatusReason(d.reason || "Clé invalide");
+      }
+    } catch {
+      setApiStatus("error");
+      setApiStatusReason("Erreur réseau");
+    } finally {
+      setKeySaving(false);
+    }
+  }
+
+  // Horloge de jeu — 2 secondes réelles = 1 minute jeu (journée 8h-19h ≈ 22 min réelles)
   useEffect(() => {
     if (!store.isAuthenticated || store.isLoading) return;
-    const t = setInterval(() => store.tickClock(3), 1000);
+    const t = setInterval(() => store.tickClock(1), 2000);
     return () => clearInterval(t);
   }, [store.isAuthenticated, store.isLoading]);
+
+  // Auto-relances agents : un agent inactif peut spontanément envoyer un message
+  // à chaque heure pile du jeu
+  useEffect(() => {
+    if (!store.isAuthenticated || store.isLoading || store.agents.length === 0) return;
+    if (store.game_minute !== 0) return;
+    if (store.game_hour < 8 || store.game_hour > 18) return;
+
+    // À chaque heure pile, on déclenche un événement narratif
+    const lastTrigger = typeof window !== "undefined" ? localStorage.getItem(`hourTrigger_${store.game_day}_${store.game_hour}`) : null;
+    if (lastTrigger) return;
+    if (typeof window !== "undefined") localStorage.setItem(`hourTrigger_${store.game_day}_${store.game_hour}`, "1");
+
+    // Slot d'agenda à cette heure ?
+    const matchingSlot = agendaSlots.find(s => {
+      const [h, m] = s.heure.split(":").map(Number);
+      return h === store.game_hour && m === 0;
+    });
+    if (matchingSlot && matchingSlot.agent_id && matchingSlot.type !== "pause") {
+      const a = store.agents.find(x => x.id === matchingSlot.agent_id);
+      if (a) {
+        store.addNewMessage({
+          agent_id: a.id,
+          niveau: matchingSlot.type === "rdv_client" || matchingSlot.type === "validation" ? "N3" : "N2",
+          type: matchingSlot.type === "mediation" ? "Drama" : "Question",
+          sujet: `${matchingSlot.titre} (${matchingSlot.heure})`,
+          contenu: `${a.nom.split(" ")[0]}: c'est l'heure de notre créneau "${matchingSlot.titre}". Thème : ${matchingSlot.theme}. Tu peux ouvrir le slot dans l'agenda pour le cas pratique, sinon dis-moi par ici comment tu veux qu'on aborde le sujet.`,
+          delai_reponse_heures: matchingSlot.duree_min <= 30 ? 1 : 3,
+        });
+      }
+    } else {
+      // Pas de slot → relance aléatoire par un agent random
+      const candidats = store.agents.filter(a => a.confiance_joueur > 30 && (a.stress < 80 || Math.random() > 0.7));
+      if (candidats.length && Math.random() < 0.7) {
+        const a = candidats[Math.floor(Math.random() * candidats.length)];
+        const sujets: Record<string, { sujet: string; contenu: string; niveau: string; type: string }[]> = {
+          Comptable: [
+            { sujet: "Saisie banque — doublon possible", contenu: "Je viens de tomber sur une écriture qui semble passée deux fois sur le rapprochement bancaire de Petit SARL. Est-ce que je passe une OD de régularisation ou tu veux vérifier d'abord ?", niveau: "N2", type: "Question" },
+            { sujet: "Délais TVA mensuelle", contenu: "Petit rappel : la TVA mensuelle est à déposer dans 3 jours. J'ai préparé les déclarations CA3 pour 4 clients, validation rapide stp.", niveau: "N3", type: "Decision" },
+          ],
+          Fiscal: [
+            { sujet: "Taux IS — interrogation client", contenu: "Le client Martin me demande si on peut bénéficier du taux réduit IS 15% sur 42 500€ même avec 2 associés à 50/50. Je confirme oui (CA < 10M€ et capital libéré 100%), je réponds ?", niveau: "N2", type: "Question" },
+            { sujet: "Acompte IS — calendrier", contenu: "Acompte IS du 15/06 à préparer. J'ai 6 dossiers concernés. Je lance les calculs ou tu veux qu'on en parle ?", niveau: "N2", type: "Question" },
+          ],
+          "Audit & IFRS": [
+            { sujet: "Revue analytique Dubois", contenu: "Revue analytique terminée sur Groupe Dubois. Deux écarts significatifs sur la marge brute (+18%) et les charges externes (+22%). On creuse ?", niveau: "N3", type: "Question" },
+          ],
+          Social: [
+            { sujet: "DSN — anomalie URSSAF", contenu: "URSSAF a retourné un rejet sur la DSN d'avril pour Yacine, code 47. Je corrige et je redépose ou tu veux qu'on vérifie ensemble ?", niveau: "N2", type: "Question" },
+          ],
+          RH: [
+            { sujet: "Entretiens annuels Q2", contenu: "Les entretiens annuels Q2 doivent démarrer la semaine prochaine. Tu valides la grille d'évaluation actuelle ou on l'adapte ?", niveau: "N2", type: "Question" },
+          ],
+        };
+        const pool = sujets[a.filiere] || sujets.Comptable;
+        const choix = pool[Math.floor(Math.random() * pool.length)];
+        store.addNewMessage({
+          agent_id: a.id,
+          niveau: choix.niveau,
+          type: choix.type,
+          sujet: choix.sujet,
+          contenu: choix.contenu,
+          delai_reponse_heures: 6,
+        });
+      }
+    }
+  }, [store.game_hour, store.game_minute, store.game_day]);
 
   // Auto-progression dossiers : à 18h chaque jour, résolution probabiliste
   useEffect(() => {
@@ -267,11 +366,11 @@ export default function Home() {
     if (unread >= 5) return;
     const lastGen = typeof window !== "undefined" ? localStorage.getItem("lastEventGen") : null;
     const now = Date.now();
-    if (lastGen && now - parseInt(lastGen) < 15 * 60 * 1000) return;
+    if (lastGen && now - parseInt(lastGen) < 3 * 60 * 1000) return;
     localStorage.setItem("lastEventGen", now.toString());
     setGeneratingEvents(true);
     const agentsWithUnread = store.messages.filter(m => !m.lu).map(m => m.agent_id);
-    fetch("/api/events", {
+    apiFetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -327,7 +426,7 @@ export default function Home() {
     setGhostVersions(null);
     setApiError("");
     try {
-      const res = await fetch("/api/chat", {
+      const res = await apiFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -389,7 +488,7 @@ export default function Home() {
 
     try {
       console.log("[CHAT] Envoi message à", a.nom, ":", text.slice(0, 50));
-      const res = await fetch("/api/chat", {
+      const res = await apiFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -444,7 +543,7 @@ export default function Home() {
       if (selectedMessage) store.replyToMessage(selectedMessage.id, text).catch(() => {});
 
       // Score en arrière-plan
-      fetch("/api/score", {
+      apiFetch("/api/score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -478,6 +577,55 @@ export default function Home() {
     store.replyToMessage(msgId, "[archivé]");
   }
 
+  // Pool de cas pratiques (fallback si IA hors ligne)
+  const [casesPool, setCasesPool] = useState<any[]>([]);
+  useEffect(() => {
+    fetch("/cases_pool.json").then(r => r.json()).then(d => setCasesPool(d.cases || [])).catch(() => {});
+  }, []);
+
+  function fallbackCase(slot: AgendaSlot): CaseStudy | null {
+    if (!casesPool.length) return null;
+    // Filtrer par niveau requis et thème proche
+    const themeKeywords = slot.theme.toLowerCase().split(/\s+/);
+    const matching = casesPool.filter(c =>
+      c.niveau_min <= store.player_level &&
+      c.themes.some((t: string) => themeKeywords.some(k => t.toLowerCase().includes(k) || k.includes(t.toLowerCase())))
+    );
+    const pool = matching.length ? matching : casesPool.filter(c => c.niveau_min <= store.player_level);
+    if (!pool.length) return null;
+    const chosen = pool[Math.floor(Math.random() * pool.length)];
+    return {
+      titre: chosen.titre,
+      client: chosen.client,
+      contexte: chosen.contexte,
+      enonce: chosen.enonce,
+      question: chosen.question,
+      xp_potentiel: chosen.xp_potentiel,
+      criteres: chosen.criteres,
+    };
+  }
+
+  function fallbackCorrection(playerResponse: string): Correction {
+    // Auto-correction simple basée sur la longueur et la présence de jargon
+    const txt = playerResponse.toLowerCase();
+    const jargonKeys = ["pcg", "crc", "ifrs", "ias", "bofip", "cgi", "art.", "article", "tva", "is ", "csg", "dsn", "deb"];
+    const jargonCount = jargonKeys.filter(k => txt.includes(k)).length;
+    const lengthScore = Math.min(40, Math.floor(playerResponse.length / 8));
+    const jargonScore = jargonCount * 10;
+    const score = Math.min(95, 30 + lengthScore + jargonScore);
+    return {
+      score,
+      verdict: score >= 75 ? "Bien" : score >= 50 ? "Satisfaisant" : "À retravailler",
+      analogie: "Comme un cuisinier qui dresse une assiette sans goûter — la forme y est, vérifie maintenant le fond.",
+      correction: "L'IA correctrice est temporairement hors ligne. Compare ta réponse avec la correction officielle ci-dessus et ajuste si besoin.",
+      points_forts: jargonCount > 0 ? [`Utilisation de termes techniques (${jargonCount} référence(s))`] : ["Réponse rédigée"],
+      axes_amelioration: jargonCount === 0 ? ["Cite des articles précis (CGI, PCG, IFRS…)"] : ["Détaille davantage le calcul"],
+      xp_gagne: Math.floor(score / 4),
+      impact_legitimite: score >= 70 ? 2 : score >= 50 ? 0 : -1,
+      impact_stress: score >= 70 ? -2 : 1,
+    };
+  }
+
   // Cas pratique
   async function openCasePratique(slot: AgendaSlot) {
     if (slot.type === "pause") return;
@@ -492,7 +640,7 @@ export default function Home() {
     setCaseLoading(true);
     try {
       const a = slot.agent_id ? store.agents.find(x => x.id === slot.agent_id) : null;
-      const res = await fetch("/api/case-study", {
+      const res = await apiFetch("/api/case-study", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -504,10 +652,24 @@ export default function Home() {
         }),
       });
       const data = await res.json();
-      if (data.titre) setActiveCase(data);
-      else alert("Impossible de générer le cas pratique. Réessaye.");
+      if (data.titre) {
+        setActiveCase(data);
+      } else {
+        // Fallback : utiliser un cas pré-écrit
+        const fb = fallbackCase(slot);
+        if (fb) setActiveCase(fb);
+        else {
+          alert("Impossible de générer le cas pratique. Vérifie ta clé API ⚙.");
+          setActiveSlot(null);
+        }
+      }
     } catch (err) {
-      alert("Erreur réseau — cas pratique indisponible.");
+      const fb = fallbackCase(slot);
+      if (fb) setActiveCase(fb);
+      else {
+        alert("Erreur réseau — réessaye dans un instant.");
+        setActiveSlot(null);
+      }
     } finally {
       setCaseLoading(false);
     }
@@ -517,7 +679,7 @@ export default function Home() {
     if (!activeCase || !caseResponse.trim() || caseSubmitting) return;
     setCaseSubmitting(true);
     try {
-      const res = await fetch("/api/correct", {
+      const res = await apiFetch("/api/correct", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -527,27 +689,29 @@ export default function Home() {
         }),
       });
       const data = await res.json();
-      if (data.score !== undefined) {
-        setCaseCorrection(data);
-        store.addXP(data.xp_gagne || 0);
-        if (data.impact_legitimite) {
-          store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + data.impact_legitimite)) });
+      const result: Correction = data.score !== undefined ? data : fallbackCorrection(caseResponse);
+      setCaseCorrection(result);
+      store.addXP(result.xp_gagne || 0);
+      if (result.impact_legitimite) {
+        store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + result.impact_legitimite)) });
+      }
+      if (result.impact_stress) {
+        store.setResources({ stress_global: Math.max(0, Math.min(100, store.stress_global + result.impact_stress)) });
+      }
+      if (activeSlot) {
+        setCompletedSlots(prev => new Set(prev).add(activeSlot.heure));
+        if (activeSlot.agent_id) {
+          store.applyOutcome(activeSlot.agent_id, result.score);
         }
-        if (data.impact_stress) {
-          store.setResources({ stress_global: Math.max(0, Math.min(100, store.stress_global + data.impact_stress)) });
-        }
-        if (activeSlot) {
-          setCompletedSlots(prev => new Set(prev).add(activeSlot.heure));
-          // Effet en chaîne sur l'agent associé au slot
-          if (activeSlot.agent_id) {
-            store.applyOutcome(activeSlot.agent_id, data.score);
-          }
-        }
-      } else {
-        alert("Erreur correction. Réessaye.");
       }
     } catch (err) {
-      alert("Erreur réseau.");
+      const result = fallbackCorrection(caseResponse);
+      setCaseCorrection(result);
+      store.addXP(result.xp_gagne || 0);
+      if (activeSlot) {
+        setCompletedSlots(prev => new Set(prev).add(activeSlot.heure));
+        if (activeSlot.agent_id) store.applyOutcome(activeSlot.agent_id, result.score);
+      }
     } finally {
       setCaseSubmitting(false);
     }
@@ -570,7 +734,7 @@ export default function Home() {
     setClaudeSending(true);
     try {
       const history = store.claude_history;
-      const res = await fetch("/api/claude", {
+      const res = await apiFetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -696,15 +860,22 @@ export default function Home() {
                  "Vérification…"}
               </span>
             </div>
-            {generatingEvents && (
-              <RefreshCw size={9} className="text-[#0071e3] animate-spin" />
-            )}
+            <div className="flex items-center gap-1">
+              {generatingEvents && <RefreshCw size={9} className="text-[#0071e3] animate-spin" />}
+              <button onClick={() => { setKeyInput(getUserApiKey() || ""); setShowKeyModal(true); }}
+                title="Configurer ma clé API"
+                className="p-0.5 rounded hover:bg-black/10 transition-all">
+                <Settings size={11} className="text-[#6e6e73]" />
+              </button>
+            </div>
           </div>
 
-          {apiStatus === "error" && apiStatusReason && (
-            <div className="mt-1.5 text-[9px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-md px-1.5 py-1 leading-tight">
-              {apiStatusReason}
-            </div>
+          {apiStatus === "error" && (
+            <button onClick={() => { setKeyInput(getUserApiKey() || ""); setShowKeyModal(true); }}
+              className="mt-1.5 w-full text-left text-[9px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 hover:bg-[#ff3b30]/10 rounded-md px-1.5 py-1 leading-tight transition-all flex items-center gap-1">
+              <Key size={9} className="shrink-0" />
+              <span className="flex-1 truncate">{apiStatusReason || "Configurer ma clé API"}</span>
+            </button>
           )}
         </div>
 
@@ -1474,6 +1645,76 @@ export default function Home() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL CONFIGURATION CLÉ API ── */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-white rounded-[22px] shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 bg-gradient-to-r from-[#0071e3]/5 to-[#5e5ce6]/5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0071e3] to-[#0040a3] flex items-center justify-center shadow-md">
+                  <Key size={15} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[15px] text-[#1d1d1f]">Connecter Claude</h3>
+                  <p className="text-[11px] text-[#6e6e73]">Active les agents IA pour ce navigateur</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-[12px] text-[#3a3a3c] leading-relaxed">
+                Si la clé serveur n'est pas configurée (Vercel), tu peux mettre ta propre clé Anthropic ici.
+                Elle est stockée uniquement dans <strong>ton navigateur</strong> (localStorage) et ne quitte ton appareil que pour appeler l'API Anthropic via ce site.
+              </p>
+              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[12px] text-[#0071e3] hover:underline">
+                Obtenir une clé sur console.anthropic.com <ExternalLink size={11} />
+              </a>
+              <div>
+                <input
+                  type="password"
+                  autoFocus
+                  value={keyInput}
+                  onChange={(e) => setKeyInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveApiKey(); }}
+                  placeholder="sk-ant-api03-..."
+                  className="w-full text-[12px] p-3 border border-[#d2d2d7] rounded-[12px] outline-none focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 font-mono"
+                />
+                <p className="text-[10px] text-[#8e8e93] mt-1.5">
+                  Format attendu : <code className="bg-[#f5f5f7] px-1 rounded">sk-ant-...</code>
+                </p>
+              </div>
+
+              {apiStatus === "error" && apiStatusReason && (
+                <div className="text-[11px] text-[#ff3b30] bg-[#ff3b30]/5 border border-[#ff3b30]/15 rounded-[10px] p-2.5 flex items-start gap-2">
+                  <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+                  <span>{apiStatusReason}</span>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-3.5 bg-[#fafafa] border-t border-[#d2d2d7]/40 flex items-center gap-2">
+              {hasUserApiKey() && (
+                <button onClick={() => { clearUserApiKey(); setKeyInput(""); setApiStatus("checking"); }}
+                  className="px-3 py-2 text-[12px] rounded-[10px] bg-[#ff3b30]/10 text-[#ff3b30] hover:bg-[#ff3b30]/15 font-medium transition-all">
+                  Supprimer
+                </button>
+              )}
+              <button onClick={() => setShowKeyModal(false)}
+                className="ml-auto px-3 py-2 text-[12px] rounded-[10px] bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e5e5ea] transition-all">
+                Annuler
+              </button>
+              <button onClick={saveApiKey} disabled={!keyInput.trim() || keySaving}
+                className={`px-4 py-2 text-[12px] font-medium rounded-[10px] transition-all flex items-center gap-1.5 ${
+                  keyInput.trim() && !keySaving
+                    ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white shadow-md hover:shadow-lg"
+                    : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"
+                }`}>
+                {keySaving ? <><RefreshCw size={11} className="animate-spin" /> Test…</> : "Tester et enregistrer"}
+              </button>
             </div>
           </div>
         </div>

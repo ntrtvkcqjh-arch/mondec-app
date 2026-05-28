@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getApiKey } from "@/lib/api-key";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "API key manquante" }, { status: 500 });
+  const apiKey = getApiKey(req);
+  if (!apiKey) return NextResponse.json({ error: "Clé API manquante" }, { status: 401 });
 
   const { theme, player_level, hour, day, agent_context } = await req.json();
 

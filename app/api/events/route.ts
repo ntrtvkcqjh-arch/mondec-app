@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getApiKey } from "@/lib/api-key";
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return NextResponse.json({ events: [] }, { status: 500 });
+  const apiKey = getApiKey(req);
+  if (!apiKey) return NextResponse.json({ events: [] });
 
   const { agents, game_state, existing_subjects, agents_with_unread } = await req.json();
 
