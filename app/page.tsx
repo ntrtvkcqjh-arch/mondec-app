@@ -465,10 +465,13 @@ export default function Home() {
     }
   }
 
-  // Horloge de jeu — 2 secondes réelles = 1 minute jeu (journée 8h-19h ≈ 22 min réelles)
+  // Horloge de jeu PERSISTANTE basée sur le temps réel
+  // 1 seconde réelle = 1 minute jeu. Le timestamp de départ est en localStorage,
+  // donc même après refresh l'horloge continue de progresser comme dans la vraie vie.
   useEffect(() => {
     if (!store.isAuthenticated || store.isLoading) return;
-    const t = setInterval(() => store.tickClock(1), 2000);
+    store.syncClockFromTimestamp(); // sync immédiate (même après refresh)
+    const t = setInterval(() => store.syncClockFromTimestamp(), 1000);
     return () => clearInterval(t);
   }, [store.isAuthenticated, store.isLoading]);
 

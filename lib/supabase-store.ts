@@ -92,10 +92,11 @@ export interface GameState {
   date_simulation: string;
   mood_global: string;
 
-  // Horloge jeu — temps simulé qui avance
+  // Horloge jeu — temps simulé qui avance (persistant via timestamp réel)
   game_hour: number;
   game_minute: number;
   game_day: number;
+  game_start_timestamp: number; // Timestamp réel du démarrage de la simulation
 
   // Niveau joueur — progression XP
   player_level: number;
@@ -141,6 +142,7 @@ export interface GameState {
 
   // Horloge
   tickClock: (minutes: number) => void;
+  syncClockFromTimestamp: () => void;
 
   // XP / Niveau
   addXP: (amount: number) => void;
@@ -217,6 +219,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   game_hour: 9,
   game_minute: 0,
   game_day: 1,
+  game_start_timestamp: 0,
 
   player_level: 1,
   player_xp: 0,
@@ -572,7 +575,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => {
       let totalMinutes = state.game_hour * 60 + state.game_minute + minutes;
       let day = state.game_day;
-      // Journée 8h–19h. Au-delà → jour suivant 8h.
       if (totalMinutes >= 19 * 60) {
         day += 1;
         totalMinutes = 8 * 60;
@@ -587,6 +589,59 @@ export const useGameStore = create<GameState>((set, get) => ({
       return {
         game_hour: Math.floor(totalMinutes / 60),
         game_minute: totalMinutes % 60,
+      };
+    });
+  },
+
+  /**
+   * Horloge persistante basée sur le temps réel.
+   * Stocke un timestamp de "démarrage de la simulation" en localStorage.
+   * À chaque tick (ou refresh), recalcule où on en est :
+   *   - 1 seconde réelle = 1 minute jeu (rapide)
+   *   - Journée jeu 8h-19h = 11h = 660 min jeu = 11 min réelles
+   *   - Après 19h, passage au jour suivant 8h
+   * Même après refresh, l'horloge reflète le temps réel écoulé.
+   */
+  syncClockFromTimestamp: () => {
+    if (typeof window === "undefined") return;
+    let startTs = 0;
+    try {
+      const stored = localStorage.getItem("game_start_ts");
+      if (stored) startTs = parseInt(stored);
+    } catch {}
+
+    if (!startTs || isNaN(startTs)) {
+      // Première fois : on initialise au jour 1, 9h00 maintenant
+      startTs = Date.now();
+      try { localStorage.setItem("game_start_ts", String(startTs)); } catch {}
+    }
+
+    const now = Date.now();
+    const elapsedRealSeconds = Math.floor((now - startTs) / 1000);
+    // 1 sec réelle = 1 min jeu
+    const elapsedGameMinutes = elapsedRealSeconds;
+
+    // On commence Jour 1 à 9h00 = 9*60 = 540 minutes
+    const startOfDay = 8 * 60; // 8h00
+    const endOfDay = 19 * 60;  // 19h00
+    const dayLength = endOfDay - startOfDay; // 660 minutes par jour ouvré
+    const initialOffset = 9 * 60 - startOfDay; // démarrage à 9h00 = +60 min après 8h
+
+    const totalMinutesFromStart = elapsedGameMinutes + initialOffset;
+    const day = Math.floor(totalMinutesFromStart / dayLength) + 1;
+    const minutesInThisDay = totalMinutesFromStart % dayLength;
+    const hour = Math.floor((startOfDay + minutesInThisDay) / 60);
+    const minute = (startOfDay + minutesInThisDay) % 60;
+
+    set((state) => {
+      // Si on change de jour → reset PA
+      const isNewDay = day > state.game_day;
+      return {
+        game_hour: hour,
+        game_minute: minute,
+        game_day: day,
+        game_start_timestamp: startTs,
+        ...(isNewDay ? { points_action: state.points_action_max } : {}),
       };
     });
   },
