@@ -8,7 +8,12 @@ import { apiFetch, hasUserApiKey } from "@/lib/api-client";
 
 import { Sidebar, type Tab, CabinetLogo } from "./_components/Sidebar";
 import { MessagesView } from "./_components/MessagesView";
-import { EquipeView, AgendaView, DossiersView, TasksView, DecPrepView } from "./_components/OtherTabs";
+import { EquipeView } from "./_components/EquipeView";
+import { AgendaView } from "./_components/AgendaView";
+import { DossiersView } from "./_components/DossiersView";
+import { TasksView } from "./_components/TasksView";
+import { DecPrepView } from "./_components/DecPrepView";
+import { ClaudeFloating } from "./_components/ClaudeFloating";
 import { ApiKeyModal } from "./_components/ApiKeyModal";
 
 export default function HomeContent() {
@@ -19,31 +24,27 @@ export default function HomeContent() {
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [generatingEvents, setGeneratingEvents] = useState(false);
 
-  // Statut API
   const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "error">("checking");
   const [apiStatusReason, setApiStatusReason] = useState("");
   const [apiStatusDetails, setApiStatusDetails] = useState<any>(null);
 
-  // Initial load
   useEffect(() => {
     store.loadGameState();
     store.loadLocalPersistence();
   }, []);
 
-  // Auth redirect
   useEffect(() => {
     if (!store.isLoading && !store.isAuthenticated) router.push("/auth");
   }, [store.isLoading, store.isAuthenticated, router]);
 
-  // Auth subscription
   useEffect(() => {
-    const subscription = supabase.auth.onAuthStateChange((e) => {
+    const sub = supabase.auth.onAuthStateChange((e) => {
       if (e === "SIGNED_OUT") router.push("/auth");
     });
-    return () => subscription.data.subscription.unsubscribe();
+    return () => sub.data.subscription.unsubscribe();
   }, [router]);
 
-  // Horloge persistante (temps réel via localStorage)
+  // Horloge persistante
   useEffect(() => {
     if (!store.isAuthenticated || store.isLoading) return;
     store.syncClockFromTimestamp();
@@ -88,15 +89,10 @@ export default function HomeContent() {
       body: JSON.stringify({
         agents: store.agents,
         game_state: {
-          date: store.date_simulation,
-          mood: store.mood_global,
-          legitimite: store.legitimite,
-          tresorerie: store.tresorerie,
-          stress_global: store.stress_global,
-          joursRestants: 16,
-          hour: store.game_hour,
-          minute: store.game_minute,
-          day: store.game_day,
+          date: store.date_simulation, mood: store.mood_global,
+          legitimite: store.legitimite, tresorerie: store.tresorerie,
+          stress_global: store.stress_global, joursRestants: 16,
+          hour: store.game_hour, minute: store.game_minute, day: store.game_day,
         },
         existing_subjects: store.messages.map((m) => m.sujet),
         agents_with_unread: agentsWithUnread,
@@ -112,9 +108,7 @@ export default function HomeContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F2F2F7]">
         <div className="text-center space-y-4">
-          <div className="inline-block animate-pulse">
-            <CabinetLogo size={56} />
-          </div>
+          <div className="inline-block animate-pulse"><CabinetLogo size={56} /></div>
           <p className="text-[#1D1D1F] text-[15px] font-medium tracking-tight">Cabinet DEC</p>
           <p className="text-[#86868B] text-[12px]">Chargement du cabinet…</p>
         </div>
@@ -124,7 +118,7 @@ export default function HomeContent() {
 
   const unreadCount = store.messages.filter((m) => !m.lu).length;
   const dossiersAlerte = store.dossiers.filter((d) => d.etat === "en_cours" || d.etat === "surveillance").length;
-  const tasksDispos = 0; // simplifié pour stabilité
+  const tasksDispos = 0;
 
   function handleStatusChange(status: "ok" | "error", reason: string, details: any) {
     setApiStatus(status);
@@ -135,34 +129,30 @@ export default function HomeContent() {
   return (
     <div className="flex h-screen bg-[#F2F2F7] overflow-hidden">
       <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        unreadCount={unreadCount}
-        dossiersAlerte={dossiersAlerte}
-        tasksDispos={tasksDispos}
+        activeTab={activeTab} setActiveTab={setActiveTab}
+        unreadCount={unreadCount} dossiersAlerte={dossiersAlerte} tasksDispos={tasksDispos}
         onOpenKeyModal={() => setShowKeyModal(true)}
-        apiStatus={apiStatus}
-        apiStatusReason={apiStatusReason}
+        apiStatus={apiStatus} apiStatusReason={apiStatusReason}
         generatingEvents={generatingEvents}
       />
 
       <div className="flex-1 flex overflow-hidden">
         {activeTab === "messages" && <MessagesView onOpenKeyModal={() => setShowKeyModal(true)} />}
         {activeTab === "equipe" && <EquipeView />}
-        {activeTab === "agenda" && <AgendaView />}
+        {activeTab === "agenda" && <AgendaView apiStatus={apiStatus} />}
         {activeTab === "tasks" && <TasksView />}
         {activeTab === "dossiers" && <DossiersView />}
         {activeTab === "dec" && <DecPrepView />}
       </div>
 
       <ApiKeyModal
-        open={showKeyModal}
-        onClose={() => setShowKeyModal(false)}
+        open={showKeyModal} onClose={() => setShowKeyModal(false)}
         onStatusChange={handleStatusChange}
-        apiStatus={apiStatus}
-        apiStatusReason={apiStatusReason}
+        apiStatus={apiStatus} apiStatusReason={apiStatusReason}
         apiStatusDetails={apiStatusDetails}
       />
+
+      <ClaudeFloating />
     </div>
   );
 }
