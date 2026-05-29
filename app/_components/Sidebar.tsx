@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { signOut } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Mail, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key } from "lucide-react";
+import { Mail, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key, BarChart3, UserPlus } from "lucide-react";
 import { apiFetch, getUserApiKey, hasUserApiKey } from "@/lib/api-client";
 
-export type Tab = "messages" | "equipe" | "agenda" | "tasks" | "dossiers" | "dec";
+export type Tab = "messages" | "equipe" | "agenda" | "tasks" | "dossiers" | "fiscal" | "rh" | "dec";
 
 interface Props {
   activeTab: Tab;
@@ -74,6 +74,8 @@ export function Sidebar(props: Props) {
     { id: "agenda" as Tab, icon: Calendar, label: "Agenda" },
     { id: "tasks" as Tab, icon: ClipboardCheck, label: "Tâches", badge: props.tasksDispos },
     { id: "dossiers" as Tab, icon: FolderOpen, label: "Dossiers", badge: props.dossiersAlerte },
+    { id: "fiscal" as Tab, icon: BarChart3, label: "Suivi Fiscal" },
+    { id: "rh" as Tab, icon: UserPlus, label: "RH" },
     { id: "dec" as Tab, icon: GraduationCap, label: "DEC Prep" },
   ];
 

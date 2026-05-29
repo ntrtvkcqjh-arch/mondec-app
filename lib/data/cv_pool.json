@@ -1,0 +1,101 @@
+{
+  "candidats": [
+    {
+      "id": "cv_001",
+      "nom": "Charlotte Dubois",
+      "age": 28,
+      "poste_vise": "Manager Fiscal",
+      "experience_annees": 5,
+      "competence_pct": 80,
+      "specialites": ["IS", "TVA intracommunautaire", "Optimisation fiscale", "Contentieux"],
+      "salaire_demande": 45000,
+      "disponibilite": "Immédiate",
+      "trait_dominant": "Rigide",
+      "filiere": "Fiscal",
+      "notes_sophie": "Profil solide, sortante du cabinet Mazars. Maîtrise CGI à fond. Attention : refuse les optimisations trop agressives.",
+      "score_match": 92
+    },
+    {
+      "id": "cv_002",
+      "nom": "Mehdi Benkacem",
+      "age": 24,
+      "poste_vise": "Collaborateur Audit",
+      "experience_annees": 1,
+      "competence_pct": 55,
+      "specialites": ["Audit légal", "Comptabilité générale", "CAC junior"],
+      "salaire_demande": 32000,
+      "disponibilite": "1 mois de préavis",
+      "trait_dominant": "Créatif",
+      "filiere": "Audit & IFRS",
+      "notes_sophie": "Jeune diplômé DEC. Très motivé, créatif. Manque d'expérience IFRS mais apprend vite.",
+      "score_match": 68
+    },
+    {
+      "id": "cv_003",
+      "nom": "Sophia Renault",
+      "age": 35,
+      "poste_vise": "Directrice RH adjointe",
+      "experience_annees": 12,
+      "competence_pct": 88,
+      "specialites": ["Recrutement", "Droit du travail", "Formation", "Médiation"],
+      "salaire_demande": 58000,
+      "disponibilite": "Immédiate",
+      "trait_dominant": "Loyal",
+      "filiere": "RH",
+      "notes_sophie": "Profil senior. Pourrait me remplacer si je quitte le cabinet. À évaluer en entretien.",
+      "score_match": 85
+    },
+    {
+      "id": "cv_004",
+      "nom": "Yann Le Goff",
+      "age": 41,
+      "poste_vise": "Manager Comptable",
+      "experience_annees": 18,
+      "competence_pct": 90,
+      "specialites": ["Bilan", "Consolidation", "Liasses complexes", "Management"],
+      "salaire_demande": 65000,
+      "disponibilite": "3 mois",
+      "trait_dominant": "Rigide",
+      "filiere": "Comptable",
+      "notes_sophie": "Très expérimenté, mais profil cher. Ancien Big Four. Pourrait monter en grade vers Associé.",
+      "score_match": 78
+    },
+    {
+      "id": "cv_005",
+      "nom": "Inès Martin",
+      "age": 26,
+      "poste_vise": "Collaboratrice Social",
+      "experience_annees": 3,
+      "competence_pct": 70,
+      "specialites": ["DSN", "Paie", "Congés payés", "URSSAF"],
+      "salaire_demande": 36000,
+      "disponibilite": "Immédiate",
+      "trait_dominant": "Loyal",
+      "filiere": "Social",
+      "notes_sophie": "Renfort solide pour Yacine qui est seul sur le social. Profil fiable.",
+      "score_match": 88
+    }
+  ],
+  "recrutements_actifs": [
+    {
+      "id": "rec_001",
+      "poste": "Manager Fiscal",
+      "raison": "Surcharge Thomas Lefèvre + 2 nouveaux clients arrivent",
+      "budget": 55000,
+      "urgence": "haute",
+      "deadline_jour": 5,
+      "candidats_recus": 8,
+      "entretiens_planifies": 3
+    },
+    {
+      "id": "rec_002",
+      "poste": "Collaborateur Comptable",
+      "raison": "Renfort équipe Léa Garnier (arc Crise)",
+      "budget": 38000,
+      "urgence": "moyenne",
+      "deadline_jour": 14,
+      "candidats_recus": 12,
+      "entretiens_planifies": 1
+    }
+  ]
+}

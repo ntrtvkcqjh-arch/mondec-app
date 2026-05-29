@@ -13,6 +13,8 @@ import { AgendaView } from "./_components/AgendaView";
 import { DossiersView } from "./_components/DossiersView";
 import { TasksView } from "./_components/TasksView";
 import { DecPrepView } from "./_components/DecPrepView";
+import { SuiviFiscalView } from "./_components/SuiviFiscalView";
+import { RhView } from "./_components/RhView";
 import { ClaudeFloating } from "./_components/ClaudeFloating";
 import { ApiKeyModal } from "./_components/ApiKeyModal";
 
@@ -142,6 +144,8 @@ export default function HomeContent() {
         {activeTab === "agenda" && <AgendaView apiStatus={apiStatus} />}
         {activeTab === "tasks" && <TasksView />}
         {activeTab === "dossiers" && <DossiersView />}
+        {activeTab === "fiscal" && <SuiviFiscalView />}
+        {activeTab === "rh" && <RhView />}
         {activeTab === "dec" && <DecPrepView />}
       </div>
 
