@@ -1,11 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 export const dynamicParams = true;
 
-// Charge le composant uniquement côté client (pas de SSR/prerender)
-// Évite l'erreur "Cannot access 't2' before initialization" au build Vercel
 const HomeContent = dynamic(() => import("./HomeContent"), {
   ssr: false,
   loading: () => (
@@ -20,5 +19,9 @@ const HomeContent = dynamic(() => import("./HomeContent"), {
 });
 
 export default function Page() {
-  return <HomeContent />;
+  return (
+    <ErrorBoundary>
+      <HomeContent />
+    </ErrorBoundary>
+  );
 }
