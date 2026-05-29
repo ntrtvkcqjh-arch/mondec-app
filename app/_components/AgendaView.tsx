@@ -213,17 +213,30 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
   const nonPauseSlots = slots.filter((s) => s.type !== "pause");
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto px-8 py-10">
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-end justify-between mb-5">
-          <div>
-            <h2 className="text-[32px] font-semibold text-[#1D1D1F] tracking-[-0.022em] leading-tight">Agenda du jour</h2>
-            <p className="text-[13px] text-[#86868B] mt-1">Jour {store.game_day} · {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")} · Campagne Bilan &amp; AG</p>
+        {/* Header chip + grand titre + actions (style PHDDEC) */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
+            <span>☼</span><span>Éphéméride</span><span>·</span><span>Core Briefing</span>
           </div>
-          <div className="text-right">
-            <div className="text-[11px] text-[#86868B]">Cas pratiques validés</div>
-            <div className="text-[22px] font-bold text-[#34C759] tabular-nums">{completed.size}/{nonPauseSlots.length}</div>
+          <h2 className="text-[60px] font-semibold text-[#1D1D1F] tracking-[-0.04em] leading-[0.95] mb-3">Aujourd'hui.</h2>
+          <p className="text-[14px] text-[#86868B]">
+            {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </p>
+          <div className="flex items-center gap-3 mt-5">
+            <button className="px-4 py-2 bg-[#1D1D1F] hover:bg-[#3a3a3c] text-white rounded-full text-[13px] font-medium flex items-center gap-2 transition-colors">
+              <RefreshCw size={13} /> Régénérer
+            </button>
+            <button className="px-4 py-2 bg-white border border-[#E5E5EA] hover:bg-[#F5F5F7] text-[#1D1D1F] rounded-full text-[13px] font-medium flex items-center gap-2 transition-colors">
+              <Sparkles size={13} /> Envoyer Slack
+            </button>
+            <div className="ml-auto text-right">
+              <div className="text-[11px] text-[#86868B]">Cas pratiques validés</div>
+              <div className="text-[22px] font-bold text-[#34C759] tabular-nums">{completed.size}/{nonPauseSlots.length}</div>
+            </div>
           </div>
+          <p className="text-[10px] text-[#86868B] mt-3 text-right">Généré à {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")} · Jour {store.game_day}</p>
         </div>
 
         <div className="bg-gradient-to-br from-[#FF3B30]/8 to-[#FF9500]/8 border border-[#FF3B30]/20 rounded-[18px] p-4 mb-4">

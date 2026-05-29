@@ -114,12 +114,15 @@ export function EquipeView() {
   const enCrise = store.agents.filter((a: any) => a.stress > 70 || a.fatigue > 70 || a.emotion === "En conflit" || a.emotion === "Frustré" || a.arc_actuel === "Rupture" || a.arc_actuel === "Crise");
 
   return (
-    <div className={`flex-1 overflow-y-auto p-6 ${view === "crise" ? "bg-gradient-to-br from-[#FF3B30]/5 via-white to-[#FF9500]/5" : ""}`}>
+    <div className={`flex-1 overflow-y-auto px-8 py-10 ${view === "crise" ? "bg-gradient-to-br from-[#FF3B30]/5 via-white to-[#FF9500]/5" : ""}`}>
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-end justify-between mb-4">
+        <div className="flex items-end justify-between mb-6">
           <div>
-            <h2 className="text-[32px] font-semibold text-[#1D1D1F] tracking-[-0.022em] leading-tight">Équipe</h2>
-            <p className="text-[13px] text-[#86868B] mt-1">{store.agents.length} collaborateurs · Cabinet Morel &amp; Associés</p>
+            <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
+              <span>☼</span><span>Talents</span><span>·</span><span>Management</span>
+            </div>
+            <h2 className="text-[56px] font-semibold text-[#1D1D1F] tracking-[-0.04em] leading-[0.95]">Équipe.</h2>
+            <p className="text-[14px] text-[#86868B] mt-2">{store.agents.length} collaborateurs · Cabinet Morel &amp; Associés</p>
           </div>
           <div className="flex gap-1 bg-[#F5F5F7] p-1 rounded-[10px]">
             <button onClick={() => setView("grid")}

@@ -67,12 +67,15 @@ export function DossiersView() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="flex-1 overflow-y-auto px-8 py-10">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-end justify-between mb-4">
           <div>
-            <h2 className="text-[32px] font-semibold text-[#1D1D1F] tracking-[-0.022em] leading-tight">Dossiers clients</h2>
-            <p className="text-[13px] text-[#86868B] mt-1">Aperçu temps réel · Les statuts évoluent selon ton travail</p>
+            <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
+              <span>☼</span><span>Portefeuille</span><span>·</span><span>Fiches clients</span>
+            </div>
+            <h2 className="text-[56px] font-semibold text-[#1D1D1F] tracking-[-0.04em] leading-[0.95]">Dossiers.</h2>
+            <p className="text-[14px] text-[#86868B] mt-2">Aperçu temps réel · Les statuts évoluent selon ton travail</p>
           </div>
           <div className="flex gap-1.5">
             <DossierStat label="En cours" value={enCours} color="#007AFF" />

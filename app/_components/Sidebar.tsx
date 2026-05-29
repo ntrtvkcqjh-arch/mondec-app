@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { signOut } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Mail, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key, BarChart3, UserPlus } from "lucide-react";
-import { apiFetch, getUserApiKey, hasUserApiKey } from "@/lib/api-client";
+import { Mail, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key, BarChart3, UserPlus, Sun, Moon, Monitor } from "lucide-react";
 import { ClaudeTuteur } from "./ClaudeTuteur";
 
 export type Tab = "messages" | "equipe" | "agenda" | "tasks" | "dossiers" | "fiscal" | "rh" | "dec";
@@ -40,45 +39,32 @@ export function CabinetLogo({ size = 32 }: { size?: number }) {
   );
 }
 
-function RealClock() {
-  const [time, setTime] = useState("");
-  useEffect(() => {
-    function update() { setTime(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })); }
-    update();
-    const t = setInterval(update, 1000);
-    return () => clearInterval(t);
-  }, []);
-  return <span className="font-mono text-[11px] text-[#86868B] tabular-nums">{time}</span>;
-}
-
-function MiniStat({ label, value, color, display }: { label: string; value: number; color: string; display?: string }) {
-  const pct = Math.min(Math.max(value, 0), 100);
-  return (
-    <div>
-      <div className="flex justify-between text-[10px] mb-0.5">
-        <span className="text-[#86868B]">{label}</span>
-        <span className="font-medium text-[#3a3a3c]">{display || Math.round(value)}</span>
-      </div>
-      <div className="h-[3px] bg-[#E5E5EA] rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
-      </div>
-    </div>
-  );
-}
+// Couleurs pastel pour les bulles de nav (style PHDDEC)
+const navColors: Record<Tab, { bg: string; ring: string; text: string }> = {
+  messages: { bg: "bg-[#FFE5DC]", ring: "ring-[#FFB59B]", text: "text-[#D2691E]" },
+  equipe: { bg: "bg-[#E0F2E9]", ring: "ring-[#7BC9A0]", text: "text-[#1B7A4B]" },
+  agenda: { bg: "bg-[#E5EFFF]", ring: "ring-[#7FA8E8]", text: "text-[#2456A8]" },
+  tasks: { bg: "bg-[#FFF4DB]", ring: "ring-[#FFD478]", text: "text-[#A07000]" },
+  dossiers: { bg: "bg-[#F0E6FF]", ring: "ring-[#B698E8]", text: "text-[#6A38A8]" },
+  fiscal: { bg: "bg-[#E0EAFF]", ring: "ring-[#7B9AE8]", text: "text-[#2440A0]" },
+  rh: { bg: "bg-[#FFE5F0]", ring: "ring-[#E89BC4]", text: "text-[#A02868]" },
+  dec: { bg: "bg-[#E8F4F8]", ring: "ring-[#7BC4D4]", text: "text-[#1F6A82]" },
+};
 
 export function Sidebar(props: Props) {
   const router = useRouter();
   const store = useGameStore();
+  const [theme, setTheme] = useState<"light" | "auto" | "dark">("light");
 
-  const navItems = [
-    { id: "messages" as Tab, icon: Mail, label: "Messages", badge: props.unreadCount },
-    { id: "equipe" as Tab, icon: Users, label: "Équipe" },
-    { id: "agenda" as Tab, icon: Calendar, label: "Agenda" },
-    { id: "tasks" as Tab, icon: ClipboardCheck, label: "Tâches", badge: props.tasksDispos },
-    { id: "dossiers" as Tab, icon: FolderOpen, label: "Dossiers", badge: props.dossiersAlerte },
-    { id: "fiscal" as Tab, icon: BarChart3, label: "Suivi Fiscal" },
-    { id: "rh" as Tab, icon: UserPlus, label: "RH" },
-    { id: "dec" as Tab, icon: GraduationCap, label: "DEC Prep" },
+  const navItems: { id: Tab; icon: any; label: string; badge?: number }[] = [
+    { id: "messages", icon: Mail, label: "Messagerie", badge: props.unreadCount },
+    { id: "equipe", icon: Users, label: "Équipe" },
+    { id: "agenda", icon: Calendar, label: "Agenda" },
+    { id: "tasks", icon: ClipboardCheck, label: "Tâches", badge: props.tasksDispos },
+    { id: "dossiers", icon: FolderOpen, label: "Dossiers", badge: props.dossiersAlerte },
+    { id: "fiscal", icon: BarChart3, label: "Suivi Fiscal" },
+    { id: "rh", icon: UserPlus, label: "RH" },
+    { id: "dec", icon: GraduationCap, label: "DEC Prep" },
   ];
 
   function handleLogout() {
@@ -87,117 +73,140 @@ export function Sidebar(props: Props) {
   }
 
   return (
-    <aside className="w-[248px] bg-white/80 backdrop-blur-2xl border-r border-[#E5E5EA] flex flex-col z-10 shadow-[1px_0_0_rgba(0,0,0,0.04)]">
-      <div className="px-5 pt-5 pb-4 border-b border-[#E5E5EA]/60">
-        <div className="flex items-center gap-3 mb-3">
-          <CabinetLogo size={36} />
+    <aside className="w-[280px] bg-white/40 backdrop-blur-3xl border-r border-white/60 flex flex-col z-10 shadow-[1px_0_24px_rgba(0,0,0,0.04)]">
+      {/* Header logo */}
+      <div className="px-5 pt-6 pb-4">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-11 h-11 rounded-[14px] bg-white/80 backdrop-blur flex items-center justify-center shadow-sm">
+            <CabinetLogo size={26} />
+          </div>
           <div>
-            <div className="font-semibold text-[15px] text-[#1D1D1F] leading-tight tracking-[-0.01em]">Cabinet DEC</div>
+            <div className="font-semibold text-[16px] text-[#1D1D1F] leading-tight tracking-[-0.01em]">Cabinet DEC</div>
             <div className="text-[11px] text-[#86868B] tracking-tight">Morel &amp; Associés</div>
           </div>
         </div>
-
-        {/* Horloge JEU */}
-        <div className="mt-3 bg-gradient-to-r from-[#007AFF]/10 to-[#5e5ce6]/10 rounded-[10px] p-2.5 border border-[#007AFF]/15">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <ClockIcon size={11} className="text-[#007AFF]" />
-              <span className="text-[10px] font-medium text-[#007AFF] uppercase tracking-wide">Jour {store.game_day}</span>
-            </div>
-            <RealClock />
-          </div>
-          <div className="font-mono text-[24px] font-bold text-[#1D1D1F] tabular-nums leading-none mt-1">
-            {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")}
-          </div>
-          <div className="text-[9px] text-[#86868B] mt-0.5">{store.date_simulation}</div>
-        </div>
-
-        {/* Niveau joueur */}
-        <div className="mt-2.5 bg-white/70 rounded-[10px] p-2.5 border border-[#E5E5EA]/40">
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1.5">
-              <Trophy size={11} className="text-[#FF9500]" />
-              <span className="text-[10px] font-semibold text-[#1D1D1F] uppercase">Niveau {store.player_level}</span>
-            </div>
-            <span className="text-[10px] text-[#86868B] tabular-nums">{store.player_xp}/{store.xp_to_next} XP</span>
-          </div>
-          <div className="h-[5px] bg-[#E5E5EA] rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#FF9500] to-[#FF3B30] rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(100, (store.player_xp / store.xp_to_next) * 100)}%` }} />
-          </div>
-        </div>
-
-        {/* Statut API */}
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full ${
-              props.apiStatus === "ok" ? "bg-[#34C759] animate-pulse" :
-              props.apiStatus === "error" ? "bg-[#FF3B30]" :
-              "bg-[#FF9500]"
-            }`} />
-            <span className={`text-[9px] font-medium ${
-              props.apiStatus === "ok" ? "text-[#34C759]" :
-              props.apiStatus === "error" ? "text-[#FF3B30]" :
-              "text-[#FF9500]"
-            }`}>
-              {props.apiStatus === "ok" ? "IA Claude connectée" : props.apiStatus === "error" ? "IA hors ligne" : "Vérification…"}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            {props.generatingEvents && <RefreshCw size={9} className="text-[#007AFF] animate-spin" />}
-            <button onClick={props.onOpenKeyModal} title="Configurer ma clé API"
-              className="p-0.5 rounded hover:bg-black/10 transition-all">
-              <Settings size={11} className="text-[#86868B]" />
-            </button>
-          </div>
-        </div>
-
-        {props.apiStatus === "error" && (
-          <button onClick={props.onOpenKeyModal}
-            className="mt-1.5 w-full text-left text-[9px] text-[#FF3B30] bg-[#FF3B30]/5 border border-[#FF3B30]/15 hover:bg-[#FF3B30]/10 rounded-md px-1.5 py-1 leading-tight transition-all flex items-center gap-1">
-            <Key size={9} className="shrink-0" />
-            <span className="flex-1 truncate">{props.apiStatusReason || "Configurer ma clé API"}</span>
-          </button>
-        )}
       </div>
 
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+      {/* Navigation principale */}
+      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const isActive = props.activeTab === item.id;
+          const colors = navColors[item.id];
           return (
-            <button key={item.id} onClick={() => props.setActiveTab(item.id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] transition-all ${props.activeTab === item.id ? "bg-gradient-to-r from-[#007AFF] to-[#0a84ff] text-white shadow-md" : "text-[#1D1D1F] hover:bg-black/5"}`}>
-              <Icon size={16} />
-              <span className="flex-1 text-left">{item.label}</span>
-              {item.badge ? <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${props.activeTab === item.id ? "bg-white/25 text-white" : "bg-[#FF3B30] text-white"}`}>{item.badge}</span> : null}
+            <button
+              key={item.id}
+              onClick={() => props.setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-[14px] text-[14px] transition-all group ${
+                isActive ? "bg-white/80 shadow-sm" : "hover:bg-white/40"
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-[10px] ${colors.bg} ${isActive ? "ring-2 " + colors.ring : ""} flex items-center justify-center shrink-0 transition-all`}>
+                <Icon size={15} className={colors.text} />
+              </div>
+              <span className={`flex-1 text-left font-medium ${isActive ? "text-[#1D1D1F]" : "text-[#3a3a3c]"}`}>{item.label}</span>
+              {item.badge && item.badge > 0 ? (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center ${isActive ? "bg-[#1D1D1F] text-white" : "bg-[#FF3B30] text-white"}`}>
+                  {item.badge}
+                </span>
+              ) : null}
             </button>
           );
         })}
       </nav>
 
+      {/* Horloge JEU + Niveau compact */}
+      <div className="px-4 pb-3 space-y-2">
+        <div className="bg-white/60 backdrop-blur rounded-[16px] p-3 border border-white/80">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#007AFF] animate-pulse" />
+              <span className="text-[10px] font-medium text-[#86868B] uppercase tracking-wide">Jour {store.game_day}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Trophy size={11} className="text-[#FF9500]" />
+              <span className="text-[10px] font-semibold text-[#1D1D1F]">N{store.player_level}</span>
+            </div>
+          </div>
+          <div className="font-mono text-[22px] font-bold text-[#1D1D1F] tabular-nums leading-none">
+            {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")}
+          </div>
+          <div className="mt-2 h-[3px] bg-[#E5E5EA] rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-[#FF9500] to-[#FF3B30] rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (store.player_xp / store.xp_to_next) * 100)}%` }} />
+          </div>
+        </div>
+
+        {/* Statut API */}
+        <button onClick={props.onOpenKeyModal}
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded-[12px] text-[11px] transition-all ${
+            props.apiStatus === "ok" ? "bg-[#34C759]/10 text-[#34C759] hover:bg-[#34C759]/15" :
+            props.apiStatus === "error" ? "bg-[#FF3B30]/10 text-[#FF3B30] hover:bg-[#FF3B30]/15" :
+            "bg-[#FF9500]/10 text-[#FF9500]"
+          }`}>
+          <div className={`w-1.5 h-1.5 rounded-full ${
+            props.apiStatus === "ok" ? "bg-[#34C759] animate-pulse" :
+            props.apiStatus === "error" ? "bg-[#FF3B30]" : "bg-[#FF9500]"
+          }`} />
+          <span className="flex-1 text-left font-medium truncate">
+            {props.apiStatus === "ok" ? "IA Claude connectée" : props.apiStatus === "error" ? "IA hors ligne" : "Vérification…"}
+          </span>
+          {props.generatingEvents && <RefreshCw size={10} className="animate-spin" />}
+          <Settings size={11} className="opacity-50" />
+        </button>
+      </div>
+
       {/* Claude Tuteur — bulle contextuelle */}
       <ClaudeTuteur onOpenChat={props.onOpenClaudeChat || (() => {})} />
 
-      <div className="px-3 py-3 border-t border-[#E5E5EA]/40 space-y-2">
-        <MiniStat label="Légitimité" value={store.legitimite} color="#007AFF" />
-        <MiniStat label="Trésorerie" value={Math.min((store.tresorerie / 2000), 100)} color="#34C759" display={`${(store.tresorerie / 1000).toFixed(0)}k€`} />
-        <MiniStat label="Réputation" value={store.reputation} color="#FF9500" />
-        <MiniStat label="Stress" value={store.stress_global} color={store.stress_global > 70 ? "#FF3B30" : "#FF9500"} />
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-[11px] text-[#86868B]">Points d'Action</span>
-          <div className="flex gap-1">
-            {Array.from({ length: store.points_action_max }).map((_, i) => (
-              <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < store.points_action ? "bg-[#007AFF]" : "bg-[#E5E5EA]"}`} />
-            ))}
+      {/* Section APPARENCE (style PHDDEC) */}
+      <div className="px-4 py-3 border-t border-white/60">
+        <div className="text-[10px] font-bold text-[#86868B] uppercase tracking-[0.1em] mb-2">Apparence</div>
+        <div className="flex items-center gap-1 bg-white/60 backdrop-blur rounded-full p-1">
+          {[
+            { id: "light" as const, icon: Sun, label: "Clair" },
+            { id: "auto" as const, icon: Monitor, label: "Auto" },
+            { id: "dark" as const, icon: Moon, label: "Sombre" },
+          ].map((t) => {
+            const Icon = t.icon;
+            const isActive = theme === t.id;
+            return (
+              <button key={t.id} onClick={() => setTheme(t.id)}
+                title={t.label}
+                className={`flex-1 flex items-center justify-center py-1.5 rounded-full transition-all ${
+                  isActive ? "bg-white shadow-sm" : "hover:bg-white/40"
+                }`}>
+                <Icon size={13} className={isActive ? "text-[#1D1D1F]" : "text-[#86868B]"} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Profil utilisateur */}
+      <div className="px-4 pb-3">
+        <div className="flex items-center gap-3 bg-white/60 backdrop-blur rounded-[16px] p-2.5 border border-white/80">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1D1D1F] to-[#3a3a3c] flex items-center justify-center text-white font-bold text-[14px]">
+            M
           </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-semibold text-[#1D1D1F] truncate">Toi</div>
+            <div className="text-[10px] text-[#86868B] truncate">Expert-comptable associé</div>
+          </div>
+          <button onClick={handleLogout} className="w-7 h-7 rounded-full bg-white hover:bg-[#FF3B30]/10 flex items-center justify-center transition-colors group">
+            <LogOut size={12} className="text-[#86868B] group-hover:text-[#FF3B30]" />
+          </button>
         </div>
-        <div className="text-center py-1 px-2 bg-[#F5F5F7] rounded-lg">
-          <span className="text-[10px] font-medium text-[#86868B]">Mood · {store.mood_global}</span>
+      </div>
+
+      {/* Switch CORE / IA (style PHDDEC) */}
+      <div className="px-4 pb-4">
+        <div className="flex items-center justify-between px-3">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#86868B]" />
+            <span className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Mood · {store.mood_global}</span>
+          </div>
+          <span className="text-[10px] text-[#86868B]">{(store.tresorerie / 1000).toFixed(0)}k€</span>
         </div>
-        <button onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-[#86868B] hover:text-[#FF3B30] transition-colors rounded-lg hover:bg-[#FF3B30]/5">
-          <LogOut size={12} /> Déconnexion
-        </button>
       </div>
     </aside>
   );
