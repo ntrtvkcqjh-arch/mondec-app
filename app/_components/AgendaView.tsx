@@ -242,7 +242,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
         <div className="bg-gradient-to-br from-[#FF3B30]/8 to-[#FF9500]/8 border border-[#FF3B30]/20 rounded-[18px] p-4 mb-4">
           <div className="flex items-center gap-2 mb-1">
             <Flame size={16} className="text-[#FF3B30]" />
-            <span className="font-semibold text-[14px] text-[#1D1D1F]">Boss Fight — Clôture bilan 30/06</span>
+            <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">Boss Fight — Clôture bilan 30/06</span>
             <span className="ml-auto text-[13px] font-bold text-[#FF3B30]">J-16</span>
           </div>
           <p className="text-[12px] text-[#86868B]">Signature bilan Vidal Industrie · Provision risque client en suspens</p>
@@ -291,7 +291,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
               return (
                 <div key={slot.heure} className="flex items-start gap-3 relative">
                   <div className="w-14 text-right pt-3 shrink-0">
-                    <div className={`text-[13px] font-mono font-semibold tabular-nums ${isActive ? "text-[#007AFF]" : isFuture ? "text-[#c7c7cc]" : "text-[#1D1D1F]"}`}>
+                    <div className={`text-[13px] font-mono font-semibold tabular-nums ${isActive ? "text-[#007AFF]" : isFuture ? "text-[#c7c7cc]" : "text-[#1D1D1F] dark:text-white"}`}>
                       {slot.heure}
                     </div>
                     <div className="text-[9px] text-[#86868B]">{slot.duree_min}min</div>
@@ -304,14 +304,14 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
                   </div>
 
                   <button onClick={() => canOpen && openSlot(slot)} disabled={!canOpen}
-                    className={`flex-1 text-left rounded-[14px] p-3 border transition-all ${isCompleted ? "bg-[#34C759]/5 border-[#34C759]/20" : isActive ? "bg-white border-[#007AFF]/40 shadow-md hover:shadow-lg cursor-pointer" : isFuture ? "bg-white/40 border-[#E5E5EA]/30 opacity-60" : isLocked ? "bg-[#F5F5F7] border-[#E5E5EA]/30 opacity-50 cursor-not-allowed" : "bg-white border-[#E5E5EA]/40 hover:border-[#007AFF]/40 hover:shadow cursor-pointer"}`}>
+                    className={`flex-1 text-left rounded-[14px] p-3 border transition-all ${isCompleted ? "bg-[#34C759]/5 border-[#34C759]/20" : isActive ? "bg-white border-[#007AFF]/40 shadow-md hover:shadow-lg cursor-pointer" : isFuture ? "bg-white/40 border-[#E5E5EA]/30 dark:border-[#2A2A2E] opacity-60" : isLocked ? "bg-[#F5F5F7] border-[#E5E5EA]/30 dark:border-[#2A2A2E] opacity-50 cursor-not-allowed" : "bg-white border-[#E5E5EA]/40 dark:border-[#2A2A2E] hover:border-[#007AFF]/40 hover:shadow cursor-pointer"}`}>
                     <div className="flex items-start gap-2.5">
                       <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15` }}>
                         <Icon size={14} style={{ color }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                          <span className="font-semibold text-[13px] text-[#1D1D1F]">{slot.titre}</span>
+                          <span className="font-semibold text-[13px] text-[#1D1D1F] dark:text-white">{slot.titre}</span>
                           {isCompleted && <span className="text-[9px] font-medium text-[#34C759]">✓ Validé</span>}
                           {isActive && !isCompleted && <span className="text-[9px] font-semibold text-[#007AFF] bg-[#007AFF]/10 px-1.5 py-0.5 rounded-full animate-pulse">EN COURS</span>}
                           {isLocked && <span className="text-[9px] font-medium text-[#86868B] flex items-center gap-0.5"><Lock size={9} /> Niveau {slot.niveau_requis}</span>}
@@ -342,13 +342,13 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
       {activeSlot && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-[#E5E5EA]/40 flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
+            <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
                   <GraduationCap size={18} className="text-white" />
                 </div>
                 <div>
-                  <div className="font-semibold text-[15px] text-[#1D1D1F]">{activeSlot.titre}</div>
+                  <div className="font-semibold text-[15px] text-[#1D1D1F] dark:text-white">{activeSlot.titre}</div>
                   <div className="text-[11px] text-[#86868B]">{activeSlot.heure} · {activeSlot.duree_min}min · +{activeSlot.xp_max} XP max</div>
                 </div>
               </div>
@@ -369,7 +369,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
                 <div className="space-y-4">
                   <div>
                     <div className="text-[10px] font-semibold text-[#007AFF] uppercase tracking-wider mb-1">Client</div>
-                    <div className="text-[15px] font-bold text-[#1D1D1F]">{activeCase.client}</div>
+                    <div className="text-[15px] font-bold text-[#1D1D1F] dark:text-white">{activeCase.client}</div>
                   </div>
                   <div>
                     <div className="text-[10px] font-semibold text-[#86868B] uppercase tracking-wider mb-1">Contexte</div>
@@ -415,7 +415,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
                       </div>
                     </div>
                   </div>
-                  <div className="bg-[#F5F5F7] rounded-[12px] p-3 flex gap-2 items-start">
+                  <div className="bg-[#F5F5F7] dark:bg-[#1F1F22] rounded-[12px] p-3 flex gap-2 items-start">
                     <Zap size={14} className="text-[#007AFF] mt-0.5 shrink-0" />
                     <p className="text-[13px] text-[#1D1D1F] italic leading-relaxed">{correction.analogie}</p>
                   </div>

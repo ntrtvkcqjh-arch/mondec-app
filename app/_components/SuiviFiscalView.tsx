@@ -141,7 +141,7 @@ export function SuiviFiscalView() {
             <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">Suivi Fiscal.</h2>
             <p className="text-[14px] text-[#86868B] mt-2">Obligations sur 12 mois · Affectation par collaborateur</p>
           </div>
-          <div className="flex gap-1 bg-[#F5F5F7] p-1 rounded-[10px]">
+          <div className="flex gap-1 bg-[#F5F5F7] dark:bg-[#1F1F22] p-1 rounded-[10px]">
             <button onClick={() => setView("liste")}
               className={`px-3 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${view === "liste" ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B]"}`}>
               <BarChart3 size={11} /> Liste
@@ -165,7 +165,7 @@ export function SuiviFiscalView() {
           <div className="bg-gradient-to-r from-[#FF3B30]/10 to-[#FF9500]/10 border border-[#FF3B30]/30 rounded-[14px] p-3 mb-4">
             <div className="flex items-center gap-2">
               <AlertTriangle size={14} className="text-[#FF3B30]" />
-              <span className="font-semibold text-[13px] text-[#1D1D1F]">Attention</span>
+              <span className="font-semibold text-[13px] text-[#1D1D1F] dark:text-white">Attention</span>
               <span className="text-[12px] text-[#86868B]">
                 {retards.length > 0 && <span className="text-[#FF3B30] font-medium">{retards.length} retard{retards.length > 1 ? "s" : ""}</span>}
                 {retards.length > 0 && alertesJ1.length > 0 && " · "}
@@ -181,10 +181,10 @@ export function SuiviFiscalView() {
             {Object.entries(parClient).map(([client, obs]) => {
               const a = store.agents.find((x) => x.id === obs[0].collaborateur_id);
               return (
-                <div key={client} className="bg-white rounded-[16px] border border-[#E5E5EA]/40 overflow-hidden">
-                  <div className="px-4 py-3 bg-gradient-to-r from-[#F5F5F7] to-white border-b border-[#E5E5EA]/40 flex items-center justify-between">
+                <div key={client} className="bg-white rounded-[16px] border border-[#E5E5EA]/40 dark:border-[#2A2A2E] overflow-hidden">
+                  <div className="px-4 py-3 bg-gradient-to-r from-[#F5F5F7] to-white border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-[14px] font-semibold text-[#1D1D1F]">🏢 {client}</span>
+                      <span className="text-[14px] font-semibold text-[#1D1D1F] dark:text-white">🏢 {client}</span>
                       {a && (
                         <span className="flex items-center gap-1 text-[10px] text-[#86868B]">
                           <span>Géré par</span>
@@ -214,8 +214,8 @@ export function SuiviFiscalView() {
                         const c = getStatutColor(o.statut);
                         return (
                           <tr key={o.id} onClick={() => setActiveObligation(o)}
-                            className="border-t border-[#E5E5EA]/30 hover:bg-[#F5F5F7]/40 cursor-pointer">
-                            <td className="px-4 py-2.5 text-[12px] font-medium text-[#1D1D1F]">{o.type}</td>
+                            className="border-t border-[#E5E5EA]/30 dark:border-[#2A2A2E] hover:bg-[#F5F5F7]/40 cursor-pointer">
+                            <td className="px-4 py-2.5 text-[12px] font-medium text-[#1D1D1F] dark:text-white">{o.type}</td>
                             <td className="px-2 py-2.5 text-[11px] text-[#86868B] tabular-nums">{o.echeance_label}</td>
                             <td className="px-2 py-2.5">
                               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${c.bg} ${c.text}`}>
@@ -252,7 +252,7 @@ export function SuiviFiscalView() {
 
         {/* VUE CALENDRIER HEATMAP */}
         {view === "calendrier" && (
-          <div className="bg-white rounded-[16px] border border-[#E5E5EA]/40 overflow-x-auto">
+          <div className="bg-white rounded-[16px] border border-[#E5E5EA]/40 dark:border-[#2A2A2E] overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-[10px] text-[#86868B]">
@@ -272,7 +272,7 @@ export function SuiviFiscalView() {
                     {obs.slice(0, 3).map((o) => {
                       const colla = store.agents.find((x) => x.id === o.collaborateur_id);
                       return (
-                        <tr key={o.id} className="border-t border-[#E5E5EA]/30">
+                        <tr key={o.id} className="border-t border-[#E5E5EA]/30 dark:border-[#2A2A2E]">
                           <td className="px-3 py-1.5 text-[10px] text-[#3a3a3c] sticky left-0 bg-white pl-6">{o.type}</td>
                           {Array.from({ length: 12 }).map((_, monthIdx) => {
                             const monthsAhead = monthIdx + 1;
@@ -298,7 +298,7 @@ export function SuiviFiscalView() {
                 ))}
               </tbody>
             </table>
-            <div className="px-4 py-2 border-t border-[#E5E5EA]/30 flex items-center gap-3 text-[10px] text-[#86868B]">
+            <div className="px-4 py-2 border-t border-[#E5E5EA]/30 dark:border-[#2A2A2E] flex items-center gap-3 text-[10px] text-[#86868B]">
               <span>Légende :</span>
               <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#34C759]/15" /> OK</span>
               <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#FFCC00]/15" /> J-7</span>
@@ -316,10 +316,10 @@ export function SuiviFiscalView() {
               const colla = store.agents.find((x) => x.id === o.collaborateur_id);
               const c = getStatutColor(o.statut);
               return (
-                <div key={o.id} className={`bg-white rounded-[12px] p-3 border-l-4 ${c.border} border-r border-t border-b border-[#E5E5EA]/40 flex items-center gap-3`}>
+                <div key={o.id} className={`bg-white rounded-[12px] p-3 border-l-4 ${c.border} border-r border-t border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center gap-3`}>
                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${c.bg} ${c.text}`}>{getStatutLabel(o.statut)}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-[#1D1D1F]">{o.type} — {o.client}</div>
+                    <div className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{o.type} — {o.client}</div>
                     <div className="text-[11px] text-[#86868B]">Échéance {o.echeance_label} · {colla ? colla.nom : "Non affecté"}</div>
                   </div>
                   <button onClick={() => setShowAffectation(o.client)}
@@ -373,13 +373,13 @@ function AffectationModal({ client, obligations, onClose }: { client: string; ob
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
               <BarChart3 size={15} className="text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-[15px] text-[#1D1D1F]">Affectation — {client}</h3>
+              <h3 className="font-semibold text-[15px] text-[#1D1D1F] dark:text-white">Affectation — {client}</h3>
               <p className="text-[11px] text-[#86868B]">{obligations.length} obligation{obligations.length > 1 ? "s" : ""} à répartir</p>
             </div>
           </div>
@@ -394,7 +394,7 @@ function AffectationModal({ client, obligations, onClose }: { client: string; ob
             return (
               <div key={o.id} className="bg-[#F5F5F7]/50 rounded-[12px] p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[13px] font-semibold text-[#1D1D1F]">{o.type}</span>
+                  <span className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{o.type}</span>
                   <span className="text-[10px] text-[#86868B]">Compétence : {t?.competence || "—"}</span>
                   <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ml-auto ${o.statut === "retard" ? "bg-[#FF3B30]/15 text-[#FF3B30]" : o.statut === "j1" ? "bg-[#FF3B30]/10 text-[#FF3B30]" : "bg-[#34C759]/10 text-[#34C759]"}`}>
                     {o.echeance_label}
@@ -422,7 +422,7 @@ function AffectationModal({ client, obligations, onClose }: { client: string; ob
           })}
         </div>
 
-        <div className="px-6 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 flex items-center gap-2">
+        <div className="px-6 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center gap-2">
           <button className="px-3 py-2 text-[12px] rounded-[10px] bg-[#AF52DE]/10 text-[#AF52DE] hover:bg-[#AF52DE]/15 font-medium transition-all flex items-center gap-1">
             <Sparkles size={11} /> Laisser Claude choisir
           </button>

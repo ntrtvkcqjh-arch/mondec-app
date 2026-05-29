@@ -124,7 +124,7 @@ export function EquipeView() {
             <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">Équipe.</h2>
             <p className="text-[14px] text-[#86868B] mt-2">{store.agents.length} collaborateurs · Cabinet Morel &amp; Associés</p>
           </div>
-          <div className="flex gap-1 bg-[#F5F5F7] p-1 rounded-[10px]">
+          <div className="flex gap-1 bg-[#F5F5F7] dark:bg-[#1F1F22] p-1 rounded-[10px]">
             <button onClick={() => setView("grid")}
               className={`px-2.5 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${view === "grid" ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B]"}`}>
               <Grid3x3 size={11} /> Grille
@@ -145,7 +145,7 @@ export function EquipeView() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Heart size={16} className={store.team_health >= 70 ? "text-[#34C759]" : store.team_health >= 50 ? "text-[#FF9500]" : "text-[#FF3B30]"} />
-              <span className="font-semibold text-[14px] text-[#1D1D1F]">Santé mentale équipe</span>
+              <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">Santé mentale équipe</span>
             </div>
             <div className="text-[28px] font-bold tabular-nums leading-none" style={{ color: store.team_health >= 70 ? "#34C759" : store.team_health >= 50 ? "#FF9500" : "#FF3B30" }}>
               {store.team_health}<span className="text-[14px] text-[#86868B] font-normal">/100</span>
@@ -176,14 +176,14 @@ export function EquipeView() {
           <Filter size={12} className="text-[#86868B]" />
           {(["tous", "en_ligne", "en_alerte", "stagiaires", "managers"] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-2.5 py-1 text-[11px] font-medium rounded-[8px] transition-all ${filter === f ? "bg-[#007AFF] text-white" : "bg-white text-[#86868B] hover:text-[#1D1D1F] border border-[#E5E5EA]/40"}`}>
+              className={`px-2.5 py-1 text-[11px] font-medium rounded-[8px] transition-all ${filter === f ? "bg-[#007AFF] text-white" : "bg-white text-[#86868B] hover:text-[#1D1D1F] border border-[#E5E5EA]/40 dark:border-[#2A2A2E]"}`}>
               {f === "tous" ? "Tous" : f === "en_ligne" ? "En ligne" : f === "en_alerte" ? "En alerte" : f === "stagiaires" ? "Stagiaires" : "Managers"}
             </button>
           ))}
           <div className="ml-auto flex items-center gap-1">
             <ArrowUpDown size={11} className="text-[#86868B]" />
             <select value={sort} onChange={(e) => setSort(e.target.value as any)}
-              className="text-[11px] bg-white border border-[#E5E5EA]/40 rounded-[8px] px-2 py-1 outline-none">
+              className="text-[11px] bg-white border border-[#E5E5EA]/40 dark:border-[#2A2A2E] rounded-[8px] px-2 py-1 outline-none">
               <option value="confiance">Confiance ↓</option>
               <option value="stress">Stress ↓</option>
               <option value="nom">Nom A-Z</option>
@@ -204,7 +204,7 @@ export function EquipeView() {
               const alerts = getAlerts(a);
               return (
                 <div key={a.id} onClick={() => setDetailId(a.id)}
-                  className="bg-white rounded-[18px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-[#E5E5EA]/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] hover:-translate-y-0.5 cursor-pointer transition-all">
+                  className="bg-white dark:bg-[#1A1A1C] rounded-[18px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-[#E5E5EA]/30 dark:border-[#2A2A2E] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] hover:-translate-y-0.5 cursor-pointer transition-all">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold shadow-sm shrink-0" style={{ backgroundColor: a.avatar_color }}>
                       {a.initiales}
@@ -333,7 +333,7 @@ export function EquipeView() {
                     const alerts = getAlerts(a);
                     return (
                       <button key={a.id} onClick={() => setDetailId(a.id)}
-                        className="bg-white rounded-[14px] p-3 border border-[#E5E5EA]/40 hover:border-[#007AFF]/40 hover:shadow transition-all text-left">
+                        className="bg-white dark:bg-[#1A1A1C] rounded-[14px] p-3 border border-[#E5E5EA]/40 dark:border-[#2A2A2E] hover:border-[#007AFF]/40 hover:shadow transition-all text-left">
                         <div className="flex items-center gap-2 mb-1.5">
                           <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: a.avatar_color }}>
                             {a.initiales}
@@ -383,7 +383,7 @@ function AgentDetailModal({ agent: a, onClose, onAction, actionFeedback }: { age
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[22px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 bg-gradient-to-r from-[#F5F5F7] to-white">
+        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] bg-gradient-to-r from-[#F5F5F7] to-white">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-[15px] font-bold shadow-md" style={{ backgroundColor: a.avatar_color }}>
@@ -490,7 +490,7 @@ function AgentDetailModal({ agent: a, onClose, onAction, actionFeedback }: { age
           </div>
         </div>
 
-        <div className="px-6 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40">
+        <div className="px-6 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#2A2A2E]">
           <div className="grid grid-cols-4 gap-2">
             {[
               { id: "talk", label: "Parler", desc: "+3 Conf", icon: MessageSquare, color: "#007AFF", cd: cooldowns.talk },

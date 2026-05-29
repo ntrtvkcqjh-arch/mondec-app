@@ -74,7 +74,7 @@ export function Sidebar(props: Props) {
   }
 
   return (
-    <aside className="w-[280px] bg-white/40 dark:bg-black/40 backdrop-blur-3xl border-r border-white/60 dark:border-white/10 flex flex-col z-10 shadow-[1px_0_24px_rgba(0,0,0,0.04)]">
+    <aside className="w-[280px] bg-white/40 dark:bg-[#0F0F10] backdrop-blur-3xl border-r border-white/60 dark:border-[#1F1F22] flex flex-col z-10 shadow-[1px_0_24px_rgba(0,0,0,0.04)]">
       {/* Header logo */}
       <div className="px-5 pt-6 pb-4">
         <div className="flex items-center gap-3 mb-1">

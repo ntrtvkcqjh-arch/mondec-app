@@ -17,7 +17,7 @@ function getPhaseColor(phase: string | null) {
 
 function DossierStat({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="bg-white px-3 py-2 rounded-[12px] border border-[#E5E5EA]/40 text-center min-w-[78px] shadow-sm">
+    <div className="bg-white px-3 py-2 rounded-[12px] border border-[#E5E5EA]/40 dark:border-[#2A2A2E] text-center min-w-[78px] shadow-sm">
       <div className="text-[18px] font-bold tabular-nums" style={{ color }}>{value}</div>
       <div className="text-[10px] text-[#86868B]">{label}</div>
     </div>
@@ -59,7 +59,7 @@ export function DossiersView() {
   const filtered = filter === "tous" ? store.dossiers : store.dossiers.filter((d) => d.etat === filter);
 
   const statusMeta: any = {
-    en_cours: { label: "EN COURS", color: "#007AFF", bg: "bg-[#007AFF]/15", border: "border-[#E5E5EA]/40" },
+    en_cours: { label: "EN COURS", color: "#007AFF", bg: "bg-[#007AFF]/15", border: "border-[#E5E5EA]/40 dark:border-[#2A2A2E]" },
     surveillance: { label: "SURVEILLANCE", color: "#FF9500", bg: "bg-[#FF9500]/15", border: "border-[#FF9500]/30" },
     avance: { label: "AVANCÉ", color: "#34C759", bg: "bg-[#34C759]/15", border: "border-[#34C759]/30" },
     cloture: { label: "CLÔTURÉ", color: "#86868B", bg: "bg-[#86868B]/15", border: "border-[#86868B]/30" },
@@ -86,10 +86,10 @@ export function DossiersView() {
           </div>
         </div>
 
-        <div className="flex gap-1.5 mb-4 bg-[#F5F5F7] p-1 rounded-[12px] inline-flex flex-wrap">
+        <div className="flex gap-1.5 mb-4 bg-[#F5F5F7] dark:bg-[#1F1F22] p-1 rounded-[12px] inline-flex flex-wrap">
           {(["en_cours", "surveillance", "avance", "cloture", "perdu", "tous"] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 text-[12px] font-medium rounded-[8px] transition-all ${filter === f ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B] hover:text-[#1D1D1F]"}`}>
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-[8px] transition-all ${filter === f ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B] hover:text-[#1D1D1F] dark:text-white"}`}>
               {f === "en_cours" ? "En cours" : f === "surveillance" ? "Surveillance" : f === "avance" ? "Avancés" : f === "cloture" ? "Clôturés" : f === "perdu" ? "Perdus" : "Tous"}
             </button>
           ))}
@@ -102,7 +102,7 @@ export function DossiersView() {
             const recoverable = d.etat === "perdu" && d.recoverable_until && new Date(d.recoverable_until) > new Date();
 
             return (
-              <div key={d.id} onClick={() => setFicheId(d.id)} className={`bg-white rounded-[14px] p-4 border transition-all cursor-pointer ${meta.border} ${d.is_vip ? "ring-2 ring-[#AF52DE]/30" : ""} ${
+              <div key={d.id} onClick={() => setFicheId(d.id)} className={`bg-white dark:bg-[#1A1A1C] rounded-[14px] p-4 border transition-all cursor-pointer ${meta.border} ${d.is_vip ? "ring-2 ring-[#AF52DE]/30" : ""} ${
                 d.etat === "avance" ? "bg-[#34C759]/5" :
                 d.etat === "perdu" ? "bg-[#FF3B30]/5 opacity-80" :
                 d.etat === "surveillance" ? "bg-[#FF9500]/5" :
@@ -117,7 +117,7 @@ export function DossiersView() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-semibold text-[14px] text-[#1D1D1F]">{d.client}</span>
+                      <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">{d.client}</span>
                       {d.is_vip && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-[#AF52DE] to-[#5856D6] text-white">⭐ VIP</span>}
                       <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${getPhaseColor(d.phase)}`}>{d.phase}</span>
                       <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ml-auto ${meta.bg}`} style={{ color: meta.color }}>

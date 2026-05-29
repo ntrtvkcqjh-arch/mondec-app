@@ -210,9 +210,9 @@ export function MessagesView({ onOpenKeyModal }: Props) {
   return (
     <>
       {/* Liste conversations */}
-      <div className="w-72 bg-white/60 backdrop-blur-xl border-r border-[#E5E5EA] flex flex-col">
-        <div className="px-3 py-3 border-b border-[#E5E5EA]/40 flex items-center justify-between">
-          <h3 className="text-[13px] font-semibold text-[#1D1D1F]">Messagerie</h3>
+      <div className="w-72 bg-white/60 dark:bg-[#141416] backdrop-blur-xl border-r border-[#E5E5EA] dark:border-[#2A2A2E] flex flex-col">
+        <div className="px-3 py-3 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center justify-between">
+          <h3 className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">Messagerie</h3>
           <span className="text-[10px] text-[#86868B]">{conversationsByAgent.length}</span>
         </div>
         <div className="flex-1 overflow-y-auto py-1">
@@ -287,16 +287,16 @@ export function MessagesView({ onOpenKeyModal }: Props) {
       </div>
 
       {/* Zone conversation */}
-      <main className="flex-1 flex flex-col bg-white/40">
+      <main className="flex-1 flex flex-col bg-white/40 dark:bg-[#0F0F10]">
         {agent ? (
           <>
-            <header className="px-7 py-4 bg-white/75 backdrop-blur-2xl border-b border-[#E5E5EA]/70 flex items-center justify-between">
+            <header className="px-7 py-4 bg-white/75 dark:bg-[#141416]/75 backdrop-blur-2xl border-b border-[#E5E5EA]/70 dark:border-[#2A2A2E] flex items-center justify-between">
               <div className="flex items-center gap-3.5">
                 <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.10)]" style={{ backgroundColor: agent.avatar_color }}>
                   {agent.initiales}
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[16px] text-[#1D1D1F] tracking-[-0.01em]">{agent.nom}</h2>
+                  <h2 className="font-semibold text-[16px] text-[#1D1D1F] dark:text-white tracking-[-0.01em]">{agent.nom}</h2>
                   <p className="text-[12px] text-[#86868B] mt-0.5">{agent.role} · {agent.filiere}</p>
                 </div>
               </div>
@@ -335,8 +335,8 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                         </span>
                         {m.repondu && <span className="text-[9px] text-[#34C759]">✓ traité</span>}
                       </div>
-                      <div className="bg-[#E9E9EB] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
-                        <p className="text-[14px] text-[#1D1D1F] leading-[1.4] whitespace-pre-wrap">{m.contenu}</p>
+                      <div className="bg-[#E9E9EB] dark:bg-[#2A2A2E] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
+                        <p className="text-[14px] text-[#1D1D1F] dark:text-white leading-[1.4] whitespace-pre-wrap">{m.contenu}</p>
                       </div>
                     </div>
                   </div>
@@ -352,7 +352,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                   <div className={`px-[14px] py-[9px] rounded-[20px] text-[14px] leading-[1.4] whitespace-pre-wrap max-w-[75%] ${
                     msg.role === "user"
                       ? "bg-[#007AFF] text-white rounded-br-[6px] shadow-[0_1px_2px_rgba(0,122,255,0.25)]"
-                      : "bg-[#E9E9EB] text-[#1D1D1F] rounded-tl-[6px]"
+                      : "bg-[#E9E9EB] dark:bg-[#2A2A2E] text-[#1D1D1F] dark:text-white rounded-tl-[6px]"
                   }`}>
                     {msg.content}
                   </div>
@@ -364,7 +364,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: agent.avatar_color }}>
                     {agent.initiales}
                   </div>
-                  <div className="bg-[#E9E9EB] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
+                  <div className="bg-[#E9E9EB] dark:bg-[#2A2A2E] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
                     <div className="flex gap-1 items-center">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#86868B] animate-bounce" style={{ animationDelay: "0ms" }} />
                       <div className="w-1.5 h-1.5 rounded-full bg-[#86868B] animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -375,7 +375,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
               )}
             </div>
 
-            <div className="px-6 py-3 bg-white/70 backdrop-blur-xl border-t border-[#E5E5EA]/50">
+            <div className="px-6 py-3 bg-white/70 dark:bg-[#141416]/70 backdrop-blur-xl border-t border-[#E5E5EA]/50 dark:border-[#2A2A2E]">
               {apiError && (
                 <div className="flex items-center gap-2 mb-2 text-[11px] text-[#FF3B30] bg-[#FF3B30]/5 border border-[#FF3B30]/15 rounded-lg px-2 py-1.5">
                   <AlertTriangle size={11} className="shrink-0" />
@@ -390,7 +390,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                 </div>
               )}
               <div className="flex items-end gap-2">
-                <div className={`flex-1 bg-white border rounded-[14px] px-4 py-2.5 shadow-sm transition-all ${sending ? "border-[#E5E5EA]/40 opacity-60" : "border-[#E5E5EA]/80"}`}>
+                <div className={`flex-1 bg-white dark:bg-[#1A1A1C] border rounded-[14px] px-4 py-2.5 shadow-sm transition-all ${sending ? "border-[#E5E5EA]/40 dark:border-[#2A2A2E]/40 opacity-60" : "border-[#E5E5EA]/80 dark:border-[#2A2A2E]"}`}>
                   <textarea
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
@@ -398,7 +398,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                     disabled={sending}
                     placeholder={sending ? `${agent.nom} rédige sa réponse…` : `Répondre à ${agent.nom}…`}
                     rows={1}
-                    className="w-full text-[13px] text-[#1D1D1F] placeholder-[#86868B] outline-none resize-none leading-relaxed bg-transparent disabled:cursor-not-allowed"
+                    className="w-full text-[13px] text-[#1D1D1F] dark:text-white placeholder-[#86868B] outline-none resize-none leading-relaxed bg-transparent disabled:cursor-not-allowed"
                     style={{ minHeight: "20px" }}
                   />
                 </div>

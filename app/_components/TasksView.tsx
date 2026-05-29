@@ -130,7 +130,7 @@ export function TasksView() {
         </div>
 
         {/* Barre Validés/Total animée */}
-        <div className="bg-white rounded-[14px] p-3 border border-[#E5E5EA]/40 mb-4">
+        <div className="bg-white dark:bg-[#1A1A1C] rounded-[14px] p-3 border border-[#E5E5EA]/40 dark:border-[#2A2A2E] mb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Progression session</span>
             <span className="text-[14px] font-bold tabular-nums">
@@ -166,13 +166,13 @@ export function TasksView() {
             const branchColor = task.branche === "Comptable" ? "#007AFF" : task.branche === "Fiscal" ? "#FF9500" : task.branche === "Audit & IFRS" ? "#AF52DE" : task.branche === "Social" ? "#34C759" : "#86868B";
             return (
               <button key={task.id} onClick={() => !isLocked && !isDone && open(task)} disabled={isLocked || isDone}
-                className={`w-full text-left rounded-[14px] p-4 border transition-all flex items-center gap-3 ${isDone ? "bg-[#34C759]/5 border-[#34C759]/20 cursor-default" : isLocked ? "bg-[#F5F5F7] border-[#E5E5EA]/30 opacity-50 cursor-not-allowed" : "bg-white border-[#E5E5EA]/40 hover:border-[#007AFF]/40 hover:shadow cursor-pointer"}`}>
+                className={`w-full text-left rounded-[14px] p-4 border transition-all flex items-center gap-3 ${isDone ? "bg-[#34C759]/5 border-[#34C759]/20 cursor-default" : isLocked ? "bg-[#F5F5F7] border-[#E5E5EA]/30 dark:border-[#2A2A2E] opacity-50 cursor-not-allowed" : "bg-white border-[#E5E5EA]/40 dark:border-[#2A2A2E] hover:border-[#007AFF]/40 hover:shadow cursor-pointer"}`}>
                 <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${branchColor}15` }}>
                   <ClipboardCheck size={18} style={{ color: branchColor }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                    <span className="font-semibold text-[14px] text-[#1D1D1F]">{task.titre}</span>
+                    <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">{task.titre}</span>
                     {isDone && <span className="text-[9px] font-semibold text-[#34C759] bg-[#34C759]/10 px-1.5 py-0.5 rounded-full">VALIDÉ</span>}
                     {isLocked && <span className="text-[9px] font-medium text-[#86868B] flex items-center gap-0.5"><Lock size={9} /> Niveau {task.niveau_min}</span>}
                   </div>
@@ -199,13 +199,13 @@ export function TasksView() {
       {active && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-[#E5E5EA]/40 flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
+            <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
                   <ClipboardCheck size={18} className="text-white" />
                 </div>
                 <div>
-                  <div className="font-semibold text-[15px] text-[#1D1D1F]">{active.titre}</div>
+                  <div className="font-semibold text-[15px] text-[#1D1D1F] dark:text-white">{active.titre}</div>
                   <div className="text-[11px] text-[#86868B]">{active.client} · Branche {active.branche}</div>
                 </div>
               </div>
@@ -217,7 +217,7 @@ export function TasksView() {
             <div className="flex-1 overflow-y-auto px-6 py-5">
               {!result && (
                 <>
-                  <div className="bg-[#F5F5F7] rounded-[12px] p-3 mb-4">
+                  <div className="bg-[#F5F5F7] dark:bg-[#1F1F22] rounded-[12px] p-3 mb-4">
                     <div className="text-[10px] font-semibold text-[#007AFF] uppercase tracking-wider mb-1">Contexte</div>
                     <p className="text-[12px] text-[#1D1D1F] leading-relaxed">{active.contexte}</p>
                   </div>
@@ -228,12 +228,12 @@ export function TasksView() {
                       const isFlagged = flagged.has(i);
                       return (
                         <button key={i} onClick={() => toggleLine(i)}
-                          className={`w-full text-left px-3 py-2.5 flex items-center justify-between gap-3 border-b border-[#E5E5EA]/30 last:border-0 transition-all ${isFlagged ? "bg-[#FF9500]/10 border-l-4 border-l-[#FF9500]" : "hover:bg-[#F5F5F7]"}`}>
+                          className={`w-full text-left px-3 py-2.5 flex items-center justify-between gap-3 border-b border-[#E5E5EA]/30 dark:border-[#2A2A2E] last:border-0 transition-all ${isFlagged ? "bg-[#FF9500]/10 border-l-4 border-l-[#FF9500]" : "hover:bg-[#F5F5F7]"}`}>
                           <div className="flex items-start gap-2 min-w-0">
                             <span className={`text-[9px] tabular-nums font-mono ${isFlagged ? "text-[#FF9500]" : "text-[#c7c7cc]"} mt-0.5`}>L{i + 1}</span>
                             <span className={`text-[12px] ${isFlagged ? "text-[#1D1D1F] font-medium" : "text-[#3a3a3c]"}`}>{ligne.label}</span>
                           </div>
-                          <span className={`text-[12px] font-mono tabular-nums shrink-0 ${isFlagged ? "text-[#FF9500] font-semibold" : "text-[#1D1D1F]"}`}>{ligne.valeur}</span>
+                          <span className={`text-[12px] font-mono tabular-nums shrink-0 ${isFlagged ? "text-[#FF9500] font-semibold" : "text-[#1D1D1F] dark:text-white"}`}>{ligne.valeur}</span>
                         </button>
                       );
                     })}
@@ -283,7 +283,7 @@ export function TasksView() {
                     </div>
                   </div>
 
-                  <div className="bg-[#F5F5F7] rounded-[12px] p-3">
+                  <div className="bg-[#F5F5F7] dark:bg-[#1F1F22] rounded-[12px] p-3">
                     <p className="text-[12px] text-[#1D1D1F] italic leading-relaxed">"{result.feedback_general}"</p>
                   </div>
 
@@ -293,7 +293,7 @@ export function TasksView() {
                         <Sparkles size={13} className="text-[#007AFF] mt-0.5 shrink-0" />
                         <div>
                           <div className="text-[10px] font-semibold text-[#007AFF] uppercase tracking-wider mb-1">
-                            Analyse critique {result.note_score_claude !== null && <span className="text-[#1D1D1F]">({result.note_score_claude}/20)</span>}
+                            Analyse critique {result.note_score_claude !== null && <span className="text-[#1D1D1F] dark:text-white">({result.note_score_claude}/20)</span>}
                           </div>
                           <p className="text-[12px] text-[#1D1D1F] leading-relaxed whitespace-pre-wrap">{result.analyse_note}</p>
                         </div>
@@ -306,7 +306,7 @@ export function TasksView() {
                       <div className="text-[10px] font-semibold text-[#34C759] uppercase tracking-wider mb-2">✓ Erreurs trouvées (+20 chacune)</div>
                       {result.erreurs_trouvees.map((e, i) => (
                         <div key={i} className="bg-[#34C759]/5 border border-[#34C759]/20 rounded-[10px] p-2.5 mb-1.5">
-                          <p className="text-[12px] font-medium text-[#1D1D1F]">L{e.ligne_index + 1} · {e.description}</p>
+                          <p className="text-[12px] font-medium text-[#1D1D1F] dark:text-white">L{e.ligne_index + 1} · {e.description}</p>
                           <p className="text-[10px] text-[#86868B] mt-0.5">{e.reference_legale}</p>
                           <p className="text-[11px] text-[#3a3a3c] mt-1 leading-relaxed">{e.correction}</p>
                         </div>
@@ -319,7 +319,7 @@ export function TasksView() {
                       <div className="text-[10px] font-semibold text-[#FF3B30] uppercase tracking-wider mb-2">✗ Erreurs manquées (−30 chacune)</div>
                       {result.erreurs_manquees.map((e, i) => (
                         <div key={i} className="bg-[#FF3B30]/5 border border-[#FF3B30]/20 rounded-[10px] p-2.5 mb-1.5">
-                          <p className="text-[12px] font-medium text-[#1D1D1F]">L{e.ligne_index + 1} · {e.description}</p>
+                          <p className="text-[12px] font-medium text-[#1D1D1F] dark:text-white">L{e.ligne_index + 1} · {e.description}</p>
                           <p className="text-[10px] text-[#86868B] mt-0.5">{e.reference_legale}</p>
                           <p className="text-[11px] text-[#3a3a3c] mt-1 leading-relaxed">{e.correction}</p>
                         </div>
@@ -339,7 +339,7 @@ export function TasksView() {
                       <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: result.ecriture_eval.ok ? "#34C759" : "#FF3B30" }}>
                         Écriture comptable {result.ecriture_eval.ok ? "validée ✓" : "à revoir ✗"}
                       </div>
-                      <p className="text-[12px] text-[#1D1D1F]">{result.ecriture_eval.feedback}</p>
+                      <p className="text-[12px] text-[#1D1D1F] dark:text-white">{result.ecriture_eval.feedback}</p>
                     </div>
                   )}
 
@@ -358,10 +358,10 @@ export function TasksView() {
       {showEcriture && active?.ecriture_correction && (
         <div className="fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#E5E5EA]/40 bg-gradient-to-r from-[#007AFF]/5 to-[#34C759]/5 flex items-center gap-2.5">
+            <div className="px-5 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] bg-gradient-to-r from-[#007AFF]/5 to-[#34C759]/5 flex items-center gap-2.5">
               <Calculator size={16} className="text-[#007AFF]" />
               <div>
-                <h3 className="font-semibold text-[14px] text-[#1D1D1F]">Écriture de correction</h3>
+                <h3 className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">Écriture de correction</h3>
                 <p className="text-[11px] text-[#86868B]">Propose l'écriture comptable de régularisation</p>
               </div>
             </div>
@@ -390,7 +390,7 @@ export function TasksView() {
               </div>
               <p className="text-[10px] text-[#86868B]">Bonus : +5 Légitimité si parfaite · −10 si imprécise</p>
             </div>
-            <div className="px-5 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 flex gap-2">
+            <div className="px-5 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex gap-2">
               <button onClick={() => setShowEcriture(false)}
                 className="px-3 py-2 text-[12px] rounded-[10px] bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E5E5EA]">Annuler</button>
               <button onClick={() => submit("refuser")} disabled={!eDebit || !eCredit || !eMontant || submitting}

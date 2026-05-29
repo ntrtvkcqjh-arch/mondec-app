@@ -73,7 +73,7 @@ export function ClaudeFloating() {
   return (
     <div className="fixed bottom-5 right-5 z-40">
       {open ? (
-        <div className="bg-white rounded-[18px] shadow-2xl w-[380px] h-[500px] flex flex-col border border-[#E5E5EA]/40 overflow-hidden">
+        <div className="bg-white dark:bg-[#1A1A1C] rounded-[18px] shadow-2xl w-[380px] h-[500px] flex flex-col border border-[#E5E5EA]/40 dark:border-[#2A2A2E] overflow-hidden">
           <div className="px-4 py-3 border-b border-[#E5E5EA]/40 bg-gradient-to-r from-[#007AFF] to-[#5856D6] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
@@ -93,7 +93,7 @@ export function ClaudeFloating() {
             {store.claude_history.length === 0 && (
               <div className="text-center py-6 px-2">
                 <Sparkles size={24} className="text-[#007AFF] mx-auto mb-2" />
-                <p className="text-[12px] text-[#1D1D1F] font-medium mb-1">Bonjour 👋</p>
+                <p className="text-[12px] text-[#1D1D1F] dark:text-white font-medium mb-1">Bonjour 👋</p>
                 <p className="text-[11px] text-[#86868B] leading-relaxed">Je suis Claude. Je vois tout le cabinet en temps réel. Demande-moi des conseils.</p>
                 <div className="mt-3 flex flex-col gap-1.5">
                   {["Que faire en priorité ?", "État du cabinet ?", "Rappel sur les IFRS"].map((s) => (
@@ -110,7 +110,7 @@ export function ClaudeFloating() {
                 <div className={`max-w-[85%] px-3 py-2 rounded-[14px] text-[12px] leading-relaxed whitespace-pre-wrap ${
                   m.role === "user"
                     ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white rounded-br-[4px]"
-                    : "bg-[#F5F5F7] text-[#1D1D1F] rounded-tl-[4px]"
+                    : "bg-[#F5F5F7] dark:bg-[#2A2A2E] text-[#1D1D1F] dark:text-white rounded-tl-[4px]"
                 }`}>{m.content}</div>
               </div>
             ))}
@@ -132,12 +132,12 @@ export function ClaudeFloating() {
             </div>
           )}
 
-          <div className="px-3 py-2 border-t border-[#E5E5EA]/40">
+          <div className="px-3 py-2 border-t border-[#E5E5EA]/40 dark:border-[#2A2A2E]">
             <div className="flex gap-2">
               <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }}}
                 disabled={sending} placeholder="Demande à Claude…"
-                className="flex-1 text-[12px] px-3 py-2 bg-[#F5F5F7] rounded-full outline-none placeholder-[#86868B] disabled:opacity-60" />
+                className="flex-1 text-[12px] px-3 py-2 bg-[#F5F5F7] dark:bg-[#2A2A2E] dark:text-white rounded-full outline-none placeholder-[#86868B] disabled:opacity-60" />
               <button onClick={send} disabled={!input.trim() || sending}
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${input.trim() && !sending ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-sm" : "bg-[#E5E5EA] text-[#86868B] cursor-not-allowed"}`}>
                 <Send size={12} />

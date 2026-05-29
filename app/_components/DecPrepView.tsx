@@ -145,7 +145,7 @@ export function DecPrepView() {
         <div className="bg-gradient-to-r from-[#007AFF]/8 to-[#5856D6]/8 border border-[#007AFF]/15 rounded-[16px] p-4 mb-4">
           <div className="flex items-center gap-2 mb-2">
             <ClockIcon size={14} className="text-[#007AFF]" />
-            <span className="font-semibold text-[13px] text-[#1D1D1F]">Aujourd'hui · Jour {store.game_day}</span>
+            <span className="font-semibold text-[13px] text-[#1D1D1F] dark:text-white">Aujourd'hui · Jour {store.game_day}</span>
             <span className="ml-auto text-[11px] text-[#86868B]">{(store.dec_today_deonto ? 1 : 0) + (store.dec_today_mission ? 1 : 0)}/2 modules</span>
           </div>
           <p className="text-[12px] text-[#3a3a3c] leading-relaxed">
@@ -154,7 +154,7 @@ export function DecPrepView() {
         </div>
 
         {/* Module Déontologie */}
-        <div className={`bg-white rounded-[18px] border-2 transition-all mb-3 ${store.dec_today_deonto ? "border-[#34C759]/40 bg-[#34C759]/5" : "border-[#E5E5EA]/40 hover:border-[#007AFF]/30 hover:shadow-md"}`}>
+        <div className={`bg-white dark:bg-[#1A1A1C] rounded-[18px] border-2 transition-all mb-3 ${store.dec_today_deonto ? "border-[#34C759]/40 bg-[#34C759]/5" : "border-[#E5E5EA]/40 dark:border-[#2A2A2E] hover:border-[#007AFF]/30 hover:shadow-md"}`}>
           <div className="p-4">
             <div className="flex items-start gap-3">
               <div className="w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#007AFF] to-[#5856D6] shadow-md">
@@ -162,7 +162,7 @@ export function DecPrepView() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-[15px] text-[#1D1D1F]">Épreuve 1 — Déontologie</h3>
+                  <h3 className="font-bold text-[15px] text-[#1D1D1F] dark:text-white">Épreuve 1 — Déontologie</h3>
                   {store.dec_today_deonto && <span className="text-[9px] font-semibold text-[#34C759] bg-[#34C759]/10 px-1.5 py-0.5 rounded-full">✓ FAIT</span>}
                 </div>
                 <p className="text-[12px] text-[#86868B] leading-relaxed">
@@ -182,7 +182,7 @@ export function DecPrepView() {
         </div>
 
         {/* Module Mission */}
-        <div className={`bg-white rounded-[18px] border-2 transition-all mb-3 ${store.dec_today_mission ? "border-[#34C759]/40 bg-[#34C759]/5" : "border-[#E5E5EA]/40"}`}>
+        <div className={`bg-white dark:bg-[#1A1A1C] rounded-[18px] border-2 transition-all mb-3 ${store.dec_today_mission ? "border-[#34C759]/40 bg-[#34C759]/5" : "border-[#E5E5EA]/40 dark:border-[#2A2A2E]"}`}>
           <div className="p-4">
             <div className="flex items-start gap-3 mb-2">
               <div className="w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#AF52DE] to-[#5856D6] shadow-md">
@@ -190,7 +190,7 @@ export function DecPrepView() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-[15px] text-[#1D1D1F]">Épreuve 2 — Révision (Mission)</h3>
+                  <h3 className="font-bold text-[15px] text-[#1D1D1F] dark:text-white">Épreuve 2 — Révision (Mission)</h3>
                   {store.dec_today_mission && <span className="text-[9px] font-semibold text-[#34C759] bg-[#34C759]/10 px-1.5 py-0.5 rounded-full">✓ FAIT</span>}
                 </div>
                 <p className="text-[12px] text-[#86868B] leading-relaxed">
@@ -204,7 +204,7 @@ export function DecPrepView() {
                 const locked = m.difficulte > Math.max(2, Math.floor(store.player_level / 2) + 2);
                 return (
                   <button key={m.id} onClick={() => !locked && startMission(m)} disabled={locked}
-                    className={`w-full text-left rounded-[10px] p-2.5 border transition-all flex items-center gap-2.5 ${done ? "bg-[#34C759]/5 border-[#34C759]/20" : locked ? "bg-[#F5F5F7] border-[#E5E5EA]/30 opacity-50 cursor-not-allowed" : "bg-white border-[#E5E5EA]/40 hover:border-[#AF52DE]/40 hover:shadow-sm"}`}>
+                    className={`w-full text-left rounded-[10px] p-2.5 border transition-all flex items-center gap-2.5 ${done ? "bg-[#34C759]/5 border-[#34C759]/20" : locked ? "bg-[#F5F5F7] border-[#E5E5EA]/30 dark:border-[#2A2A2E] opacity-50 cursor-not-allowed" : "bg-white border-[#E5E5EA]/40 dark:border-[#2A2A2E] hover:border-[#AF52DE]/40 hover:shadow-sm"}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-[12px] font-medium text-[#1D1D1F] truncate">{m.titre}</span>
@@ -225,7 +225,7 @@ export function DecPrepView() {
         </div>
 
         {store.dec_badges.length > 0 && (
-          <div className="bg-white rounded-[14px] p-3 border border-[#E5E5EA]/40">
+          <div className="bg-white dark:bg-[#1A1A1C] rounded-[14px] p-3 border border-[#E5E5EA]/40 dark:border-[#2A2A2E]">
             <div className="text-[10px] font-semibold text-[#86868B] uppercase tracking-wider mb-2">🏆 Badges</div>
             <div className="flex flex-wrap gap-1.5">
               {store.dec_badges.map((b) => (
@@ -257,13 +257,13 @@ function DeontoModal({ questions, reponses, index, setIndex, toggle, setText, re
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
+        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
               <Award size={18} className="text-white" />
             </div>
             <div>
-              <div className="font-semibold text-[15px] text-[#1D1D1F]">Déontologie — QCM du jour</div>
+              <div className="font-semibold text-[15px] text-[#1D1D1F] dark:text-white">Déontologie — QCM du jour</div>
               <div className="text-[11px] text-[#86868B]">{result ? "Résultat" : `Question ${index + 1} / ${questions.length}`}</div>
             </div>
           </div>
@@ -302,7 +302,7 @@ function DeontoModal({ questions, reponses, index, setIndex, toggle, setText, re
                           <div className={`w-5 h-5 ${isMulti ? "rounded-[4px]" : "rounded-full"} border-2 flex items-center justify-center shrink-0 mt-0.5 ${selected ? "border-[#007AFF] bg-[#007AFF]" : "border-[#c7c7cc]"}`}>
                             {selected && <CheckCircle size={10} className="text-white" />}
                           </div>
-                          <span className="text-[13px] text-[#1D1D1F]">{opt}</span>
+                          <span className="text-[13px] text-[#1D1D1F] dark:text-white">{opt}</span>
                         </button>
                       );
                     })}
@@ -330,7 +330,7 @@ function DeontoModal({ questions, reponses, index, setIndex, toggle, setText, re
                   </div>
                 </div>
               </div>
-              <div className="bg-[#F5F5F7] rounded-[12px] p-3">
+              <div className="bg-[#F5F5F7] dark:bg-[#1F1F22] rounded-[12px] p-3">
                 <p className="text-[12px] text-[#1D1D1F] italic leading-relaxed">"{result.synthese}"</p>
               </div>
               <div>
@@ -357,7 +357,7 @@ function DeontoModal({ questions, reponses, index, setIndex, toggle, setText, re
         </div>
 
         {!result && (
-          <div className="px-5 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 flex items-center gap-2">
+          <div className="px-5 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center gap-2">
             <button onClick={() => setIndex(Math.max(0, index - 1))} disabled={index === 0}
               className="px-3 py-1.5 text-[12px] rounded-[8px] bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E5E5EA] disabled:opacity-40 disabled:cursor-not-allowed">← Précédent</button>
             <span className="text-[11px] text-[#86868B] mx-auto tabular-nums">{Object.keys(reponses).length}/{questions.length} répondues</span>
@@ -380,13 +380,13 @@ function MissionModal({ mission, reponses, setReponses, etape, setEtape, result,
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 flex items-center justify-between bg-gradient-to-r from-[#AF52DE]/5 to-[#5856D6]/5">
+        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center justify-between bg-gradient-to-r from-[#AF52DE]/5 to-[#5856D6]/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#AF52DE] to-[#5856D6] flex items-center justify-center shadow-md">
               <FileSearch size={18} className="text-white" />
             </div>
             <div>
-              <div className="font-semibold text-[15px] text-[#1D1D1F]">{mission.titre}</div>
+              <div className="font-semibold text-[15px] text-[#1D1D1F] dark:text-white">{mission.titre}</div>
               <div className="text-[11px] text-[#86868B]">{result ? "Résultat" : `${mission.client} · Étape ${etape + 1} / ${mission.etapes.length}`}</div>
             </div>
           </div>
@@ -400,7 +400,7 @@ function MissionModal({ mission, reponses, setReponses, etape, setEtape, result,
             return (
               <div className="space-y-4">
                 {etape === 0 && (
-                  <div className="bg-[#F5F5F7] rounded-[12px] p-3">
+                  <div className="bg-[#F5F5F7] dark:bg-[#1F1F22] rounded-[12px] p-3">
                     <div className="text-[10px] font-semibold text-[#AF52DE] uppercase tracking-wider mb-1">Contexte</div>
                     <p className="text-[12px] text-[#1D1D1F] leading-relaxed">{mission.contexte}</p>
                   </div>
@@ -410,7 +410,7 @@ function MissionModal({ mission, reponses, setReponses, etape, setEtape, result,
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md bg-gradient-to-r from-[#AF52DE] to-[#5856D6]">ÉTAPE {e.numero}</span>
-                  <span className="text-[13px] font-semibold text-[#1D1D1F]">{e.label}</span>
+                  <span className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{e.label}</span>
                   <span className="text-[10px] text-[#86868B] ml-auto">/{e.points_max} points</span>
                 </div>
                 <div className="bg-[#AF52DE]/5 border border-[#AF52DE]/20 rounded-[10px] p-3">
@@ -442,7 +442,7 @@ function MissionModal({ mission, reponses, setReponses, etape, setEtape, result,
                   </div>
                 </div>
               </div>
-              <div className="bg-[#F5F5F7] rounded-[12px] p-3">
+              <div className="bg-[#F5F5F7] dark:bg-[#1F1F22] rounded-[12px] p-3">
                 <p className="text-[12px] text-[#1D1D1F] italic leading-relaxed">"{result.synthese}"</p>
               </div>
               <div className="space-y-2">
@@ -450,7 +450,7 @@ function MissionModal({ mission, reponses, setReponses, etape, setEtape, result,
                   <div key={d.numero} className={`rounded-[12px] border p-3 ${d.points_obtenus >= d.points_max * 0.7 ? "border-[#34C759]/30 bg-[#34C759]/5" : d.points_obtenus >= d.points_max * 0.4 ? "border-[#FF9500]/30 bg-[#FF9500]/5" : "border-[#FF3B30]/30 bg-[#FF3B30]/5"}`}>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[11px] font-bold text-white px-1.5 py-0.5 rounded bg-gradient-to-r from-[#AF52DE] to-[#5856D6]">É{d.numero}</span>
-                      <span className="text-[12px] font-semibold text-[#1D1D1F]">{d.label}</span>
+                      <span className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white">{d.label}</span>
                       <span className="text-[11px] font-mono tabular-nums ml-auto">{d.points_obtenus.toFixed(1)} / {d.points_max} pts</span>
                     </div>
                     <p className="text-[11px] text-[#3a3a3c] leading-relaxed">{d.feedback}</p>
@@ -469,7 +469,7 @@ function MissionModal({ mission, reponses, setReponses, etape, setEtape, result,
         </div>
 
         {!result && (
-          <div className="px-5 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 flex items-center gap-2">
+          <div className="px-5 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center gap-2">
             <button onClick={() => setEtape(Math.max(0, etape - 1))} disabled={etape === 0}
               className="px-3 py-1.5 text-[12px] rounded-[8px] bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E5E5EA] disabled:opacity-40">← Précédent</button>
             <span className="text-[11px] text-[#86868B] mx-auto tabular-nums">Étape {etape + 1}/{mission.etapes.length}</span>
