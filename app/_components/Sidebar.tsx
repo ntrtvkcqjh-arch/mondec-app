@@ -74,11 +74,11 @@ export function Sidebar(props: Props) {
   }
 
   return (
-    <aside className="w-[280px] bg-white/40 dark:bg-[#0F0F10] backdrop-blur-3xl border-r border-white/60 dark:border-[#1F1F22] flex flex-col z-10 shadow-[1px_0_24px_rgba(0,0,0,0.04)]">
+    <aside className="w-[280px] bg-white/40 dark:bg-[#1c1c1e]/85 backdrop-blur-3xl border-r border-white/60 dark:border-[#38383a]/60 flex flex-col z-10 shadow-[1px_0_24px_rgba(0,0,0,0.04)]">
       {/* Header logo */}
       <div className="px-5 pt-6 pb-4">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-11 h-11 rounded-[14px] bg-white/80 dark:bg-white/10 backdrop-blur flex items-center justify-center shadow-sm">
+          <div className="w-11 h-11 rounded-[14px] bg-white/80 dark:bg-[#2c2c2e] backdrop-blur flex items-center justify-center shadow-sm">
             <CabinetLogo size={26} />
           </div>
           <div>
@@ -99,7 +99,7 @@ export function Sidebar(props: Props) {
               key={item.id}
               onClick={() => props.setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-[14px] text-[14px] transition-all group ${
-                isActive ? "bg-white/80 dark:bg-white/15 shadow-sm" : "hover:bg-white/40 dark:hover:bg-white/8"
+                isActive ? "bg-white/80 dark:bg-[#2c2c2e] shadow-sm" : "hover:bg-white/40 dark:hover:bg-[#2c2c2e]/60"
               }`}
             >
               <div className={`w-8 h-8 rounded-[10px] ${colors.bg} ${isActive ? "ring-2 " + colors.ring : ""} flex items-center justify-center shrink-0 transition-all`}>
@@ -118,7 +118,7 @@ export function Sidebar(props: Props) {
 
       {/* Horloge JEU + Niveau compact */}
       <div className="px-4 pb-3 space-y-2">
-        <div className="bg-white/60 dark:bg-white/8 backdrop-blur rounded-[16px] p-3 border border-white/80 dark:border-white/10">
+        <div className="bg-white/60 dark:bg-[#1c1c1e] backdrop-blur rounded-[16px] p-3 border border-white/80 dark:border-[#38383a]">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-[#007AFF] animate-pulse" />
@@ -132,7 +132,7 @@ export function Sidebar(props: Props) {
           <div className="font-mono text-[22px] font-bold text-[#1D1D1F] dark:text-white tabular-nums leading-none">
             {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")}
           </div>
-          <div className="mt-2 h-[3px] bg-[#E5E5EA] dark:bg-white/15 rounded-full overflow-hidden">
+          <div className="mt-2 h-[3px] bg-[#E5E5EA] dark:bg-[#2c2c2e] rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-[#FF9500] to-[#FF3B30] rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (store.player_xp / store.xp_to_next) * 100)}%` }} />
           </div>
         </div>
@@ -160,9 +160,9 @@ export function Sidebar(props: Props) {
       <ClaudeTuteur onOpenChat={props.onOpenClaudeChat || (() => {})} />
 
       {/* Section APPARENCE (style PHDDEC) */}
-      <div className="px-4 py-3 border-t border-white/60 dark:border-white/10">
+      <div className="px-4 py-3 border-t border-white/60 dark:border-[#38383a]">
         <div className="text-[10px] font-bold text-[#86868B] dark:text-[#a0a0a5] uppercase tracking-[0.1em] mb-2">Apparence</div>
-        <div className="flex items-center gap-1 bg-white/60 dark:bg-white/8 backdrop-blur rounded-full p-1">
+        <div className="flex items-center gap-1 bg-white/60 dark:bg-[#1c1c1e] backdrop-blur rounded-full p-1">
           {[
             { id: "light" as const, icon: Sun, label: "Clair" },
             { id: "auto" as const, icon: Monitor, label: "Auto" },
@@ -174,7 +174,7 @@ export function Sidebar(props: Props) {
               <button key={t.id} onClick={() => setTheme(t.id)}
                 title={t.label}
                 className={`flex-1 flex items-center justify-center py-1.5 rounded-full transition-all ${
-                  isActive ? "bg-white dark:bg-white/20 shadow-sm" : "hover:bg-white/40 dark:hover:bg-white/10"
+                  isActive ? "bg-white dark:bg-[#3a3a3c] shadow-sm" : "hover:bg-white/40 dark:hover:bg-[#2c2c2e]"
                 }`}>
                 <Icon size={13} className={isActive ? "text-[#1D1D1F] dark:text-white" : "text-[#86868B] dark:text-[#a0a0a5]"} />
               </button>
@@ -185,7 +185,7 @@ export function Sidebar(props: Props) {
 
       {/* Profil utilisateur */}
       <div className="px-4 pb-3">
-        <div className="flex items-center gap-3 bg-white/60 dark:bg-white/8 backdrop-blur rounded-[16px] p-2.5 border border-white/80 dark:border-white/10">
+        <div className="flex items-center gap-3 bg-white/60 dark:bg-[#1c1c1e] backdrop-blur rounded-[16px] p-2.5 border border-white/80 dark:border-[#38383a]">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1D1D1F] to-[#3a3a3c] dark:from-white dark:to-[#d0d0d5] flex items-center justify-center font-bold text-[14px] text-white dark:text-[#1D1D1F]">
             M
           </div>
@@ -193,7 +193,7 @@ export function Sidebar(props: Props) {
             <div className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white truncate">Toi</div>
             <div className="text-[10px] text-[#86868B] dark:text-[#a0a0a5] truncate">Expert-comptable associé</div>
           </div>
-          <button onClick={handleLogout} className="w-7 h-7 rounded-full bg-white dark:bg-white/10 hover:bg-[#FF3B30]/10 dark:hover:bg-[#FF3B30]/20 flex items-center justify-center transition-colors group">
+          <button onClick={handleLogout} className="w-7 h-7 rounded-full bg-white dark:bg-[#2c2c2e] hover:bg-[#FF3B30]/10 dark:hover:bg-[#FF3B30]/20 flex items-center justify-center transition-colors group">
             <LogOut size={12} className="text-[#86868B] dark:text-[#a0a0a5] group-hover:text-[#FF3B30]" />
           </button>
         </div>

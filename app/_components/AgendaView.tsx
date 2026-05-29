@@ -304,7 +304,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
                   </div>
 
                   <button onClick={() => canOpen && openSlot(slot)} disabled={!canOpen}
-                    className={`flex-1 text-left rounded-[14px] p-3 border transition-all ${isCompleted ? "bg-[#34C759]/5 border-[#34C759]/20" : isActive ? "bg-white border-[#007AFF]/40 shadow-md hover:shadow-lg cursor-pointer" : isFuture ? "bg-white/40 border-[#E5E5EA]/30 dark:border-[#2A2A2E] opacity-60" : isLocked ? "bg-[#F5F5F7] border-[#E5E5EA]/30 dark:border-[#2A2A2E] opacity-50 cursor-not-allowed" : "bg-white border-[#E5E5EA]/40 dark:border-[#2A2A2E] hover:border-[#007AFF]/40 hover:shadow cursor-pointer"}`}>
+                    className={`flex-1 text-left rounded-[14px] p-3 border transition-all ${isCompleted ? "bg-[#34C759]/5 border-[#34C759]/20" : isActive ? "bg-white border-[#007AFF]/40 shadow-md hover:shadow-lg cursor-pointer" : isFuture ? "bg-white/40 border-[#E5E5EA]/30 dark:border-[#38383a] opacity-60" : isLocked ? "bg-[#F5F5F7] border-[#E5E5EA]/30 dark:border-[#38383a] opacity-50 cursor-not-allowed" : "bg-white border-[#E5E5EA]/40 dark:border-[#38383a] hover:border-[#007AFF]/40 hover:shadow cursor-pointer"}`}>
                     <div className="flex items-start gap-2.5">
                       <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15` }}>
                         <Icon size={14} style={{ color }} />
@@ -342,7 +342,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
       {activeSlot && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
+            <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
                   <GraduationCap size={18} className="text-white" />
@@ -415,7 +415,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
                       </div>
                     </div>
                   </div>
-                  <div className="bg-[#F5F5F7] dark:bg-[#1F1F22] rounded-[12px] p-3 flex gap-2 items-start">
+                  <div className="bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[12px] p-3 flex gap-2 items-start">
                     <Zap size={14} className="text-[#007AFF] mt-0.5 shrink-0" />
                     <p className="text-[13px] text-[#1D1D1F] italic leading-relaxed">{correction.analogie}</p>
                   </div>

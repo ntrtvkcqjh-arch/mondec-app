@@ -73,7 +73,7 @@ export function RhView() {
         </div>
 
         {/* Tabs internes */}
-        <div className="flex gap-1.5 mb-4 bg-[#F5F5F7] dark:bg-[#1F1F22] p-1 rounded-[10px] inline-flex">
+        <div className="flex gap-1.5 mb-4 bg-[#F5F5F7] dark:bg-[#2c2c2e] p-1 rounded-[10px] inline-flex">
           {[
             { id: "sophie", label: "📊 Compte-rendu Sophie" },
             { id: "cv", label: `📄 CV à l'étude (${candidats.length})` },
@@ -108,7 +108,7 @@ export function RhView() {
             )}
 
             {/* Compte-rendu */}
-            <div className="bg-white dark:bg-[#1A1A1C] rounded-[18px] p-5 border border-[#E5E5EA]/40 dark:border-[#2A2A2E]">
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-[18px] p-5 border border-[#E5E5EA]/40 dark:border-[#38383a]">
               <div className="flex items-center gap-2 mb-4">
                 <FileText size={14} className="text-[#AF52DE]" />
                 <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">Compte-rendu semaine · Jour {store.game_day}</span>
@@ -185,7 +185,7 @@ export function RhView() {
         {tab === "cv" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {candidats.map((c) => (
-              <div key={c.id} className="bg-white dark:bg-[#1A1A1C] rounded-[16px] p-4 border border-[#E5E5EA]/40 dark:border-[#2A2A2E] hover:shadow-md transition-all">
+              <div key={c.id} className="bg-white dark:bg-[#1c1c1e] rounded-[16px] p-4 border border-[#E5E5EA]/40 dark:border-[#38383a] hover:shadow-md transition-all">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#AF52DE] to-[#5856D6] flex items-center justify-center text-white font-bold text-[14px] shadow-sm shrink-0">
                     {c.nom.split(" ").map((n) => n[0]).join("")}
@@ -233,7 +233,7 @@ export function RhView() {
         {tab === "recrutements" && (
           <div className="space-y-3">
             {recrutements.map((r) => (
-              <div key={r.id} className="bg-white dark:bg-[#1A1A1C] rounded-[16px] p-4 border border-[#E5E5EA]/40 dark:border-[#2A2A2E]">
+              <div key={r.id} className="bg-white dark:bg-[#1c1c1e] rounded-[16px] p-4 border border-[#E5E5EA]/40 dark:border-[#38383a]">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-[#FF9500] to-[#FF3B30] flex items-center justify-center shadow-sm">
                     <Briefcase size={18} className="text-white" />
@@ -285,7 +285,7 @@ function CVModal({ candidat: c, onClose, onEmbauche, onEntretien }: { candidat: 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[22px] shadow-2xl w-full max-w-xl max-h-[92vh] overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] bg-gradient-to-r from-[#AF52DE]/5 to-[#5856D6]/5 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a] bg-gradient-to-r from-[#AF52DE]/5 to-[#5856D6]/5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#AF52DE] to-[#5856D6] flex items-center justify-center text-white font-bold text-[14px] shadow-md">
               {c.nom.split(" ").map((n) => n[0]).join("")}
@@ -358,7 +358,7 @@ function CVModal({ candidat: c, onClose, onEmbauche, onEntretien }: { candidat: 
           </div>
         </div>
 
-        <div className="px-6 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center gap-2">
+        <div className="px-6 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center gap-2">
           <button onClick={onClose}
             className="px-3 py-2 text-[12px] rounded-[10px] bg-[#FF3B30]/10 text-[#FF3B30] hover:bg-[#FF3B30]/15 font-medium transition-all">
             Refuser

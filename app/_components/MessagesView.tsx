@@ -121,14 +121,8 @@ export function MessagesView({ onOpenKeyModal }: Props) {
     setSending(true);
     setApiError("");
 
-    const niveau = agent ? (store.messages.find((m) => m.agent_id === agent.id && !m.repondu)?.niveau || "N2") : "N2";
-    const cost = getPACost(niveau);
-    console.log("[CHAT] PA cost:", cost, "PA dispo:", store.points_action);
-    if (cost > 0 && !store.spendPA(cost)) {
-      setApiError(`Pas assez de Points d'Action (${store.points_action}/${store.points_action_max}) — repos requis. Coût pour ${niveau}: ${cost} PA.`);
-      setSending(false);
-      return;
-    }
+    // Chat illimité — plus de limite de PA pour envoyer des messages
+    // (les PA restent utilisables pour les actions stratégiques : Former, Récupération, etc.)
 
     const currentHistory = store.conversation_history[agent.id] || [];
     const userMsg = { role: "user" as const, content: text };
@@ -210,8 +204,8 @@ export function MessagesView({ onOpenKeyModal }: Props) {
   return (
     <>
       {/* Liste conversations */}
-      <div className="w-72 bg-white/60 dark:bg-[#141416] backdrop-blur-xl border-r border-[#E5E5EA] dark:border-[#2A2A2E] flex flex-col">
-        <div className="px-3 py-3 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center justify-between">
+      <div className="w-72 bg-white/60 dark:bg-[#1c1c1e] backdrop-blur-xl border-r border-[#E5E5EA] dark:border-[#38383a] flex flex-col">
+        <div className="px-3 py-3 border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center justify-between">
           <h3 className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">Messagerie</h3>
           <span className="text-[10px] text-[#86868B]">{conversationsByAgent.length}</span>
         </div>
@@ -287,10 +281,10 @@ export function MessagesView({ onOpenKeyModal }: Props) {
       </div>
 
       {/* Zone conversation */}
-      <main className="flex-1 flex flex-col bg-white/40 dark:bg-[#0F0F10]">
+      <main className="flex-1 flex flex-col bg-white/40 dark:bg-black">
         {agent ? (
           <>
-            <header className="px-7 py-4 bg-white/75 dark:bg-[#141416]/75 backdrop-blur-2xl border-b border-[#E5E5EA]/70 dark:border-[#2A2A2E] flex items-center justify-between">
+            <header className="px-7 py-4 bg-white/75 dark:bg-[#1c1c1e]/75 backdrop-blur-2xl border-b border-[#E5E5EA]/70 dark:border-[#38383a] flex items-center justify-between">
               <div className="flex items-center gap-3.5">
                 <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.10)]" style={{ backgroundColor: agent.avatar_color }}>
                   {agent.initiales}
@@ -335,7 +329,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                         </span>
                         {m.repondu && <span className="text-[9px] text-[#34C759]">✓ traité</span>}
                       </div>
-                      <div className="bg-[#E9E9EB] dark:bg-[#2A2A2E] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
+                      <div className="bg-[#E9E9EB] dark:bg-[#2c2c2e] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
                         <p className="text-[14px] text-[#1D1D1F] dark:text-white leading-[1.4] whitespace-pre-wrap">{m.contenu}</p>
                       </div>
                     </div>
@@ -352,7 +346,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                   <div className={`px-[14px] py-[9px] rounded-[20px] text-[14px] leading-[1.4] whitespace-pre-wrap max-w-[75%] ${
                     msg.role === "user"
                       ? "bg-[#007AFF] text-white rounded-br-[6px] shadow-[0_1px_2px_rgba(0,122,255,0.25)]"
-                      : "bg-[#E9E9EB] dark:bg-[#2A2A2E] text-[#1D1D1F] dark:text-white rounded-tl-[6px]"
+                      : "bg-[#E9E9EB] dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white rounded-tl-[6px]"
                   }`}>
                     {msg.content}
                   </div>
@@ -364,7 +358,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: agent.avatar_color }}>
                     {agent.initiales}
                   </div>
-                  <div className="bg-[#E9E9EB] dark:bg-[#2A2A2E] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
+                  <div className="bg-[#E9E9EB] dark:bg-[#2c2c2e] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
                     <div className="flex gap-1 items-center">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#86868B] animate-bounce" style={{ animationDelay: "0ms" }} />
                       <div className="w-1.5 h-1.5 rounded-full bg-[#86868B] animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -375,7 +369,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
               )}
             </div>
 
-            <div className="px-6 py-3 bg-white/70 dark:bg-[#141416]/70 backdrop-blur-xl border-t border-[#E5E5EA]/50 dark:border-[#2A2A2E]">
+            <div className="px-6 py-3 bg-white/70 dark:bg-[#1c1c1e]/70 backdrop-blur-xl border-t border-[#E5E5EA]/50 dark:border-[#38383a]">
               {apiError && (
                 <div className="flex items-center gap-2 mb-2 text-[11px] text-[#FF3B30] bg-[#FF3B30]/5 border border-[#FF3B30]/15 rounded-lg px-2 py-1.5">
                   <AlertTriangle size={11} className="shrink-0" />
@@ -390,7 +384,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                 </div>
               )}
               <div className="flex items-end gap-2">
-                <div className={`flex-1 bg-white dark:bg-[#1A1A1C] border rounded-[14px] px-4 py-2.5 shadow-sm transition-all ${sending ? "border-[#E5E5EA]/40 dark:border-[#2A2A2E]/40 opacity-60" : "border-[#E5E5EA]/80 dark:border-[#2A2A2E]"}`}>
+                <div className={`flex-1 bg-white dark:bg-[#1c1c1e] border rounded-[14px] px-4 py-2.5 shadow-sm transition-all ${sending ? "border-[#E5E5EA]/40 dark:border-[#38383a]/40 opacity-60" : "border-[#E5E5EA]/80 dark:border-[#38383a]"}`}>
                   <textarea
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}

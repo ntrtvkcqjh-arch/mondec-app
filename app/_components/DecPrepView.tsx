@@ -154,7 +154,7 @@ export function DecPrepView() {
         </div>
 
         {/* Module Déontologie */}
-        <div className={`bg-white dark:bg-[#1A1A1C] rounded-[18px] border-2 transition-all mb-3 ${store.dec_today_deonto ? "border-[#34C759]/40 bg-[#34C759]/5" : "border-[#E5E5EA]/40 dark:border-[#2A2A2E] hover:border-[#007AFF]/30 hover:shadow-md"}`}>
+        <div className={`bg-white dark:bg-[#1c1c1e] rounded-[18px] border-2 transition-all mb-3 ${store.dec_today_deonto ? "border-[#34C759]/40 bg-[#34C759]/5" : "border-[#E5E5EA]/40 dark:border-[#38383a] hover:border-[#007AFF]/30 hover:shadow-md"}`}>
           <div className="p-4">
             <div className="flex items-start gap-3">
               <div className="w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#007AFF] to-[#5856D6] shadow-md">
@@ -182,7 +182,7 @@ export function DecPrepView() {
         </div>
 
         {/* Module Mission */}
-        <div className={`bg-white dark:bg-[#1A1A1C] rounded-[18px] border-2 transition-all mb-3 ${store.dec_today_mission ? "border-[#34C759]/40 bg-[#34C759]/5" : "border-[#E5E5EA]/40 dark:border-[#2A2A2E]"}`}>
+        <div className={`bg-white dark:bg-[#1c1c1e] rounded-[18px] border-2 transition-all mb-3 ${store.dec_today_mission ? "border-[#34C759]/40 bg-[#34C759]/5" : "border-[#E5E5EA]/40 dark:border-[#38383a]"}`}>
           <div className="p-4">
             <div className="flex items-start gap-3 mb-2">
               <div className="w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#AF52DE] to-[#5856D6] shadow-md">
@@ -204,7 +204,7 @@ export function DecPrepView() {
                 const locked = m.difficulte > Math.max(2, Math.floor(store.player_level / 2) + 2);
                 return (
                   <button key={m.id} onClick={() => !locked && startMission(m)} disabled={locked}
-                    className={`w-full text-left rounded-[10px] p-2.5 border transition-all flex items-center gap-2.5 ${done ? "bg-[#34C759]/5 border-[#34C759]/20" : locked ? "bg-[#F5F5F7] border-[#E5E5EA]/30 dark:border-[#2A2A2E] opacity-50 cursor-not-allowed" : "bg-white border-[#E5E5EA]/40 dark:border-[#2A2A2E] hover:border-[#AF52DE]/40 hover:shadow-sm"}`}>
+                    className={`w-full text-left rounded-[10px] p-2.5 border transition-all flex items-center gap-2.5 ${done ? "bg-[#34C759]/5 border-[#34C759]/20" : locked ? "bg-[#F5F5F7] border-[#E5E5EA]/30 dark:border-[#38383a] opacity-50 cursor-not-allowed" : "bg-white border-[#E5E5EA]/40 dark:border-[#38383a] hover:border-[#AF52DE]/40 hover:shadow-sm"}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-[12px] font-medium text-[#1D1D1F] truncate">{m.titre}</span>
@@ -225,7 +225,7 @@ export function DecPrepView() {
         </div>
 
         {store.dec_badges.length > 0 && (
-          <div className="bg-white dark:bg-[#1A1A1C] rounded-[14px] p-3 border border-[#E5E5EA]/40 dark:border-[#2A2A2E]">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[14px] p-3 border border-[#E5E5EA]/40 dark:border-[#38383a]">
             <div className="text-[10px] font-semibold text-[#86868B] uppercase tracking-wider mb-2">🏆 Badges</div>
             <div className="flex flex-wrap gap-1.5">
               {store.dec_badges.map((b) => (
@@ -257,7 +257,7 @@ function DeontoModal({ questions, reponses, index, setIndex, toggle, setText, re
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
+        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
               <Award size={18} className="text-white" />
@@ -330,7 +330,7 @@ function DeontoModal({ questions, reponses, index, setIndex, toggle, setText, re
                   </div>
                 </div>
               </div>
-              <div className="bg-[#F5F5F7] dark:bg-[#1F1F22] rounded-[12px] p-3">
+              <div className="bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[12px] p-3">
                 <p className="text-[12px] text-[#1D1D1F] italic leading-relaxed">"{result.synthese}"</p>
               </div>
               <div>
@@ -357,7 +357,7 @@ function DeontoModal({ questions, reponses, index, setIndex, toggle, setText, re
         </div>
 
         {!result && (
-          <div className="px-5 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center gap-2">
+          <div className="px-5 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center gap-2">
             <button onClick={() => setIndex(Math.max(0, index - 1))} disabled={index === 0}
               className="px-3 py-1.5 text-[12px] rounded-[8px] bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E5E5EA] disabled:opacity-40 disabled:cursor-not-allowed">← Précédent</button>
             <span className="text-[11px] text-[#86868B] mx-auto tabular-nums">{Object.keys(reponses).length}/{questions.length} répondues</span>
@@ -380,7 +380,7 @@ function MissionModal({ mission, reponses, setReponses, etape, setEtape, result,
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center justify-between bg-gradient-to-r from-[#AF52DE]/5 to-[#5856D6]/5">
+        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center justify-between bg-gradient-to-r from-[#AF52DE]/5 to-[#5856D6]/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#AF52DE] to-[#5856D6] flex items-center justify-center shadow-md">
               <FileSearch size={18} className="text-white" />
@@ -400,7 +400,7 @@ function MissionModal({ mission, reponses, setReponses, etape, setEtape, result,
             return (
               <div className="space-y-4">
                 {etape === 0 && (
-                  <div className="bg-[#F5F5F7] dark:bg-[#1F1F22] rounded-[12px] p-3">
+                  <div className="bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[12px] p-3">
                     <div className="text-[10px] font-semibold text-[#AF52DE] uppercase tracking-wider mb-1">Contexte</div>
                     <p className="text-[12px] text-[#1D1D1F] leading-relaxed">{mission.contexte}</p>
                   </div>
@@ -442,7 +442,7 @@ function MissionModal({ mission, reponses, setReponses, etape, setEtape, result,
                   </div>
                 </div>
               </div>
-              <div className="bg-[#F5F5F7] dark:bg-[#1F1F22] rounded-[12px] p-3">
+              <div className="bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[12px] p-3">
                 <p className="text-[12px] text-[#1D1D1F] italic leading-relaxed">"{result.synthese}"</p>
               </div>
               <div className="space-y-2">
@@ -469,7 +469,7 @@ function MissionModal({ mission, reponses, setReponses, etape, setEtape, result,
         </div>
 
         {!result && (
-          <div className="px-5 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#2A2A2E] flex items-center gap-2">
+          <div className="px-5 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center gap-2">
             <button onClick={() => setEtape(Math.max(0, etape - 1))} disabled={etape === 0}
               className="px-3 py-1.5 text-[12px] rounded-[8px] bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E5E5EA] disabled:opacity-40">← Précédent</button>
             <span className="text-[11px] text-[#86868B] mx-auto tabular-nums">Étape {etape + 1}/{mission.etapes.length}</span>
