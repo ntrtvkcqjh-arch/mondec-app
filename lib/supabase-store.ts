@@ -54,13 +54,53 @@ export interface Dossier {
     stress: number;
   };
   // Enrichissements
-  qualite: number; // 0-100, basée sur les tâches validées + score
+  qualite: number;
   client_satisfait: boolean;
-  signaux_alerte: string[]; // ex: ["agent_burnout", "retard_J5", "drama_interne"]
-  is_vip: boolean; // dossiers stratégiques (max 3) → impact réputation x3
-  recoverable_until: string | null; // ISO date jusqu'à laquelle on peut tenter récupération (30 jours)
-  cause_perte: string | null; // raison narrative si "perdu"
-  cas_traites: number; // nombre de tâches validées sur ce dossier
+  signaux_alerte: string[];
+  is_vip: boolean;
+  recoverable_until: string | null;
+  cause_perte: string | null;
+  cas_traites: number;
+
+  // === FICHE CLIENT (Sprint 2) ===
+  // Caractéristiques générales
+  secteur?: string;
+  ca?: number; // chiffre d'affaires en €
+  effectif?: number;
+  regime_tva?: "Mensuel" | "Trimestriel" | "Annuel" | "Franchise";
+  forme_juridique?: "SARL" | "SAS" | "SA" | "EURL" | "SCI" | "Association";
+  anciennete_annees?: number;
+
+  // 5 critères aléatoires (0-100)
+  profil_relationnel?: number; // 0=Patient, 100=Exigeant
+  complexite_comptable?: number; // 0=Simple, 100=Très complexe
+  rentabilite?: number; // 0=Faible marge, 100=Très rentable
+  reactivite_demandee?: number; // 0=Détendu, 100=Urgences fréquentes
+  tolerance_erreurs?: number; // 0=Aucune tolérance, 100=Indulgent
+
+  // Spécialités techniques requises (3-5)
+  specialites_requises?: string[];
+
+  // Économique
+  honoraires_annuels?: number;
+  satisfaction?: number; // 0-100
+}
+
+export interface NouveauProspect {
+  id: string;
+  client: string;
+  secteur: string;
+  ca: number;
+  effectif: number;
+  regime_tva: "Mensuel" | "Trimestriel" | "Annuel" | "Franchise";
+  forme_juridique: "SARL" | "SAS" | "SA" | "EURL" | "SCI" | "Association";
+  profil_relationnel: number;
+  complexite_comptable: number;
+  rentabilite: number;
+  reactivite_demandee: number;
+  tolerance_erreurs: number;
+  specialites_requises: string[];
+  honoraires_annuels: number;
 }
 
 export interface ClaudeMsg {
@@ -116,9 +156,13 @@ export interface GameState {
   completed_tasks: string[];
 
   // Équipe : actions joueur → agent
-  agent_cooldowns: Record<string, Record<string, number>>; // agent_id → action → game_day jusque-là
+  agent_cooldowns: Record<string, Record<string, number>>;
   agent_player_history: Record<string, { day: number; hour: number; event: string; impact?: string }[]>;
   team_health: number;
+
+  // Sprint 2 : Nouveaux prospects
+  prospects_pending: NouveauProspect[];
+  last_prospect_day: number;
 
   agents: Agent[];
   messages: Message[];
@@ -188,6 +232,12 @@ export interface GameState {
   reprimandAgent: (agentId: string) => { ok: boolean; reason?: string };
   trainAgent: (agentId: string) => { ok: boolean; reason?: string };
   recomputeTeamHealth: () => void;
+
+  // Sprint 2 : Prospects + Dossiers enrichis
+  generateProspects: () => void;
+  acceptProspect: (id: string, agentId: string) => void;
+  refuseProspect: (id: string) => void;
+  computeIncompatibilites: (dossierId: string, agentId: string) => string[];
 }
 
 const xpForLevel = (level: number) => 100 + level * 50;
@@ -238,6 +288,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   agent_cooldowns: {},
   agent_player_history: {},
   team_health: 60,
+
+  prospects_pending: [],
+  last_prospect_day: 0,
 
   agents: [],
   messages: [],
@@ -351,8 +404,18 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (agentsData && agentsData.length > 0) {
       set({ agents: agentsData.map((a) => ({ ...a, id: a.agent_id })) });
 
-      // Seed dossiers dynamiques à partir des dossiers_actifs des agents
+      // Seed dossiers enrichis avec caractéristiques aléatoires
       const dossiers: Dossier[] = [];
+      const SECTEURS = ["Industrie métallurgique", "Restaurant", "BTP", "Boulangerie", "Tech / SaaS", "E-commerce", "Conseil", "Distribution", "Immobilier", "Cabinet médical"];
+      const SPECIALITES_POOL = ["TVA intracommunautaire", "Fiscalité internationale", "IFRS / Consolidation", "Provisions techniques", "Paie complexe (DSN)", "CIR R&D", "TVA restauration", "Immobilier / SCPI", "Comptabilité simple", "Association / Mécénat"];
+      const FORMES: any[] = ["SARL", "SAS", "SA", "EURL", "SCI", "Association"];
+      const REGIMES: any[] = ["Mensuel", "Trimestriel", "Annuel", "Franchise"];
+
+      function pickRandom<T>(arr: T[], n: number): T[] {
+        const shuffled = arr.slice().sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, n);
+      }
+
       agentsData.forEach((a: any) => {
         (a.dossiers_actifs || []).forEach((d: string, i: number) => {
           const [client, theme] = d.includes(" - ") ? d.split(" - ") : [d, "Dossier"];
@@ -378,6 +441,21 @@ export const useGameStore = create<GameState>((set, get) => ({
             recoverable_until: null,
             cause_perte: null,
             cas_traites: 0,
+            // Fiche client riche
+            secteur: SECTEURS[Math.floor(Math.random() * SECTEURS.length)],
+            ca: 200000 + Math.floor(Math.random() * 4800000),
+            effectif: 3 + Math.floor(Math.random() * 80),
+            regime_tva: REGIMES[Math.floor(Math.random() * REGIMES.length)],
+            forme_juridique: FORMES[Math.floor(Math.random() * FORMES.length)],
+            anciennete_annees: 1 + Math.floor(Math.random() * 15),
+            profil_relationnel: 30 + Math.floor(Math.random() * 70),
+            complexite_comptable: 20 + Math.floor(Math.random() * 80),
+            rentabilite: 30 + Math.floor(Math.random() * 60),
+            reactivite_demandee: 20 + Math.floor(Math.random() * 80),
+            tolerance_erreurs: 20 + Math.floor(Math.random() * 70),
+            specialites_requises: pickRandom(SPECIALITES_POOL, 3 + Math.floor(Math.random() * 3)),
+            honoraires_annuels: 15000 + Math.floor(Math.random() * 60000),
+            satisfaction: 70 + Math.floor(Math.random() * 25),
           });
         });
       });
@@ -1021,10 +1099,147 @@ export const useGameStore = create<GameState>((set, get) => ({
     const d = state.dossiers.find((x) => x.id === id);
     if (!d) return;
     const vipCount = state.dossiers.filter(x => x.is_vip).length;
-    if (!d.is_vip && vipCount >= 3) return; // Max 3 VIP
+    if (!d.is_vip && vipCount >= 3) return;
     set((s) => ({
       dossiers: s.dossiers.map((x) => x.id === id ? { ...x, is_vip: !x.is_vip } : x),
     }));
+  },
+
+  // ── SPRINT 2 : Prospects + Incompatibilités ─────────────────────────────
+  generateProspects: () => {
+    const state = get();
+    // 1 popup tous les 3 jours max
+    if (state.game_day - state.last_prospect_day < 3) return;
+    if (state.prospects_pending.length > 0) return;
+
+    const SECTEURS = ["BioTech Lyon", "Boulangerie Dupont", "Tech Composants", "Conseil Stratégie", "Restaurant Mer", "BTP Sud", "SaaS Pro", "Distribution Plus", "Cabinet Médical", "Immobilier Centre"];
+    const SUFFIX = ["SAS", "SARL", "EURL", "SA"];
+    const SPECIALITES = ["TVA intracommunautaire", "Fiscalité internationale", "IFRS / Consolidation", "Provisions techniques", "Paie complexe (DSN)", "CIR R&D", "TVA restauration", "Immobilier / SCPI", "Comptabilité simple"];
+    const FORMES: any[] = ["SARL", "SAS", "SA", "EURL"];
+    const REGIMES: any[] = ["Mensuel", "Trimestriel", "Annuel"];
+
+    function pickRandom<T>(arr: T[], n: number): T[] {
+      return arr.slice().sort(() => Math.random() - 0.5).slice(0, n);
+    }
+
+    const newProspects: NouveauProspect[] = Array.from({ length: 2 }).map((_, i) => {
+      const nameBase = SECTEURS[Math.floor(Math.random() * SECTEURS.length)];
+      const suffix = SUFFIX[Math.floor(Math.random() * SUFFIX.length)];
+      return {
+        id: `prospect_${state.game_day}_${i}`,
+        client: `${nameBase} ${suffix}`,
+        secteur: nameBase.split(" ").slice(0, 2).join(" "),
+        ca: 200000 + Math.floor(Math.random() * 4800000),
+        effectif: 3 + Math.floor(Math.random() * 80),
+        regime_tva: REGIMES[Math.floor(Math.random() * REGIMES.length)],
+        forme_juridique: FORMES[Math.floor(Math.random() * FORMES.length)],
+        profil_relationnel: 30 + Math.floor(Math.random() * 70),
+        complexite_comptable: 20 + Math.floor(Math.random() * 80),
+        rentabilite: 30 + Math.floor(Math.random() * 60),
+        reactivite_demandee: 20 + Math.floor(Math.random() * 80),
+        tolerance_erreurs: 20 + Math.floor(Math.random() * 70),
+        specialites_requises: pickRandom(SPECIALITES, 3 + Math.floor(Math.random() * 3)),
+        honoraires_annuels: 15000 + Math.floor(Math.random() * 60000),
+      };
+    });
+
+    set({ prospects_pending: newProspects, last_prospect_day: state.game_day });
+  },
+
+  acceptProspect: (id, agentId) => {
+    const state = get();
+    const prospect = state.prospects_pending.find((p) => p.id === id);
+    if (!prospect) return;
+    const newDossier: Dossier = {
+      id: `dos_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      client: prospect.client,
+      theme: `Mission complète — ${prospect.secteur}`,
+      agent_id: agentId,
+      etat: "en_cours",
+      progression: 5,
+      phase: "P1",
+      echeance_heure: "12:00",
+      impact: {
+        legitimite: 3 + Math.floor(prospect.rentabilite / 25),
+        reputation: 2 + Math.floor(prospect.rentabilite / 30),
+        tresorerie: prospect.honoraires_annuels,
+        stress: 3 + Math.floor(prospect.complexite_comptable / 20),
+      },
+      qualite: 70,
+      client_satisfait: true,
+      signaux_alerte: [],
+      is_vip: prospect.rentabilite > 80,
+      recoverable_until: null,
+      cause_perte: null,
+      cas_traites: 0,
+      secteur: prospect.secteur,
+      ca: prospect.ca,
+      effectif: prospect.effectif,
+      regime_tva: prospect.regime_tva,
+      forme_juridique: prospect.forme_juridique,
+      anciennete_annees: 0,
+      profil_relationnel: prospect.profil_relationnel,
+      complexite_comptable: prospect.complexite_comptable,
+      rentabilite: prospect.rentabilite,
+      reactivite_demandee: prospect.reactivite_demandee,
+      tolerance_erreurs: prospect.tolerance_erreurs,
+      specialites_requises: prospect.specialites_requises,
+      honoraires_annuels: prospect.honoraires_annuels,
+      satisfaction: 75,
+    };
+
+    set((s) => ({
+      dossiers: [...s.dossiers, newDossier],
+      prospects_pending: s.prospects_pending.filter((p) => p.id !== id),
+      reputation: Math.min(100, s.reputation + 3),
+    }));
+  },
+
+  refuseProspect: (id) => {
+    set((s) => ({
+      prospects_pending: s.prospects_pending.filter((p) => p.id !== id),
+    }));
+  },
+
+  computeIncompatibilites: (dossierId, agentId) => {
+    const state = get();
+    const d = state.dossiers.find((x) => x.id === dossierId);
+    const a = state.agents.find((x) => x.id === agentId);
+    if (!d || !a) return [];
+
+    const warnings: string[] = [];
+
+    // Incompatibilité humeur/relation
+    if ((d.profil_relationnel || 0) > 75 && a.stress > 70) {
+      warnings.push(`Client exigeant + ${a.nom.split(" ")[0]} déjà stressé → risque craquage`);
+    }
+    if ((d.profil_relationnel || 0) > 75 && (a as any).trait_dominant === "Anxieux") {
+      warnings.push(`Client exigeant + agent anxieux → fragile`);
+    }
+    if ((d.tolerance_erreurs || 100) < 40 && (a as any).niveau && (a as any).niveau.includes("Stagiaire")) {
+      warnings.push(`Client très peu tolérant + stagiaire → risque très élevé`);
+    }
+
+    // Incompatibilité compétence (charge)
+    const chargeAgent = state.dossiers.filter((x) => x.agent_id === a.id && x.etat === "en_cours").length;
+    if (chargeAgent >= 3) {
+      warnings.push(`${a.nom.split(" ")[0]} a déjà ${chargeAgent} dossiers actifs (surcharge)`);
+    }
+
+    // Incompatibilité spécialités
+    const agentSpecs: string[] = (a as any).competences_DEC || [];
+    const requises = d.specialites_requises || [];
+    const match = requises.filter((r) => agentSpecs.some((s) => s.toLowerCase().includes(r.toLowerCase().split(" ")[0]) || r.toLowerCase().includes(s.toLowerCase().split(" ")[0])));
+    if (requises.length > 0 && match.length === 0) {
+      warnings.push(`Aucune spécialité requise dans son profil (${requises.slice(0, 2).join(", ")}…)`);
+    }
+
+    // Confiance basse
+    if (a.confiance_joueur < 35) {
+      warnings.push(`Confiance basse (${a.confiance_joueur}) → motivation réduite`);
+    }
+
+    return warnings;
   },
 
   // ── DEC PREP ────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { FolderOpen, Sparkles, RefreshCw } from "lucide-react";
+import { ClientFicheModal } from "./ClientFicheModal";
 
 function getPhaseColor(phase: string | null) {
   switch (phase) {
@@ -26,6 +27,7 @@ function DossierStat({ label, value, color }: { label: string; value: number; co
 export function DossiersView() {
   const store = useGameStore();
   const [filter, setFilter] = useState<"en_cours" | "surveillance" | "avance" | "cloture" | "perdu" | "tous">("en_cours");
+  const [ficheId, setFicheId] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => store.recomputeAllDossierStatus(), 8000);
@@ -81,7 +83,7 @@ export function DossiersView() {
             const recoverable = d.etat === "perdu" && d.recoverable_until && new Date(d.recoverable_until) > new Date();
 
             return (
-              <div key={d.id} className={`bg-white rounded-[14px] p-4 border transition-all ${meta.border} ${d.is_vip ? "ring-2 ring-[#AF52DE]/30" : ""} ${
+              <div key={d.id} onClick={() => setFicheId(d.id)} className={`bg-white rounded-[14px] p-4 border transition-all cursor-pointer ${meta.border} ${d.is_vip ? "ring-2 ring-[#AF52DE]/30" : ""} ${
                 d.etat === "avance" ? "bg-[#34C759]/5" :
                 d.etat === "perdu" ? "bg-[#FF3B30]/5 opacity-80" :
                 d.etat === "surveillance" ? "bg-[#FF9500]/5" :
@@ -163,7 +165,8 @@ export function DossiersView() {
 
                     {recoverable && (
                       <div className="mt-2.5">
-                        <button onClick={() => {
+                        <button onClick={(e) => {
+                            e.stopPropagation();
                             const ok = store.attemptRecoverDossier(d.id);
                             if (!ok && store.points_action < 2) alert("Il te faut 2 PA pour tenter une récupération.");
                             else if (!ok) alert("Tentative ratée. Le client refuse de revenir.");
@@ -186,6 +189,13 @@ export function DossiersView() {
           )}
         </div>
       </div>
+
+      {/* Modal fiche client détaillée */}
+      {ficheId && (() => {
+        const d = store.dossiers.find((x) => x.id === ficheId);
+        if (!d) return null;
+        return <ClientFicheModal dossier={d} onClose={() => setFicheId(null)} />;
+      })()}
     </div>
   );
 }

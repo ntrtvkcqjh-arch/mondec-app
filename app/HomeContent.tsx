@@ -17,6 +17,7 @@ import { SuiviFiscalView } from "./_components/SuiviFiscalView";
 import { RhView } from "./_components/RhView";
 import { ClaudeFloating } from "./_components/ClaudeFloating";
 import { ApiKeyModal } from "./_components/ApiKeyModal";
+import { ProspectsModal } from "./_components/ProspectsModal";
 
 export default function HomeContent() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function HomeContent() {
   const [activeTab, setActiveTab] = useState<Tab>("messages");
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [generatingEvents, setGeneratingEvents] = useState(false);
+  const [showProspects, setShowProspects] = useState(false);
 
   const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "error">("checking");
   const [apiStatusReason, setApiStatusReason] = useState("");
@@ -53,6 +55,19 @@ export default function HomeContent() {
     const t = setInterval(() => store.syncClockFromTimestamp(), 1000);
     return () => clearInterval(t);
   }, [store.isAuthenticated, store.isLoading]);
+
+  // Sprint 2 : Nouveaux prospects tous les 3 jours
+  useEffect(() => {
+    if (!store.isAuthenticated || store.isLoading) return;
+    if (store.game_day >= store.last_prospect_day + 3 && store.prospects_pending.length === 0) {
+      store.generateProspects();
+    }
+  }, [store.game_day, store.isAuthenticated, store.isLoading]);
+
+  // Ouvre le modal prospects dès qu'il y a des prospects en attente
+  useEffect(() => {
+    if (store.prospects_pending.length > 0) setShowProspects(true);
+  }, [store.prospects_pending.length]);
 
   // Test santé API
   useEffect(() => {
@@ -157,6 +172,8 @@ export default function HomeContent() {
       />
 
       <ClaudeFloating />
+
+      {showProspects && <ProspectsModal onClose={() => setShowProspects(false)} />}
     </div>
   );
 }
