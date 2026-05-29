@@ -263,6 +263,16 @@ function persistDec(s: any) {
   } catch {}
 }
 
+function persistProspects(s: any) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("prospects_state", JSON.stringify({
+      pending: s.prospects_pending,
+      last_day: s.last_prospect_day,
+    }));
+  } catch {}
+}
+
 export const useGameStore = create<GameState>((set, get) => ({
   user_id: null,
   legitimite: 72,
@@ -1152,6 +1162,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     set({ prospects_pending: newProspects, last_prospect_day: state.game_day });
+    persistProspects(get());
   },
 
   acceptProspect: (id, agentId) => {
@@ -1201,12 +1212,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       prospects_pending: s.prospects_pending.filter((p) => p.id !== id),
       reputation: Math.min(100, s.reputation + 3),
     }));
+    persistProspects(get());
   },
 
   refuseProspect: (id) => {
     set((s) => ({
       prospects_pending: s.prospects_pending.filter((p) => p.id !== id),
     }));
+    persistProspects(get());
   },
 
   // ── SPRINT 4 : Cohérences inter-onglets ─────────────────────────────
@@ -1520,6 +1533,15 @@ export const useGameStore = create<GameState>((set, get) => ({
           dec_badges: d.badges || s.dec_badges,
           dec_streak: d.streak ?? s.dec_streak,
           dec_last_day: d.last_day ?? s.dec_last_day,
+        }));
+      }
+      // Sprint 2 : restaure aussi les prospects (last_prospect_day + pending)
+      const prospects = localStorage.getItem("prospects_state");
+      if (prospects) {
+        const p = JSON.parse(prospects);
+        set((s) => ({
+          prospects_pending: Array.isArray(p.pending) ? p.pending : s.prospects_pending,
+          last_prospect_day: typeof p.last_day === "number" ? p.last_day : s.last_prospect_day,
         }));
       }
     } catch (e) {

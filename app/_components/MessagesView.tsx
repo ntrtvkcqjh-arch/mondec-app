@@ -112,21 +112,27 @@ export function MessagesView({ onOpenKeyModal }: Props) {
 
   async function handleSend() {
     const text = inputText.trim();
-    if (!text || !agent || sending) return;
+    console.log("[CHAT] handleSend déclenché", { text, hasAgent: !!agent, sending });
+    if (!text || !agent || sending) {
+      console.log("[CHAT] Abort:", !text ? "text vide" : !agent ? "pas d'agent" : "déjà en sending");
+      return;
+    }
     setInputText("");
     setSending(true);
     setApiError("");
 
     const niveau = agent ? (store.messages.find((m) => m.agent_id === agent.id && !m.repondu)?.niveau || "N2") : "N2";
     const cost = getPACost(niveau);
+    console.log("[CHAT] PA cost:", cost, "PA dispo:", store.points_action);
     if (cost > 0 && !store.spendPA(cost)) {
-      setApiError("Pas assez de Points d'Action — repos requis.");
+      setApiError(`Pas assez de Points d'Action (${store.points_action}/${store.points_action_max}) — repos requis. Coût pour ${niveau}: ${cost} PA.`);
       setSending(false);
       return;
     }
 
     const currentHistory = store.conversation_history[agent.id] || [];
     const userMsg = { role: "user" as const, content: text };
+    console.log("[CHAT] Envoi à l'API…", { agent: agent.nom, historyLength: currentHistory.length });
 
     useGameStore.setState((s) => ({
       conversation_history: {
@@ -165,6 +171,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
       }
 
       const data = await res.json();
+      console.log("[CHAT] Réponse reçue:", { hasContent: !!data.content, hasError: !!data.error });
       if (data.error) {
         setApiError(typeof data.error === "string" && data.error.includes("model:") ? "Compte sans crédit — ouvre ⚙" : `${data.error}`);
         return;
@@ -173,6 +180,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
         setApiError("Réponse vide — réessaye");
         return;
       }
+      console.log("[CHAT] Contenu agent reçu, mise à jour conversation_history");
 
       useGameStore.setState((s) => ({
         conversation_history: {

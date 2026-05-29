@@ -28,6 +28,7 @@ export function ClaudeFloating() {
 
   async function send() {
     const text = input.trim();
+    console.log("[CLAUDE] send() déclenché", { text, sending });
     if (!text || sending) return;
     setInput("");
     setError("");
@@ -35,6 +36,7 @@ export function ClaudeFloating() {
     setSending(true);
     try {
       const history = store.claude_history;
+      console.log("[CLAUDE] Envoi à /api/claude…");
       const res = await apiFetch("/api/claude", {
         method: "POST",
         body: JSON.stringify({
@@ -50,12 +52,22 @@ export function ClaudeFloating() {
           dossiers: store.dossiers,
         }),
       });
-      if (!res.ok) { setError(`Erreur ${res.status}`); return; }
+      console.log("[CLAUDE] Status HTTP:", res.status);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const msg = errData?.error || `HTTP ${res.status}`;
+        console.error("[CLAUDE] Erreur:", msg);
+        setError(typeof msg === "string" && msg.includes("model:") ? "Compte Anthropic sans crédit — ouvre ⚙" : msg);
+        return;
+      }
       const data = await res.json();
+      console.log("[CLAUDE] Réponse OK", { hasContent: !!data.content });
       if (data.error) { setError(data.error); return; }
       if (data.content) store.addClaudeMessage({ role: "assistant", content: data.content });
-    } catch { setError("Erreur réseau"); }
-    finally { setSending(false); }
+    } catch (err: any) {
+      console.error("[CLAUDE] Exception:", err);
+      setError("Erreur réseau : " + (err?.message || "inconnue"));
+    } finally { setSending(false); }
   }
 
   return (
