@@ -5,6 +5,9 @@ import { useGameStore } from "@/lib/supabase-store";
 import { apiFetch } from "@/lib/api-client";
 import { Flame, Trophy, Users, GraduationCap, Briefcase, MessageSquare, CheckCircle, Target, Coffee, Lock, ChevronRight, X, RefreshCw, Sparkles, Zap } from "lucide-react";
 
+import agendaData from "@/lib/data/agenda.json";
+import casesData from "@/lib/data/cases_pool.json";
+
 type SlotType = "briefing" | "cas_pratique" | "rdv_client" | "mediation" | "validation" | "debrief" | "pause";
 
 interface AgendaSlot {
@@ -72,8 +75,8 @@ function timeToMinutes(t: string) {
 
 export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "error" }) {
   const store = useGameStore();
-  const [slots, setSlots] = useState<AgendaSlot[]>([]);
-  const [casesPool, setCasesPool] = useState<any[]>([]);
+  const slots: AgendaSlot[] = (agendaData as any).slots_quotidiens || [];
+  const casesPool: any[] = (casesData as any).cases || [];
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [activeSlot, setActiveSlot] = useState<AgendaSlot | null>(null);
   const [activeCase, setActiveCase] = useState<CaseStudy | null>(null);
@@ -81,11 +84,6 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
   const [response, setResponse] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [correction, setCorrection] = useState<Correction | null>(null);
-
-  useEffect(() => {
-    fetch("/agenda.json").then((r) => r.json()).then((d) => setSlots(d.slots_quotidiens || [])).catch(() => {});
-    fetch("/cases_pool.json").then((r) => r.json()).then((d) => setCasesPool(d.cases || [])).catch(() => {});
-  }, []);
 
   function fallbackCase(slot: AgendaSlot): CaseStudy | null {
     if (!casesPool.length) return null;

@@ -1,0 +1,274 @@
+{
+  "missions": [
+    {
+      "id": "m001",
+      "theme": "Cadre mission",
+      "difficulte": 2,
+      "titre": "Acceptation — Conflit d'intérêts familial",
+      "client": "SAS Boulangerie Petit",
+      "contexte": "Une SAS de 12 salariés (CA 2,1 M€) te sollicite pour devenir son commissaire aux comptes. Son président est ton beau-frère. Tu as déjà tenu la comptabilité de sa précédente société individuelle pendant 2 ans (mission terminée il y a 8 mois).",
+      "etapes": [
+        {
+          "numero": 1,
+          "label": "Acceptation",
+          "points_max": 5,
+          "consigne": "Vérifie indépendance, compétence, intégrité, conflit, disponibilité. Accepte ou refuse en justifiant.",
+          "mots_cles_attendus": ["indépendance", "L. 822-11", "famille", "refus", "conflit", "incompatibilité", "écrit", "Ordre"]
+        },
+        {
+          "numero": 2,
+          "label": "Planification",
+          "points_max": 10,
+          "consigne": "Identifie les 3 principaux risques d'audit pour ce dossier (si la mission devait néanmoins se poursuivre via un confrère).",
+          "mots_cles_attendus": ["TVA", "trésorerie", "stocks", "matérialité", "risque", "cycle", "approche"]
+        },
+        {
+          "numero": 3,
+          "label": "Contrôle interne",
+          "points_max": 10,
+          "consigne": "Faiblesses probables dans une PME boulangerie : sépare 3 risques et propose un test associé à chacun.",
+          "mots_cles_attendus": ["séparation", "tâches", "encaissement", "espèces", "inventaire", "sondage", "test"]
+        },
+        {
+          "numero": 4,
+          "label": "Procédures substantives",
+          "points_max": 15,
+          "consigne": "Stocks farine/produits finis à 38 k€ au bilan. Pas d'inventaire physique réalisé à la clôture. Rédige ta conclusion méthodologique (style EC).",
+          "mots_cles_attendus": ["constate", "sondage", "ultérieurement", "mouvements", "recommande", "direction", "procéder", "inventaire", "clôture"]
+        },
+        {
+          "numero": 5,
+          "label": "Conclusion",
+          "points_max": 10,
+          "consigne": "Quelle opinion exprimes-tu sur les comptes ? Sans réserve / Réserve / Défavorable / Abstention — et pourquoi.",
+          "mots_cles_attendus": ["réserve", "limitation", "impossibilité", "sondage", "stocks", "matériel"]
+        }
+      ]
+    },
+    {
+      "id": "m002",
+      "theme": "Contrôle interne",
+      "difficulte": 3,
+      "titre": "Société BTP — Un seul comptable, pas de séparation des tâches",
+      "client": "SARL Bâti-Pro",
+      "contexte": "SARL BTP, CA 4,8 M€, 18 salariés. Une seule comptable gère TOUT : saisie, paie, déclarations, rapprochements bancaires, paiements fournisseurs. Le gérant valide les paiements mais ne contrôle pas. Tu es CAC depuis 1 an.",
+      "etapes": [
+        {
+          "numero": 1,
+          "label": "Acceptation (renouvellement implicite)",
+          "points_max": 5,
+          "consigne": "Le mandat continue. Quels éléments réévalues-tu chaque année (3 minimum) ?",
+          "mots_cles_attendus": ["indépendance", "compétence", "intégrité", "client", "réévaluation", "annuelle", "NEP", "200"]
+        },
+        {
+          "numero": 2,
+          "label": "Planification — Évaluation des risques",
+          "points_max": 10,
+          "consigne": "Identifie 3 risques significatifs liés à la concentration des tâches. Définis la matérialité (préciser la base et le taux retenu).",
+          "mots_cles_attendus": ["fraude", "détournement", "erreur", "matérialité", "1%", "CA", "5%", "résultat", "concentration", "tâches"]
+        },
+        {
+          "numero": 3,
+          "label": "Contrôle interne — Diagnostic",
+          "points_max": 10,
+          "consigne": "Identifie 3 faiblesses majeures de contrôle interne et propose le test associé pour chacune.",
+          "mots_cles_attendus": ["séparation", "encaissement", "décaissement", "rapprochement", "validation", "rotation", "circularisation"]
+        },
+        {
+          "numero": 4,
+          "label": "Procédures substantives — Trésorerie",
+          "points_max": 15,
+          "consigne": "Sur un échantillon de 30 paiements > 5k€, tu en trouves 4 sans pièce justificative. Total : 28 k€. Rédige ta conclusion (style EC) et qualifie l'impact.",
+          "mots_cles_attendus": ["constate", "pièces", "justificatives", "absence", "écart", "matériel", "significatif", "recommande", "documentation"]
+        },
+        {
+          "numero": 5,
+          "label": "Conclusion",
+          "points_max": 10,
+          "consigne": "Quelle opinion exprimes-tu et quelles recommandations formules-tu à la direction ?",
+          "mots_cles_attendus": ["réserve", "limitation", "désaccord", "recommandation", "séparation", "tâches", "double", "signature", "validation"]
+        }
+      ]
+    },
+    {
+      "id": "m003",
+      "theme": "Mission audit — Stocks",
+      "difficulte": 3,
+      "titre": "Stocks FIFO sans inventaire physique",
+      "client": "SAS Tech-Composants",
+      "contexte": "Distributeur électronique, stocks valorisés FIFO à 1,2 M€ (12% du bilan). Le client invoque la difficulté logistique pour ne pas avoir réalisé d'inventaire physique au 31/12. Tu as mené la mission jusqu'à la clôture.",
+      "etapes": [
+        {
+          "numero": 1,
+          "label": "Acceptation",
+          "points_max": 5,
+          "consigne": "La mission a été acceptée l'an dernier. Quels signaux d'alerte particuliers du dossier 'stocks' nécessitent un point spécifique ?",
+          "mots_cles_attendus": ["matérialité", "12%", "bilan", "significatif", "risque", "obsolescence", "rotation"]
+        },
+        {
+          "numero": 2,
+          "label": "Planification",
+          "points_max": 10,
+          "consigne": "Approche par les risques sur le cycle stocks : matérialité, risque inhérent, risque de contrôle.",
+          "mots_cles_attendus": ["matérialité", "inhérent", "contrôle", "détection", "approche", "risque", "144k", "120k"]
+        },
+        {
+          "numero": 3,
+          "label": "Contrôle interne",
+          "points_max": 10,
+          "consigne": "Identifie 3 faiblesses de contrôle interne sur le cycle stocks dans cette entité.",
+          "mots_cles_attendus": ["inventaire", "permanent", "intermittent", "rapprochement", "comptable", "physique", "séparation"]
+        },
+        {
+          "numero": 4,
+          "label": "Procédures substantives",
+          "points_max": 15,
+          "consigne": "Pas d'inventaire physique à la clôture. Rédige (style EC) les diligences mises en œuvre et la conclusion méthodologique.",
+          "mots_cles_attendus": ["procède", "vérification", "sondage", "dates", "ultérieures", "mouvements", "constate", "recommande", "direction", "inventaire", "clôture", "suivant"]
+        },
+        {
+          "numero": 5,
+          "label": "Conclusion",
+          "points_max": 10,
+          "consigne": "Opinion à formuler et pourquoi (cite la NEP applicable).",
+          "mots_cles_attendus": ["réserve", "limitation", "NEP", "705", "matériel", "non", "significatif", "sondage"]
+        }
+      ]
+    },
+    {
+      "id": "m004",
+      "theme": "Mission audit — Provisions",
+      "difficulte": 4,
+      "titre": "Provision risque insuffisante — Client en sauvegarde",
+      "client": "SA Vidal Industrie",
+      "contexte": "SA industrielle, CA 12 M€. Créance sur Bertrand SAS de 45 000 € TTC, échue depuis 5 mois, Bertrand est en procédure de sauvegarde judiciaire depuis 2 mois. La provision comptabilisée est de 8 500 € seulement. Tu signes le bilan dans 8 jours.",
+      "etapes": [
+        {
+          "numero": 1,
+          "label": "Acceptation",
+          "points_max": 5,
+          "consigne": "Réévaluation du risque client : facteurs déclencheurs d'une revue spécifique pour ce dossier.",
+          "mots_cles_attendus": ["risque", "client", "concentration", "sauvegarde", "EIP", "complexité"]
+        },
+        {
+          "numero": 2,
+          "label": "Planification",
+          "points_max": 10,
+          "consigne": "Matérialité retenue (justifie ta base). Risque clé identifié = créance Bertrand.",
+          "mots_cles_attendus": ["matérialité", "1%", "CA", "120k", "5%", "résultat", "Bertrand", "isolée"]
+        },
+        {
+          "numero": 3,
+          "label": "Contrôle interne",
+          "points_max": 10,
+          "consigne": "Évaluation du processus de revue des créances clients chez Vidal. Faiblesses ? Tests ?",
+          "mots_cles_attendus": ["balance", "âgée", "comité", "crédit", "circularisation", "examen", "défaillance"]
+        },
+        {
+          "numero": 4,
+          "label": "Procédures substantives",
+          "points_max": 15,
+          "consigne": "Évalue la provision adéquate selon le PCG et le CGI. Rédige ta proposition d'ajustement (style EC).",
+          "mots_cles_attendus": ["37 500", "HT", "sauvegarde", "individualisée", "déductible", "CGI", "39-1-5", "PCG", "322", "constate", "insuffisance", "29 000"]
+        },
+        {
+          "numero": 5,
+          "label": "Conclusion",
+          "points_max": 10,
+          "consigne": "Si le client refuse l'ajustement de 29 000 €, quelle opinion ? Justifie.",
+          "mots_cles_attendus": ["réserve", "désaccord", "principe", "comptable", "matériel", "29 000", "image", "fidèle"]
+        }
+      ]
+    },
+    {
+      "id": "m005",
+      "theme": "International",
+      "difficulte": 5,
+      "titre": "Écart de conversion filiale étrangère",
+      "client": "Groupe Dubois SA",
+      "contexte": "Groupe industriel consolidant en IFRS. Filiale 100% à Chicago (Dubois US Inc.), monnaie fonctionnelle USD, autonome. Taux EUR/USD au 31/12/2024 : 0,88. Au 31/12/2025 : 0,92. Taux moyen 2025 : 0,89. Capitaux propres Dubois US 5 M USD à clôture (résultat 500 k USD).",
+      "etapes": [
+        {
+          "numero": 1,
+          "label": "Acceptation",
+          "points_max": 5,
+          "consigne": "Mission consolidation IFRS — compétences spécifiques à mobiliser et points d'attention.",
+          "mots_cles_attendus": ["IFRS", "consolidation", "compétence", "ressources", "spécialisée", "équipe", "indépendance"]
+        },
+        {
+          "numero": 2,
+          "label": "Planification",
+          "points_max": 10,
+          "consigne": "Risques clés liés à la conversion d'une filiale en USD. Norme applicable.",
+          "mots_cles_attendus": ["IAS", "21", "monnaie", "fonctionnelle", "autonome", "présentation", "EUR", "USD"]
+        },
+        {
+          "numero": 3,
+          "label": "Contrôle interne",
+          "points_max": 10,
+          "consigne": "Faiblesses possibles dans le processus de consolidation et tests à mettre en place.",
+          "mots_cles_attendus": ["liasse", "consolidation", "réconciliation", "homogénéisation", "élimination", "intragroupe", "documentation"]
+        },
+        {
+          "numero": 4,
+          "label": "Procédures substantives",
+          "points_max": 15,
+          "consigne": "Calcule l'écart de conversion 2025 et son traitement comptable. Détaille (style EC).",
+          "mots_cles_attendus": ["IAS", "21", "cours", "clôture", "moyen", "OCI", "autres", "éléments", "résultat", "global", "capitaux", "propres", "recyclage", "195"]
+        },
+        {
+          "numero": 5,
+          "label": "Conclusion",
+          "points_max": 10,
+          "consigne": "Quelle opinion + recommandations sur l'annexe (informations à publier).",
+          "mots_cles_attendus": ["sans", "réserve", "annexe", "information", "détail", "écart", "conversion", "OCI", "IAS", "21"]
+        }
+      ]
+    },
+    {
+      "id": "m006",
+      "theme": "Autres missions",
+      "difficulte": 5,
+      "titre": "Procédure d'alerte — Difficultés financières",
+      "client": "SAS Industries Champenoises",
+      "contexte": "PME 32 salariés, CA 8 M€. Tu es CAC. Capitaux propres devenus négatifs (−180 k€) au 31/12. Trésorerie tendue, retards fournisseurs 90 jours. Le dirigeant minimise. Tu envisages la procédure d'alerte.",
+      "etapes": [
+        {
+          "numero": 1,
+          "label": "Acceptation (réévaluation)",
+          "points_max": 5,
+          "consigne": "Réévaluation de la mission compte tenu de la situation : faut-il poursuivre ?",
+          "mots_cles_attendus": ["poursuivre", "indépendance", "intégrité", "continuité", "exploitation", "risque", "NEP", "570"]
+        },
+        {
+          "numero": 2,
+          "label": "Planification — Continuité d'exploitation",
+          "points_max": 10,
+          "consigne": "Indicateurs de menace sur la continuité (cite la NEP 570). Diligences spécifiques.",
+          "mots_cles_attendus": ["NEP", "570", "continuité", "capitaux", "propres", "négatifs", "trésorerie", "retards", "prévisionnel", "12 mois"]
+        },
+        {
+          "numero": 3,
+          "label": "Contrôle interne",
+          "points_max": 10,
+          "consigne": "Examen du suivi de trésorerie et du contrôle des engagements. Tests prioritaires.",
+          "mots_cles_attendus": ["trésorerie", "prévisionnel", "engagement", "circularisation", "fournisseurs", "banques", "covenant"]
+        },
+        {
+          "numero": 4,
+          "label": "Procédures substantives — Procédure d'alerte",
+          "points_max": 15,
+          "consigne": "Détaille les 4 phases de la procédure d'alerte (art. L. 234-1 C. com.) et rédige le 1er courrier au dirigeant (style EC).",
+          "mots_cles_attendus": ["L. 234-1", "phase", "dirigeant", "conseil", "administration", "AG", "président", "tribunal", "commerce", "écrit", "constate", "menace", "continuité"]
+        },
+        {
+          "numero": 5,
+          "label": "Conclusion",
+          "points_max": 10,
+          "consigne": "Quelle opinion exprimes-tu sur les comptes et quelle observation ajoutes-tu ?",
+          "mots_cles_attendus": ["observation", "incertitude", "continuité", "exploitation", "NEP", "570", "sans", "réserve", "annexe", "alerte"]
+        }
+      ]
+    }
+  ]
+}

@@ -5,6 +5,10 @@ import { useGameStore } from "@/lib/supabase-store";
 import { apiFetch } from "@/lib/api-client";
 import { Trophy, Sparkles, Flame, Award, FileSearch, RefreshCw, ChevronRight, Lock, CheckCircle, X, Clock as ClockIcon } from "lucide-react";
 
+// IMPORTS STATIQUES — garantit que les pools sont disponibles dès le 1er render
+import deontologieData from "@/lib/data/deontologie_pool.json";
+import missionsData from "@/lib/data/missions_pool.json";
+
 interface DeontoQuestion {
   id: string; categorie: "EC" | "CAC"; theme: string; type: string; question: string;
   options?: string[]; correct?: number[]; correct_mots_cles?: string[]; explication: string;
@@ -19,8 +23,8 @@ interface Mission {
 
 export function DecPrepView() {
   const store = useGameStore();
-  const [deontoPool, setDeontoPool] = useState<DeontoQuestion[]>([]);
-  const [missionsPool, setMissionsPool] = useState<Mission[]>([]);
+  const deontoPool: DeontoQuestion[] = (deontologieData as any).questions || [];
+  const missionsPool: Mission[] = (missionsData as any).missions || [];
 
   const [activeDeonto, setActiveDeonto] = useState<DeontoQuestion[] | null>(null);
   const [deontoReponses, setDeontoReponses] = useState<Record<string, { selected?: number[]; texte?: string }>>({});
@@ -33,11 +37,6 @@ export function DecPrepView() {
   const [missionEtape, setMissionEtape] = useState(0);
   const [missionSubmitting, setMissionSubmitting] = useState(false);
   const [missionResult, setMissionResult] = useState<any>(null);
-
-  useEffect(() => {
-    fetch("/deontologie_pool.json").then((r) => r.json()).then((d) => setDeontoPool(d.questions || [])).catch(() => {});
-    fetch("/missions_pool.json").then((r) => r.json()).then((d) => setMissionsPool(d.missions || [])).catch(() => {});
-  }, []);
 
   useEffect(() => { store.checkDecRollover(); }, [store.game_day]);
 

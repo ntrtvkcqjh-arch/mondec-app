@@ -5,6 +5,8 @@ import { useGameStore } from "@/lib/supabase-store";
 import { apiFetch } from "@/lib/api-client";
 import { ClipboardCheck, X, CheckCircle, CornerDownRight, Calculator, RefreshCw, Lock, FileSearch, Sparkles } from "lucide-react";
 
+import tasksData from "@/lib/data/tasks_pool.json";
+
 interface TaskLine { label: string; valeur: string; }
 interface TaskErreur { ligne_index: number; description: string; reference_legale: string; correction: string; }
 interface TaskDoc {
@@ -28,7 +30,7 @@ interface TaskResult {
 
 export function TasksView() {
   const store = useGameStore();
-  const [pool, setPool] = useState<TaskDoc[]>([]);
+  const pool: TaskDoc[] = (tasksData as any).tasks || [];
   const [active, setActive] = useState<TaskDoc | null>(null);
   const [flagged, setFlagged] = useState<Set<number>>(new Set());
   const [note, setNote] = useState("");
@@ -39,10 +41,6 @@ export function TasksView() {
   const [eCredit, setECredit] = useState("");
   const [eMontant, setEMontant] = useState("");
   const [eLibelle, setELibelle] = useState("");
-
-  useEffect(() => {
-    fetch("/tasks_pool.json").then((r) => r.json()).then((d) => setPool(d.tasks || [])).catch(() => {});
-  }, []);
 
   function open(task: TaskDoc) {
     if (store.player_level < task.niveau_min) {
