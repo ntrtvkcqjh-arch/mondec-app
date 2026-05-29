@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { BarChart3, Calendar, AlertTriangle, X, ChevronRight, CheckCircle, Sparkles } from "lucide-react";
 
@@ -75,6 +75,40 @@ export function SuiviFiscalView() {
   const retards = obligations.filter((o) => o.statut === "retard");
   const alertesJ1 = obligations.filter((o) => o.statut === "j1");
   const alertesJ3 = obligations.filter((o) => o.statut === "j3");
+
+  // CASCADE — Déclenchement automatique des retards
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    retards.forEach((o) => {
+      const flag = `retard_${o.id}_${store.game_day}`;
+      const previousCount = parseInt(localStorage.getItem(`retard_count_${o.id}`) || "0");
+      if (!localStorage.getItem(flag)) {
+        localStorage.setItem(flag, "1");
+        const newCount = previousCount + 1;
+        localStorage.setItem(`retard_count_${o.id}`, String(newCount));
+        const niveau = Math.min(3, newCount) as 1 | 2 | 3;
+        store.triggerRetardCascade(o.client, o.type, niveau);
+      }
+    });
+  }, [retards.length, store.game_day]);
+
+  // CASCADE — Détection surcharge agents
+  useEffect(() => {
+    const agentsAvecObligations: Record<string, number> = {};
+    obligations.forEach((o) => {
+      if (!o.collaborateur_id) return;
+      agentsAvecObligations[o.collaborateur_id] = (agentsAvecObligations[o.collaborateur_id] || 0) + 1;
+    });
+    Object.entries(agentsAvecObligations).forEach(([agentId, count]) => {
+      if (count >= 4) {
+        const flag = `surcharge_${agentId}_${store.game_day}`;
+        if (typeof window !== "undefined" && !localStorage.getItem(flag)) {
+          localStorage.setItem(flag, "1");
+          store.triggerSurchargeAgent(agentId);
+        }
+      }
+    });
+  }, [obligations.length, store.game_day]);
 
   function getStatutColor(s: Obligation["statut"]) {
     switch (s) {

@@ -93,6 +93,16 @@ export function TasksView() {
           store.setResources({ legitimite: Math.max(0, Math.min(100, store.legitimite + data.impact_legitimite)) });
         }
         store.markTaskCompleted(active.id);
+
+        // CASCADE — Si score < 50 (erreurs manquées importantes) → impact agent
+        if (data.score < 50) {
+          // Trouve l'agent qui a préparé le document (par nom client matching)
+          const agent = store.agents.find((a) => {
+            const dossiers = store.dossiers.filter((d) => d.agent_id === a.id);
+            return dossiers.some((d) => d.client.toLowerCase().includes(active.client.toLowerCase().split(" ")[0]) || active.client.toLowerCase().includes(d.client.toLowerCase().split(" ")[0]));
+          });
+          if (agent) store.applyTaskErrorImpact(agent.id, data.score);
+        }
       } else alert("Erreur évaluation.");
     } catch { alert("Erreur réseau."); }
     finally { setSubmitting(false); setShowEcriture(false); }

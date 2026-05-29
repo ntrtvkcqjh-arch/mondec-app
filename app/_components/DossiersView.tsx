@@ -34,6 +34,22 @@ export function DossiersView() {
     return () => clearInterval(t);
   }, []);
 
+  // CASCADE — Détection drama mauvaise affectation (toutes les 2 min jeu)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const flag = `drama_check_${store.game_day}_${Math.floor(store.game_minute / 30)}`;
+    if (localStorage.getItem(flag)) return;
+    localStorage.setItem(flag, "1");
+
+    store.dossiers.forEach((d) => {
+      if (d.etat !== "en_cours" && d.etat !== "surveillance") return;
+      const incompat = store.computeIncompatibilites(d.id, d.agent_id);
+      if (incompat.length >= 2) {
+        store.triggerBadAffectationDrama(d.id);
+      }
+    });
+  }, [store.dossiers.length, store.game_day, store.game_minute]);
+
   const enCours = store.dossiers.filter((d) => d.etat === "en_cours").length;
   const surveillance = store.dossiers.filter((d) => d.etat === "surveillance").length;
   const avances = store.dossiers.filter((d) => d.etat === "avance").length;

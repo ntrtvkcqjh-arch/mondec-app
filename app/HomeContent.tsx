@@ -18,6 +18,7 @@ import { RhView } from "./_components/RhView";
 import { ClaudeFloating } from "./_components/ClaudeFloating";
 import { ApiKeyModal } from "./_components/ApiKeyModal";
 import { ProspectsModal } from "./_components/ProspectsModal";
+import { CascadeNotifications } from "./_components/CascadeNotifications";
 
 export default function HomeContent() {
   const router = useRouter();
@@ -176,6 +177,7 @@ export default function HomeContent() {
       />
 
       <ClaudeFloating />
+      <CascadeNotifications />
 
       {showProspects && <ProspectsModal onClose={() => setShowProspects(false)} />}
     </div>

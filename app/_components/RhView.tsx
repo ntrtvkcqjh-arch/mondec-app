@@ -38,7 +38,10 @@ export function RhView() {
       tresorerie: store.tresorerie - c.salaire_demande * 3,
       reputation: Math.min(100, store.reputation + 5),
     });
-    alert(`${c.nom} embauché(e) ! +5 Réputation · −${(c.salaire_demande * 3 / 1000).toFixed(0)}k€ trésorerie`);
+    // CASCADE : Ajoute l'agent à l'équipe + message N1 de Sophie
+    store.hireFromCV(c);
+    store.applyEmbaucheBonus(c.nom);
+    alert(`✅ ${c.nom} embauché(e) ! L'équipe a été notifiée. +5 Réputation · +3 Légitimité · −5 stress équipe · −${(c.salaire_demande * 3 / 1000).toFixed(0)}k€ trésorerie`);
     setActiveCV(null);
   }
 

@@ -238,6 +238,14 @@ export interface GameState {
   acceptProspect: (id: string, agentId: string) => void;
   refuseProspect: (id: string) => void;
   computeIncompatibilites: (dossierId: string, agentId: string) => string[];
+
+  // Sprint 4 : Cohérence inter-onglets
+  triggerRetardCascade: (client: string, typeObligation: string, niveauRetard: 1 | 2 | 3) => void;
+  triggerSurchargeAgent: (agentId: string) => void;
+  triggerBadAffectationDrama: (dossierId: string) => void;
+  hireFromCV: (candidat: any) => void;
+  applyTaskErrorImpact: (agentId: string, scoreMissed: number) => void;
+  applyEmbaucheBonus: (nomNouveau: string) => void;
 }
 
 const xpForLevel = (level: number) => 100 + level * 50;
@@ -1198,6 +1206,215 @@ export const useGameStore = create<GameState>((set, get) => ({
   refuseProspect: (id) => {
     set((s) => ({
       prospects_pending: s.prospects_pending.filter((p) => p.id !== id),
+    }));
+  },
+
+  // ── SPRINT 4 : Cohérences inter-onglets ─────────────────────────────
+  /**
+   * Quand une obligation fiscale est en retard, cascade :
+   * Niveau 1 (1er retard) : Mail client mécontent + agent stress +10
+   * Niveau 2 (2ème retard) : Mise en demeure + agent stress +15 + réputation -3
+   * Niveau 3 (3ème retard) : Client perdu + agent stress +25 + trésorerie -15k€
+   */
+  triggerRetardCascade: (client, typeObligation, niveauRetard) => {
+    const state = get();
+    const dossier = state.dossiers.find((d) => d.client === client);
+    if (!dossier) return;
+    const agent = state.agents.find((a) => a.id === dossier.agent_id);
+    if (!agent) return;
+
+    if (niveauRetard === 1) {
+      get().addNewMessage({
+        agent_id: agent.id,
+        niveau: "N3",
+        type: "Probleme",
+        sujet: `⚠ Client mécontent — ${client}`,
+        contenu: `Le client ${client} vient de m'appeler. Il est mécontent du retard sur ${typeObligation}. Il faut absolument que je rattrape cette semaine. Désolé chef.`,
+        delai_reponse_heures: 24,
+      });
+      get().updateAgent(agent.id, {
+        stress: Math.min(100, agent.stress + 10),
+      });
+      set((s) => ({ reputation: Math.max(0, s.reputation - 3) }));
+    } else if (niveauRetard === 2) {
+      get().addNewMessage({
+        agent_id: agent.id,
+        niveau: "N4",
+        type: "Crise",
+        sujet: `📛 Mise en demeure — ${client}`,
+        contenu: `Le client ${client} a envoyé une mise en demeure suite au 2ème retard sur ${typeObligation}. Ses avocats menacent de rompre le contrat. On a 48h pour réagir.`,
+        delai_reponse_heures: 12,
+      });
+      get().updateAgent(agent.id, {
+        stress: Math.min(100, agent.stress + 15),
+        confiance_joueur: Math.max(0, agent.confiance_joueur - 5),
+      });
+      set((s) => ({ reputation: Math.max(0, s.reputation - 8) }));
+    } else {
+      // Niveau 3 : client perdu
+      get().addNewMessage({
+        agent_id: agent.id,
+        niveau: "N5",
+        type: "Crise",
+        sujet: `💥 Client ${client} PERDU`,
+        contenu: `Catastrophe. Le client ${client} a rompu le contrat suite au 3ème retard. Perte ${(dossier.honoraires_annuels || 15000).toLocaleString("fr-FR")}€/an. Toute l'équipe est démoralisée.`,
+        delai_reponse_heures: 6,
+      });
+      get().updateAgent(agent.id, {
+        stress: Math.min(100, agent.stress + 25),
+        confiance_joueur: Math.max(0, agent.confiance_joueur - 15),
+      });
+      // Marque le dossier comme perdu (cascade dossier)
+      set((s) => ({
+        dossiers: s.dossiers.map((d) => d.id === dossier.id ? {
+          ...d, etat: "perdu" as const, progression: 0,
+          cause_perte: "3 retards successifs sur obligations fiscales",
+          recoverable_until: null,
+        } : d),
+        tresorerie: Math.max(0, s.tresorerie - 15000),
+        reputation: Math.max(0, s.reputation - 15),
+        stress_global: Math.min(100, s.stress_global + 10),
+      }));
+    }
+    get().recomputeMood();
+  },
+
+  /**
+   * Agent surchargé (>3 dossiers actifs) → ajout d'un signal sur ses dossiers
+   * + tentative auto de Drama si stress très élevé
+   */
+  triggerSurchargeAgent: (agentId) => {
+    const state = get();
+    const agent = state.agents.find((a) => a.id === agentId);
+    if (!agent) return;
+    const dossiers = state.dossiers.filter((d) => d.agent_id === agentId && d.etat === "en_cours");
+    if (dossiers.length < 3) return;
+
+    // Ajoute signal surcharge sur tous les dossiers
+    set((s) => ({
+      dossiers: s.dossiers.map((d) => d.agent_id === agentId && d.etat === "en_cours" ? {
+        ...d,
+        signaux_alerte: Array.from(new Set([...d.signaux_alerte, "agent_surcharge"])),
+        etat: d.etat === "en_cours" ? ("surveillance" as const) : d.etat,
+      } : d),
+    }));
+
+    // Si stress >80 → message N4 demandant retrait d'un dossier
+    if (agent.stress > 80) {
+      const dossierToDrop = dossiers[dossiers.length - 1];
+      get().addNewMessage({
+        agent_id: agent.id,
+        niveau: "N4",
+        type: "Probleme",
+        sujet: `⚠ Demande retrait dossier — ${dossierToDrop.client}`,
+        contenu: `Chef, je n'en peux plus. J'ai ${dossiers.length} dossiers actifs et je suis à ${agent.stress} de stress. Je te demande de réassigner ${dossierToDrop.client} à quelqu'un d'autre, sinon je vais faire des erreurs.`,
+        delai_reponse_heures: 12,
+      });
+    }
+  },
+
+  /**
+   * Mauvaise affectation détectée → génère un drama d'équipe
+   * Conditions : incompat critique (stagiaire sur dossier complexe, etc.)
+   */
+  triggerBadAffectationDrama: (dossierId) => {
+    const state = get();
+    const d = state.dossiers.find((x) => x.id === dossierId);
+    if (!d) return;
+    const agent = state.agents.find((a) => a.id === d.agent_id);
+    if (!agent) return;
+
+    const incompatibilites = get().computeIncompatibilites(dossierId, agent.id);
+    if (incompatibilites.length < 2) return;
+
+    // Drama : autre agent compétent vient se plaindre
+    const competentAgent = state.agents.find((a) =>
+      a.id !== agent.id &&
+      a.filiere === (d.specialites_requises || []).join(" ").includes("Fiscal") ? "Fiscal" : a.filiere
+    );
+
+    if (competentAgent && Math.random() < 0.3) {
+      get().addNewMessage({
+        agent_id: competentAgent.id,
+        niveau: "N3",
+        type: "Drama",
+        sujet: `🎭 Désaccord sur affectation ${d.client}`,
+        contenu: `Chef, je trouve étrange que ${agent.nom.split(" ")[0]} soit sur le dossier ${d.client} alors que c'est clairement de mon domaine. ${incompatibilites[0]}. Tu peux y jeter un œil ?`,
+        delai_reponse_heures: 24,
+      });
+    }
+  },
+
+  /**
+   * Embauche depuis un CV : ajoute un nouvel agent à l'équipe
+   */
+  hireFromCV: (candidat) => {
+    const state = get();
+    const initiales = candidat.nom.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+    const colors = ["#FF3B30", "#FF9500", "#FFCC00", "#34C759", "#007AFF", "#5856D6", "#AF52DE"];
+    const color = colors[state.agents.length % colors.length];
+
+    const newAgent: Agent = {
+      id: `agent_${Date.now()}`,
+      nom: candidat.nom,
+      initiales,
+      avatar_color: color,
+      statut: "En ligne",
+      role: candidat.poste_vise,
+      filiere: candidat.filiere,
+      niveau: candidat.poste_vise.includes("Manager") || candidat.poste_vise.includes("Directrice") ? "Manager" : candidat.poste_vise.includes("Stagiaire") ? "Stagiaire DEC" : "Collaborateur",
+      emotion: "Euphorique",
+      stress: 30,
+      fatigue: 20,
+      confiance_joueur: 70,
+      respect: 60,
+      peur: 20,
+      loyaute: 65,
+    } as Agent;
+
+    set((s) => ({ agents: [...s.agents, newAgent] }));
+
+    // Message de bienvenue de l'équipe (par Sophie RH)
+    const sophie = state.agents.find((a) => a.role.toLowerCase().includes("rh"));
+    if (sophie) {
+      get().addNewMessage({
+        agent_id: sophie.id,
+        niveau: "N1",
+        type: "Information",
+        sujet: `🎉 ${candidat.nom} a rejoint l'équipe`,
+        contenu: `Chef, j'ai finalisé l'embauche de ${candidat.nom} comme ${candidat.poste_vise}. Salaire fixé à ${(candidat.salaire_demande / 1000).toFixed(0)}k€. L'équipe est ravie d'avoir un renfort sur ${candidat.filiere}. Il/elle prend ses fonctions dès demain.`,
+        delai_reponse_heures: 48,
+      });
+    }
+    get().recomputeTeamHealth();
+  },
+
+  /**
+   * Erreur manquée dans Tâches → impact agent porteur
+   */
+  applyTaskErrorImpact: (agentId, scoreMissed) => {
+    const state = get();
+    const agent = state.agents.find((a) => a.id === agentId);
+    if (!agent) return;
+
+    set((s) => ({
+      legitimite: Math.max(0, s.legitimite - 5),
+      agents: s.agents.map((a) => a.id === agentId ? {
+        ...a,
+        confiance_joueur: Math.max(0, a.confiance_joueur - 3),
+        stress: Math.min(100, a.stress + 5),
+      } : a),
+    }));
+  },
+
+  /**
+   * Bonus moral après embauche réussie
+   */
+  applyEmbaucheBonus: (nomNouveau) => {
+    set((s) => ({
+      legitimite: Math.min(100, s.legitimite + 3),
+      // Reduction stress équipe (-5 chacun)
+      agents: s.agents.map((a) => ({ ...a, stress: Math.max(0, a.stress - 5) })),
     }));
   },
 
