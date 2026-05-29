@@ -208,7 +208,7 @@ function getPhaseColor(phase: string | null) {
   switch (phase) {
     case "P5": return "bg-[#ff3b30]/15 text-[#ff3b30]";
     case "P4": return "bg-[#ff9f0a]/15 text-[#ff9f0a]";
-    case "P3": return "bg-[#0071e3]/15 text-[#0071e3]";
+    case "P3": return "bg-[#007AFF]/15 text-[#007AFF]";
     case "P2": return "bg-[#34c759]/15 text-[#34c759]";
     default: return "bg-[#8e8e93]/15 text-[#8e8e93]";
   }
@@ -235,7 +235,7 @@ function getSlotIcon(type: AgendaSlot["type"]) {
 
 function getSlotColor(type: AgendaSlot["type"]) {
   switch (type) {
-    case "cas_pratique": return "#0071e3";
+    case "cas_pratique": return "#007AFF";
     case "rdv_client": return "#bf5af2";
     case "mediation": return "#ff9f0a";
     case "validation": return "#34c759";
@@ -1284,7 +1284,7 @@ export default function Home() {
     : store.dossiers.filter(d => d.etat === dossiersFilter);
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-[#FAFAFA] via-white to-[#F5F5F7] overflow-hidden">
+    <div className="flex h-screen bg-[#F2F2F7] overflow-hidden">
 
       {/* ── SIDEBAR — Style Apple Sidebar ── */}
       <aside className="w-[248px] bg-white/80 backdrop-blur-2xl border-r border-[#E5E5EA] flex flex-col z-10 shadow-[1px_0_0_rgba(0,0,0,0.04)]">
@@ -1298,11 +1298,11 @@ export default function Home() {
           </div>
 
           {/* Horloge JEU */}
-          <div className="mt-3 bg-gradient-to-r from-[#0071e3]/10 to-[#5e5ce6]/10 rounded-[10px] p-2.5 border border-[#0071e3]/15">
+          <div className="mt-3 bg-gradient-to-r from-[#007AFF]/10 to-[#5e5ce6]/10 rounded-[10px] p-2.5 border border-[#007AFF]/15">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <ClockIcon size={11} className="text-[#0071e3]" />
-                <span className="text-[10px] font-medium text-[#0071e3] uppercase tracking-wide">Jour {store.game_day}</span>
+                <ClockIcon size={11} className="text-[#007AFF]" />
+                <span className="text-[10px] font-medium text-[#007AFF] uppercase tracking-wide">Jour {store.game_day}</span>
               </div>
               <RealClock />
             </div>
@@ -1346,7 +1346,7 @@ export default function Home() {
               </span>
             </div>
             <div className="flex items-center gap-1">
-              {generatingEvents && <RefreshCw size={9} className="text-[#0071e3] animate-spin" />}
+              {generatingEvents && <RefreshCw size={9} className="text-[#007AFF] animate-spin" />}
               <button onClick={() => { setKeyInput(getUserApiKey() || ""); setShowKeyModal(true); }}
                 title="Configurer ma clé API"
                 className="p-0.5 rounded hover:bg-black/10 transition-all">
@@ -1367,7 +1367,7 @@ export default function Home() {
         <nav className="flex-1 px-2 py-3 space-y-0.5">
           {navItems.map(({ id, icon: Icon, label, badge }) => (
             <button key={id} onClick={() => setActiveTab(id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] transition-all ${activeTab === id ? "bg-gradient-to-r from-[#0071e3] to-[#0a84ff] text-white shadow-md" : "text-[#1d1d1f] hover:bg-black/5"}`}>
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13px] transition-all ${activeTab === id ? "bg-gradient-to-r from-[#007AFF] to-[#0A84FF] text-white shadow-md" : "text-[#1d1d1f] hover:bg-black/5"}`}>
               <Icon size={16} />
               <span className="flex-1 text-left">{label}</span>
               {badge ? <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center ${activeTab === id ? "bg-white/25 text-white" : "bg-[#ff3b30] text-white"}`}>{badge}</span> : null}
@@ -1376,7 +1376,7 @@ export default function Home() {
         </nav>
 
         <div className="px-3 py-3 border-t border-[#d2d2d7]/40 space-y-2">
-          <MiniStat label="Légitimité" value={store.legitimite} color="#0071e3" />
+          <MiniStat label="Légitimité" value={store.legitimite} color="#007AFF" />
           <MiniStat label="Trésorerie" value={Math.min((store.tresorerie / 2000), 100)} color="#34c759" display={`${(store.tresorerie / 1000).toFixed(0)}k€`} />
           <MiniStat label="Réputation" value={store.reputation} color="#ff9f0a" />
           <MiniStat label="Stress" value={store.stress_global} color={store.stress_global > 70 ? "#ff3b30" : "#ff9f0a"} />
@@ -1384,7 +1384,7 @@ export default function Home() {
             <span className="text-[11px] text-[#6e6e73]">Points d'Action</span>
             <div className="flex gap-1">
               {Array.from({ length: store.points_action_max }).map((_, i) => (
-                <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < store.points_action ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3]" : "bg-[#d2d2d7]"}`} />
+                <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < store.points_action ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD]" : "bg-[#d2d2d7]"}`} />
               ))}
             </div>
           </div>
@@ -1450,14 +1450,14 @@ export default function Home() {
                   return (
                     <div key={a.id}
                       onClick={() => handleSelectAgent(a.id, display.id)}
-                      className={`group mx-2 mb-1 p-3 rounded-[14px] cursor-pointer transition-all ${isSelected ? "bg-gradient-to-r from-[#0071e3] to-[#0a84ff] text-white shadow-md" : unread === 0 ? "opacity-75 hover:bg-white/80" : "hover:bg-white/80"}`}>
+                      className={`group mx-2 mb-1 p-3 rounded-[14px] cursor-pointer transition-all ${isSelected ? "bg-gradient-to-r from-[#007AFF] to-[#0A84FF] text-white shadow-md" : unread === 0 ? "opacity-75 hover:bg-white/80" : "hover:bg-white/80"}`}>
                       <div className="flex items-start gap-2.5">
                         <div className="relative shrink-0">
                           <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shadow-sm" style={{ backgroundColor: a.avatar_color }}>
                             {a.initiales}
                           </div>
                           {pendingMsg && (
-                            <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${isSelected ? "border-[#0071e3]" : "border-[#f5f5f7]"} ${getNiveauDot(pendingMsg.niveau)}`} />
+                            <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${isSelected ? "border-[#007AFF]" : "border-[#f5f5f7]"} ${getNiveauDot(pendingMsg.niveau)}`} />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1467,7 +1467,7 @@ export default function Home() {
                             </span>
                             <div className="flex items-center gap-1 shrink-0">
                               {unread > 0 && !isSelected && (
-                                <span className="text-[9px] font-bold text-white bg-[#0071e3] rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center">{unread}</span>
+                                <span className="text-[9px] font-bold text-white bg-[#007AFF] rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center">{unread}</span>
                               )}
                               {urgent && (
                                 <span className={`text-[10px] ${isSelected ? "text-red-200" : "text-[#ff3b30]"}`}>⚡ {pendingMsg!.delai_reponse_heures}h</span>
@@ -1484,7 +1484,7 @@ export default function Home() {
                                 pendingMsg.niveau === "N5" ? "bg-[#ff3b30]/15 text-[#ff3b30]" :
                                 pendingMsg.niveau === "N4" ? "bg-[#ff9f0a]/15 text-[#ff9f0a]" :
                                 pendingMsg.niveau === "N3" ? "bg-[#ffd60a]/20 text-[#b07800]" :
-                                "bg-[#0071e3]/10 text-[#0071e3]"}`}>
+                                "bg-[#007AFF]/10 text-[#007AFF]"}`}>
                                 {pendingMsg.niveau}
                               </span>
                             )}
@@ -1515,14 +1515,14 @@ export default function Home() {
             <main className="flex-1 flex flex-col bg-white/40">
               {agent ? (
                 <>
-                  <header className="px-6 py-3.5 glass border-b border-[#d2d2d7]/50 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shadow-sm" style={{ backgroundColor: agent.avatar_color }}>
+                  <header className="px-7 py-4 bg-white/75 backdrop-blur-2xl border-b border-[#E5E5EA]/70 flex items-center justify-between">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.10)]" style={{ backgroundColor: agent.avatar_color }}>
                         {agent.initiales}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h2 className="font-semibold text-[15px] text-[#1d1d1f]">{agent.nom}</h2>
+                          <h2 className="font-semibold text-[16px] text-[#1D1D1F] tracking-[-0.01em]">{agent.nom}</h2>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                             agent.statut === "En ligne" ? "bg-[#34c759]/15 text-[#34c759]" :
                             agent.statut === "Occupé" ? "bg-[#ff9f0a]/15 text-[#ff9f0a]" :
@@ -1559,7 +1559,7 @@ export default function Home() {
                                 m.niveau === "N5" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
                                 m.niveau === "N4" ? "bg-[#ff9f0a]/10 text-[#ff9f0a]" :
                                 m.niveau === "N3" ? "bg-[#ffd60a]/15 text-[#b07800]" :
-                                "bg-[#0071e3]/10 text-[#0071e3]"}`}>
+                                "bg-[#007AFF]/10 text-[#007AFF]"}`}>
                                 {getNiveauLabel(m.niveau)}
                               </span>
                               {m.phase && (
@@ -1569,7 +1569,7 @@ export default function Home() {
                               )}
                               {m.repondu && <span className="text-[9px] text-[#34c759]">✓ traité</span>}
                             </div>
-                            <div className="bg-white rounded-[18px] rounded-tl-[6px] px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30">
+                            <div className="bg-[#E9E9EB] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
                               <p className="text-[13px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">{m.contenu}</p>
                             </div>
                           </div>
@@ -1583,10 +1583,10 @@ export default function Home() {
                             {agent.initiales}
                           </div>
                         )}
-                        <div className={`px-4 py-3 rounded-[18px] text-[13px] leading-relaxed whitespace-pre-wrap max-w-[75%] ${
+                        <div className={`px-[14px] py-[9px] rounded-[20px] text-[14px] leading-[1.4] whitespace-pre-wrap max-w-[75%] ${
                           msg.role === "user"
-                            ? "bg-gradient-to-br from-[#0071e3] to-[#0a84ff] text-white rounded-br-[6px] shadow-md"
-                            : "bg-white text-[#1d1d1f] rounded-tl-[6px] shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30"
+                            ? "bg-[#007AFF] text-white rounded-br-[6px] shadow-[0_1px_2px_rgba(0,122,255,0.25)]"
+                            : "bg-[#E9E9EB] text-[#1D1D1F] rounded-tl-[6px]"
                         }`}>
                           {msg.content}
                         </div>
@@ -1598,7 +1598,7 @@ export default function Home() {
                         <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: agent.avatar_color }}>
                           {agent.initiales}
                         </div>
-                        <div className="bg-white rounded-[18px] rounded-tl-[6px] px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.08)] border border-[#d2d2d7]/30">
+                        <div className="bg-[#E9E9EB] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
                           <div className="flex gap-1 items-center">
                             <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "0ms" }} />
                             <div className="w-1.5 h-1.5 rounded-full bg-[#8e8e93] animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -1616,7 +1616,7 @@ export default function Home() {
                       <div className="space-y-2 py-2">
                         <div className="flex items-center justify-between">
                           <p className="text-[11px] font-semibold text-[#6e6e73] uppercase tracking-wider flex items-center gap-1.5">
-                            <Zap size={11} className="text-[#0071e3]" /> Ghost Writer — Choisis une version
+                            <Zap size={11} className="text-[#007AFF]" /> Ghost Writer — Choisis une version
                           </p>
                           <button onClick={handleDirectSend}
                             className="text-[10px] text-[#8e8e93] hover:text-[#ff3b30] flex items-center gap-1 transition-colors">
@@ -1626,11 +1626,11 @@ export default function Home() {
                         <div className="grid grid-cols-3 gap-2">
                           {ghostVersions.map((v) => (
                             <button key={v.label} onClick={() => handlePickVersion(v.text)}
-                              className={`text-left p-3 rounded-[14px] border-2 ${v.color} hover:border-[#0071e3] hover:bg-[#0071e3]/5 transition-all group`}>
+                              className={`text-left p-3 rounded-[14px] border-2 ${v.color} hover:border-[#007AFF] hover:bg-[#007AFF]/5 transition-all group`}>
                               <div className="font-semibold text-[12px] text-[#1d1d1f] mb-0.5">{v.label}</div>
                               <div className="text-[10px] text-[#6e6e73] mb-1.5">{v.sublabel}</div>
                               <div className="text-[11px] text-[#3a3a3c] line-clamp-4">{v.text}</div>
-                              <div className="flex items-center gap-1 mt-2 text-[10px] text-[#0071e3] opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-1 mt-2 text-[10px] text-[#007AFF] opacity-0 group-hover:opacity-100 transition-opacity">
                                 <CornerDownRight size={10} /> Utiliser
                               </div>
                             </button>
@@ -1644,7 +1644,7 @@ export default function Home() {
                   <div className="px-6 py-3 glass border-t border-[#d2d2d7]/50">
                     {gwLoading && (
                       <div className="flex items-center gap-2 mb-2 text-[11px] text-[#6e6e73]">
-                        <RefreshCw size={11} className="animate-spin text-[#0071e3]" />
+                        <RefreshCw size={11} className="animate-spin text-[#007AFF]" />
                         Ghost Writer analyse ton brouillon…
                       </div>
                     )}
@@ -1696,16 +1696,16 @@ export default function Home() {
                         title="Ghost Writer — 3 versions corrigées"
                         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 border ${
                           !sending && !gwLoading && inputText.trim()
-                            ? "border-[#0071e3]/30 bg-[#0071e3]/5 text-[#0071e3] hover:bg-[#0071e3]/10"
+                            ? "border-[#007AFF]/30 bg-[#007AFF]/5 text-[#007AFF] hover:bg-[#007AFF]/10"
                             : "border-[#e5e5ea] bg-white text-[#c7c7cc] cursor-not-allowed"}`}>
-                        {gwLoading ? <div className="w-3 h-3 border-2 border-[#0071e3] border-t-transparent rounded-full animate-spin" /> : <Zap size={14} />}
+                        {gwLoading ? <div className="w-3 h-3 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin" /> : <Zap size={14} />}
                       </button>
                       <button
                         onClick={handleDirectSend}
                         disabled={sending || !inputText.trim()}
                         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm shrink-0 ${
                           !sending && inputText.trim()
-                            ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] hover:from-[#0077ed] hover:to-[#0050b3] text-white"
+                            ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] hover:from-[#0080FF] hover:to-[#0050E5] text-white"
                             : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"}`}>
                         {sending ? (
                           <div className="w-3 h-3 border-2 border-[#8e8e93] border-t-transparent rounded-full animate-spin" />
@@ -1790,7 +1790,7 @@ export default function Home() {
               <div className="max-w-5xl mx-auto">
                 <div className="flex items-end justify-between mb-4">
                   <div>
-                    <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Équipe</h2>
+                    <h2 className="text-[32px] font-semibold text-[#1d1d1f] mb-1 tracking-[-0.022em] leading-tight">Équipe</h2>
                     <p className="text-[13px] text-[#6e6e73]">{store.agents.length} collaborateurs · Cabinet Morel & Associés</p>
                   </div>
                   {/* Toggle vue */}
@@ -1807,7 +1807,7 @@ export default function Home() {
                 </div>
 
                 {/* Santé mentale équipe */}
-                <div className={`rounded-[18px] p-4 mb-4 border-2 ${store.team_health >= 70 ? "border-[#34c759]/30 bg-gradient-to-br from-[#34c759]/8 to-[#0071e3]/5" : store.team_health >= 50 ? "border-[#ff9f0a]/30 bg-gradient-to-br from-[#ff9f0a]/8 to-[#ff3b30]/5" : "border-[#ff3b30]/40 bg-gradient-to-br from-[#ff3b30]/10 to-[#ff9f0a]/5"}`}>
+                <div className={`rounded-[18px] p-4 mb-4 border-2 ${store.team_health >= 70 ? "border-[#34c759]/30 bg-gradient-to-br from-[#34c759]/8 to-[#007AFF]/5" : store.team_health >= 50 ? "border-[#ff9f0a]/30 bg-gradient-to-br from-[#ff9f0a]/8 to-[#ff3b30]/5" : "border-[#ff3b30]/40 bg-gradient-to-br from-[#ff3b30]/10 to-[#ff9f0a]/5"}`}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Heart size={16} className={store.team_health >= 70 ? "text-[#34c759]" : store.team_health >= 50 ? "text-[#ff9f0a]" : "text-[#ff3b30]"} />
@@ -1847,7 +1847,7 @@ export default function Home() {
                   <Filter size={12} className="text-[#8e8e93]" />
                   {(["tous", "en_ligne", "en_alerte", "stagiaires", "managers"] as const).map(f => (
                     <button key={f} onClick={() => setTeamFilter(f)}
-                      className={`px-2.5 py-1 text-[11px] font-medium rounded-[8px] transition-all ${teamFilter === f ? "bg-[#0071e3] text-white" : "bg-white text-[#6e6e73] hover:text-[#1d1d1f] border border-[#d2d2d7]/40"}`}>
+                      className={`px-2.5 py-1 text-[11px] font-medium rounded-[8px] transition-all ${teamFilter === f ? "bg-[#007AFF] text-white" : "bg-white text-[#6e6e73] hover:text-[#1d1d1f] border border-[#d2d2d7]/40"}`}>
                       {f === "tous" ? "Tous" : f === "en_ligne" ? "En ligne" : f === "en_alerte" ? "En alerte" : f === "stagiaires" ? "Stagiaires" : "Managers"}
                     </button>
                   ))}
@@ -1864,7 +1864,7 @@ export default function Home() {
 
                 {/* Feedback action */}
                 {actionFeedback && (
-                  <div className="mb-3 px-3 py-2 bg-[#0071e3]/10 border border-[#0071e3]/20 text-[#0071e3] text-[12px] rounded-[10px] flex items-center gap-2">
+                  <div className="mb-3 px-3 py-2 bg-[#007AFF]/10 border border-[#007AFF]/20 text-[#007AFF] text-[12px] rounded-[10px] flex items-center gap-2">
                     <CheckCircle size={12} /> {actionFeedback}
                   </div>
                 )}
@@ -1907,7 +1907,7 @@ export default function Home() {
                                 (a as any).arc_actuel === "Rupture" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
                                 (a as any).arc_actuel === "Trahison" ? "bg-[#ff9f0a]/10 text-[#ff9f0a]" :
                                 (a as any).arc_actuel === "Crise" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
-                                "bg-[#0071e3]/10 text-[#0071e3]"}`}>
+                                "bg-[#007AFF]/10 text-[#007AFF]"}`}>
                                 Arc : {(a as any).arc_actuel}
                               </span>
                             </div>
@@ -1916,7 +1916,7 @@ export default function Home() {
                           <div className="grid grid-cols-4 gap-1 mt-2.5" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => handleAgentAction(a.id, "talk")}
                               title="Échange informel · +3 Confiance"
-                              className="px-1.5 py-1.5 text-[10px] bg-[#0071e3]/8 text-[#0071e3] hover:bg-[#0071e3]/15 rounded-[6px] transition-all flex items-center justify-center gap-0.5 font-medium">
+                              className="px-1.5 py-1.5 text-[10px] bg-[#007AFF]/8 text-[#007AFF] hover:bg-[#007AFF]/15 rounded-[6px] transition-all flex items-center justify-center gap-0.5 font-medium">
                               <MessageSquare size={10} />
                             </button>
                             <button onClick={() => handleAgentAction(a.id, "reward")}
@@ -1945,7 +1945,7 @@ export default function Home() {
                 {teamView === "org" && (
                   <div className="space-y-4">
                     {[{ label: "Direction", agents: directeurs, color: "#bf5af2" },
-                      { label: "Managers", agents: managers, color: "#0071e3" },
+                      { label: "Managers", agents: managers, color: "#007AFF" },
                       { label: "Collaborateurs", agents: collabs, color: "#34c759" },
                       { label: "Stagiaires", agents: stagiaires, color: "#ff9f0a" }].map((row) => (
                       row.agents.length === 0 ? null : (
@@ -1961,7 +1961,7 @@ export default function Home() {
                               const alerts = getAlerts(a);
                               return (
                                 <button key={a.id} onClick={() => setDetailAgentId(a.id)}
-                                  className="bg-white rounded-[14px] p-3 border border-[#d2d2d7]/40 hover:border-[#0071e3]/40 hover:shadow transition-all text-left">
+                                  className="bg-white rounded-[14px] p-3 border border-[#d2d2d7]/40 hover:border-[#007AFF]/40 hover:shadow transition-all text-left">
                                   <div className="flex items-center gap-2 mb-1.5">
                                     <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: a.avatar_color }}>
                                       {a.initiales}
@@ -1999,7 +1999,7 @@ export default function Home() {
             <div className="max-w-3xl mx-auto">
               <div className="flex items-end justify-between mb-5">
                 <div>
-                  <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Agenda du jour</h2>
+                  <h2 className="text-[32px] font-semibold text-[#1d1d1f] mb-1 tracking-[-0.022em] leading-tight">Agenda du jour</h2>
                   <p className="text-[13px] text-[#6e6e73]">Jour {store.game_day} · {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")} · Campagne Bilan & AG</p>
                 </div>
                 <div className="text-right">
@@ -2035,7 +2035,7 @@ export default function Home() {
                     return (
                       <div key={slot.heure} className="flex items-start gap-3 relative">
                         <div className="w-14 text-right pt-3 shrink-0">
-                          <div className={`text-[13px] font-mono font-semibold tabular-nums ${isActive ? "text-[#0071e3]" : isFuture ? "text-[#c7c7cc]" : "text-[#1d1d1f]"}`}>
+                          <div className={`text-[13px] font-mono font-semibold tabular-nums ${isActive ? "text-[#007AFF]" : isFuture ? "text-[#c7c7cc]" : "text-[#1d1d1f]"}`}>
                             {slot.heure}
                           </div>
                           <div className="text-[9px] text-[#8e8e93]">{slot.duree_min}min</div>
@@ -2044,7 +2044,7 @@ export default function Home() {
                         <div className="relative shrink-0 pt-3">
                           <div className={`w-4 h-4 rounded-full border-2 transition-all ${
                             isCompleted ? "bg-[#34c759] border-[#34c759]" :
-                            isActive ? "border-[#0071e3] bg-white animate-pulse" :
+                            isActive ? "border-[#007AFF] bg-white animate-pulse" :
                             isPast ? "bg-[#e5e5ea] border-[#e5e5ea]" :
                             "border-[#c7c7cc] bg-white"
                           }`}>
@@ -2057,10 +2057,10 @@ export default function Home() {
                           disabled={!canOpen}
                           className={`flex-1 text-left rounded-[14px] p-3 border transition-all ${
                             isCompleted ? "bg-[#34c759]/5 border-[#34c759]/20" :
-                            isActive ? "bg-white border-[#0071e3]/40 shadow-md hover:shadow-lg cursor-pointer" :
+                            isActive ? "bg-white border-[#007AFF]/40 shadow-md hover:shadow-lg cursor-pointer" :
                             isFuture ? "bg-white/40 border-[#d2d2d7]/30 opacity-60" :
                             isLocked ? "bg-[#f5f5f7] border-[#d2d2d7]/30 opacity-50 cursor-not-allowed" :
-                            "bg-white border-[#d2d2d7]/40 hover:border-[#0071e3]/40 hover:shadow cursor-pointer"
+                            "bg-white border-[#d2d2d7]/40 hover:border-[#007AFF]/40 hover:shadow cursor-pointer"
                           }`}>
                           <div className="flex items-start gap-2.5">
                             <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}15` }}>
@@ -2070,7 +2070,7 @@ export default function Home() {
                               <div className="flex items-center gap-2 mb-0.5">
                                 <span className="font-semibold text-[13px] text-[#1d1d1f]">{slot.titre}</span>
                                 {isCompleted && <span className="text-[9px] font-medium text-[#34c759]">✓ Validé</span>}
-                                {isActive && !isCompleted && <span className="text-[9px] font-semibold text-[#0071e3] bg-[#0071e3]/10 px-1.5 py-0.5 rounded-full animate-pulse">EN COURS</span>}
+                                {isActive && !isCompleted && <span className="text-[9px] font-semibold text-[#007AFF] bg-[#007AFF]/10 px-1.5 py-0.5 rounded-full animate-pulse">EN COURS</span>}
                                 {isLocked && <span className="text-[9px] font-medium text-[#8e8e93]">🔒 Niveau {slot.niveau_requis}</span>}
                               </div>
                               <p className="text-[11px] text-[#6e6e73] truncate">{slot.theme}</p>
@@ -2108,7 +2108,7 @@ export default function Home() {
             <div className="max-w-4xl mx-auto">
               <div className="flex items-end justify-between mb-5">
                 <div>
-                  <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Tâches — Validation pédagogique</h2>
+                  <h2 className="text-[32px] font-semibold text-[#1d1d1f] mb-1 tracking-[-0.022em] leading-tight">Tâches — Validation pédagogique</h2>
                   <p className="text-[13px] text-[#6e6e73]">Documents préparés par l'équipe à contrôler. Détecte les erreurs DEC.</p>
                 </div>
                 <div className="text-right">
@@ -2117,12 +2117,12 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-[#0071e3]/8 to-[#5e5ce6]/8 border border-[#0071e3]/15 rounded-[14px] p-3 mb-4">
+              <div className="bg-gradient-to-r from-[#007AFF]/8 to-[#5e5ce6]/8 border border-[#007AFF]/15 rounded-[14px] p-3 mb-4">
                 <div className="flex items-start gap-2">
-                  <FileSearch size={14} className="text-[#0071e3] mt-0.5 shrink-0" />
+                  <FileSearch size={14} className="text-[#007AFF] mt-0.5 shrink-0" />
                   <p className="text-[12px] text-[#1d1d1f] leading-relaxed">
                     <strong>Examinateur DEC :</strong> tu dois identifier les erreurs cachées dans chaque document, ajouter une note de correction (cite les articles), puis décider Valider / Refuser / Déléguer.
-                    <span className="text-[#0071e3] font-medium ml-1">+20 par erreur trouvée · −30 par erreur manquée · +10 Légitimité si score &gt;80%.</span>
+                    <span className="text-[#007AFF] font-medium ml-1">+20 par erreur trouvée · −30 par erreur manquée · +10 Légitimité si score &gt;80%.</span>
                   </p>
                 </div>
               </div>
@@ -2131,7 +2131,7 @@ export default function Home() {
                 {tasksPool.map((task) => {
                   const isLocked = store.player_level < task.niveau_min;
                   const isDone = completedTasks.has(task.id);
-                  const branchColor = task.branche === "Comptable" ? "#0071e3" : task.branche === "Fiscal" ? "#ff9f0a" : task.branche === "Audit & IFRS" ? "#bf5af2" : task.branche === "Social" ? "#34c759" : "#8e8e93";
+                  const branchColor = task.branche === "Comptable" ? "#007AFF" : task.branche === "Fiscal" ? "#ff9f0a" : task.branche === "Audit & IFRS" ? "#bf5af2" : task.branche === "Social" ? "#34c759" : "#8e8e93";
                   return (
                     <button key={task.id}
                       onClick={() => !isLocked && !isDone && openTask(task)}
@@ -2139,7 +2139,7 @@ export default function Home() {
                       className={`w-full text-left rounded-[14px] p-4 border transition-all flex items-center gap-3 ${
                         isDone ? "bg-[#34c759]/5 border-[#34c759]/20 cursor-default" :
                         isLocked ? "bg-[#f5f5f7] border-[#d2d2d7]/30 opacity-50 cursor-not-allowed" :
-                        "bg-white border-[#d2d2d7]/40 hover:border-[#0071e3]/40 hover:shadow cursor-pointer"
+                        "bg-white border-[#d2d2d7]/40 hover:border-[#007AFF]/40 hover:shadow cursor-pointer"
                       }`}>
                       <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${branchColor}15` }}>
                         <ClipboardCheck size={18} style={{ color: branchColor }} />
@@ -2154,7 +2154,7 @@ export default function Home() {
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md" style={{ backgroundColor: `${branchColor}15`, color: branchColor }}>{task.branche}</span>
                           <span className="text-[9px] text-[#8e8e93]">{task.erreurs.length} erreur{task.erreurs.length > 1 ? "s" : ""} possible{task.erreurs.length > 1 ? "s" : ""}</span>
-                          {task.ecriture_correction && <span className="text-[9px] text-[#0071e3] flex items-center gap-0.5"><Calculator size={9} /> Mini-jeu écriture</span>}
+                          {task.ecriture_correction && <span className="text-[9px] text-[#007AFF] flex items-center gap-0.5"><Calculator size={9} /> Mini-jeu écriture</span>}
                         </div>
                       </div>
                       {!isLocked && !isDone && <ChevronRight size={14} className="text-[#c7c7cc] shrink-0" />}
@@ -2177,11 +2177,11 @@ export default function Home() {
             <div className="max-w-4xl mx-auto">
               <div className="flex items-end justify-between mb-4">
                 <div>
-                  <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">Dossiers clients</h2>
+                  <h2 className="text-[32px] font-semibold text-[#1d1d1f] mb-1 tracking-[-0.022em] leading-tight">Dossiers clients</h2>
                   <p className="text-[13px] text-[#6e6e73]">Aperçu en temps réel · Les statuts évoluent selon ton travail et l'autonomie des agents</p>
                 </div>
                 <div className="flex gap-1.5">
-                  <DossierStat label="En cours" value={dossiersEnCours} color="#0071e3" />
+                  <DossierStat label="En cours" value={dossiersEnCours} color="#007AFF" />
                   <DossierStat label="Surveille" value={dossiersSurveillance} color="#ff9f0a" />
                   <DossierStat label="Avancés" value={dossiersAvances} color="#34c759" />
                   <DossierStat label="Clôturés" value={dossiersClotures} color="#8e8e93" />
@@ -2204,7 +2204,7 @@ export default function Home() {
                 {filteredDossiers.map((d) => {
                   const a = store.agents.find(x => x.id === d.agent_id);
                   const statusMeta: Record<typeof d.etat, { label: string; color: string; bg: string; border: string }> = {
-                    en_cours: { label: "EN COURS", color: "#0071e3", bg: "bg-[#0071e3]/15", border: "border-[#d2d2d7]/40" },
+                    en_cours: { label: "EN COURS", color: "#007AFF", bg: "bg-[#007AFF]/15", border: "border-[#d2d2d7]/40" },
                     surveillance: { label: "EN SURVEILLANCE", color: "#ff9f0a", bg: "bg-[#ff9f0a]/15", border: "border-[#ff9f0a]/30" },
                     avance: { label: "AVANCÉ", color: "#34c759", bg: "bg-[#34c759]/15", border: "border-[#34c759]/30" },
                     cloture: { label: "CLÔTURÉ", color: "#8e8e93", bg: "bg-[#8e8e93]/15", border: "border-[#8e8e93]/30" },
@@ -2321,7 +2321,7 @@ export default function Home() {
                                   if (!ok && store.points_action < 2) alert("Il te faut 2 PA pour tenter une récupération.");
                                   else if (!ok) alert("Tentative ratée. Le client refuse de revenir.");
                                 }}
-                                className="text-[11px] px-2.5 py-1 rounded-[8px] bg-gradient-to-r from-[#bf5af2]/15 to-[#0071e3]/15 text-[#bf5af2] hover:from-[#bf5af2]/25 hover:to-[#0071e3]/25 font-semibold transition-all flex items-center gap-1">
+                                className="text-[11px] px-2.5 py-1 rounded-[8px] bg-gradient-to-r from-[#bf5af2]/15 to-[#007AFF]/15 text-[#bf5af2] hover:from-[#bf5af2]/25 hover:to-[#007AFF]/25 font-semibold transition-all flex items-center gap-1">
                                 <Sparkles size={11} /> Tentative de récupération (2 PA · honoraires ×1,5)
                               </button>
                             </div>
@@ -2347,7 +2347,7 @@ export default function Home() {
             <div className="max-w-3xl mx-auto">
               <div className="flex items-end justify-between mb-5">
                 <div>
-                  <h2 className="text-[26px] font-bold text-[#1d1d1f] mb-1 tracking-tight">DEC Prep</h2>
+                  <h2 className="text-[32px] font-semibold text-[#1d1d1f] mb-1 tracking-[-0.022em] leading-tight">DEC Prep</h2>
                   <p className="text-[13px] text-[#6e6e73]">Niveau {store.player_level}/10 · {store.player_xp} XP · {store.dec_badges.length} badge{store.dec_badges.length > 1 ? "s" : ""}</p>
                 </div>
                 <div className="text-right">
@@ -2360,9 +2360,9 @@ export default function Home() {
               </div>
 
               {/* Statut du jour */}
-              <div className="bg-gradient-to-r from-[#0071e3]/8 to-[#5e5ce6]/8 border border-[#0071e3]/15 rounded-[16px] p-4 mb-4">
+              <div className="bg-gradient-to-r from-[#007AFF]/8 to-[#5e5ce6]/8 border border-[#007AFF]/15 rounded-[16px] p-4 mb-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <ClockIcon size={14} className="text-[#0071e3]" />
+                  <ClockIcon size={14} className="text-[#007AFF]" />
                   <span className="font-semibold text-[13px] text-[#1d1d1f]">Aujourd'hui · Jour {store.game_day}</span>
                   <span className="ml-auto text-[11px] text-[#6e6e73]">
                     {(store.dec_today_deonto ? 1 : 0) + (store.dec_today_mission ? 1 : 0)}/2 modules complétés
@@ -2374,10 +2374,10 @@ export default function Home() {
               </div>
 
               {/* MODULE 1 — DÉONTOLOGIE */}
-              <div className={`bg-white rounded-[18px] border-2 transition-all mb-3 overflow-hidden ${store.dec_today_deonto ? "border-[#34c759]/40 bg-[#34c759]/5" : "border-[#d2d2d7]/40 hover:border-[#0071e3]/30 hover:shadow-md"}`}>
+              <div className={`bg-white rounded-[18px] border-2 transition-all mb-3 overflow-hidden ${store.dec_today_deonto ? "border-[#34c759]/40 bg-[#34c759]/5" : "border-[#d2d2d7]/40 hover:border-[#007AFF]/30 hover:shadow-md"}`}>
                 <div className="p-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#0071e3] to-[#5e5ce6] shadow-md">
+                    <div className="w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#007AFF] to-[#5e5ce6] shadow-md">
                       <Award size={22} className="text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -2392,7 +2392,7 @@ export default function Home() {
                         Inspiré du QCM réel de l'examen DEC à 10h30.
                       </p>
                       <div className="flex items-center gap-3 mt-2 flex-wrap">
-                        <span className="text-[10px] text-[#0071e3] bg-[#0071e3]/10 px-1.5 py-0.5 rounded-md font-medium">+8 Lég si 18/20</span>
+                        <span className="text-[10px] text-[#007AFF] bg-[#007AFF]/10 px-1.5 py-0.5 rounded-md font-medium">+8 Lég si 18/20</span>
                         <span className="text-[10px] text-[#ff9f0a] bg-[#ff9f0a]/10 px-1.5 py-0.5 rounded-md font-medium">+5 Lég si 14/20</span>
                         <span className="text-[10px] text-[#ff3b30] bg-[#ff3b30]/10 px-1.5 py-0.5 rounded-md font-medium">−15 Lég si &lt;6/20</span>
                         <span className="text-[10px] text-[#6e6e73] ml-auto">{deontoPool.length} questions au catalogue</span>
@@ -2403,7 +2403,7 @@ export default function Home() {
                     className={`mt-3 w-full py-2.5 rounded-[12px] text-[13px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
                       deontoPool.length === 0 ? "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed" :
                       store.dec_today_deonto ? "bg-[#34c759]/15 text-[#34c759] hover:bg-[#34c759]/20" :
-                      "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white shadow-md hover:shadow-lg"
+                      "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md hover:shadow-lg"
                     }`}>
                     {store.dec_today_deonto ? <><RefreshCw size={13} /> Refaire le QCM (entraînement)</> : <><Sparkles size={13} /> Commencer le QCM du jour</>}
                   </button>
@@ -2482,7 +2482,7 @@ export default function Home() {
               <div className="bg-white rounded-[14px] p-4 border border-[#d2d2d7]/30">
                 <p className="font-semibold text-[12px] text-[#1d1d1f] mb-2.5">Grille Ghost Writer (réponses aux agents)</p>
                 <div className="space-y-1.5">
-                  {[["Précision technique", 30, "#0071e3"],["Rédaction professionnelle", 20, "#34c759"],["Déontologie", 20, "#ff9f0a"],["Contexte & empathie", 15, "#bf5af2"],["Opérationnel", 15, "#ff3b30"]].map(([label, pts, color]) => (
+                  {[["Précision technique", 30, "#007AFF"],["Rédaction professionnelle", 20, "#34c759"],["Déontologie", 20, "#ff9f0a"],["Contexte & empathie", 15, "#bf5af2"],["Opérationnel", 15, "#ff3b30"]].map(([label, pts, color]) => (
                     <div key={label as string} className="flex items-center gap-3">
                       <span className="text-[10px] text-[#6e6e73] w-36">{label as string}</span>
                       <div className="flex-1 h-[3px] bg-[#f5f5f7] rounded-full overflow-hidden">
@@ -2503,9 +2503,9 @@ export default function Home() {
       {activeSlot && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 flex items-center justify-between bg-gradient-to-r from-[#0071e3]/5 to-[#5e5ce6]/5">
+            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5e5ce6]/5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0071e3] to-[#0040a3] flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
                   <GraduationCap size={18} className="text-white" />
                 </div>
                 <div>
@@ -2521,7 +2521,7 @@ export default function Home() {
             <div className="flex-1 overflow-y-auto px-6 py-5">
               {caseLoading && (
                 <div className="text-center py-12">
-                  <RefreshCw size={28} className="text-[#0071e3] animate-spin mx-auto mb-3" />
+                  <RefreshCw size={28} className="text-[#007AFF] animate-spin mx-auto mb-3" />
                   <p className="text-[13px] text-[#6e6e73]">Génération du cas pratique…</p>
                 </div>
               )}
@@ -2529,7 +2529,7 @@ export default function Home() {
               {activeCase && !caseCorrection && (
                 <div className="space-y-4">
                   <div>
-                    <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-1">Client</div>
+                    <div className="text-[10px] font-semibold text-[#007AFF] uppercase tracking-wider mb-1">Client</div>
                     <div className="text-[15px] font-bold text-[#1d1d1f]">{activeCase.client}</div>
                   </div>
                   <div>
@@ -2540,8 +2540,8 @@ export default function Home() {
                     <div className="text-[10px] font-semibold text-[#1d1d1f] uppercase tracking-wider mb-2">Énoncé</div>
                     <p className="text-[13px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">{activeCase.enonce}</p>
                   </div>
-                  <div className="bg-[#0071e3]/5 border border-[#0071e3]/20 rounded-[12px] p-4">
-                    <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-1">Question</div>
+                  <div className="bg-[#007AFF]/5 border border-[#007AFF]/20 rounded-[12px] p-4">
+                    <div className="text-[10px] font-semibold text-[#007AFF] uppercase tracking-wider mb-1">Question</div>
                     <p className="text-[14px] font-medium text-[#1d1d1f] leading-relaxed">{activeCase.question}</p>
                   </div>
                   <div>
@@ -2550,14 +2550,14 @@ export default function Home() {
                       onChange={(e) => setCaseResponse(e.target.value)}
                       placeholder="Ta réponse… (sois précis, cite les références techniques)"
                       rows={6}
-                      className="w-full text-[13px] p-3 border border-[#d2d2d7] rounded-[12px] outline-none focus:border-[#0071e3] resize-none leading-relaxed"
+                      className="w-full text-[13px] p-3 border border-[#d2d2d7] rounded-[12px] outline-none focus:border-[#007AFF] resize-none leading-relaxed"
                     />
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-[10px] text-[#8e8e93]">Critères : {activeCase.criteres.join(" · ")}</span>
                       <button onClick={submitCaseResponse} disabled={!caseResponse.trim() || caseSubmitting}
                         className={`px-4 py-2 rounded-[10px] text-[13px] font-medium transition-all ${
                           caseResponse.trim() && !caseSubmitting
-                            ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white shadow-md hover:shadow-lg"
+                            ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md hover:shadow-lg"
                             : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"
                         }`}>
                         {caseSubmitting ? "Correction…" : "Soumettre ma réponse"}
@@ -2570,24 +2570,24 @@ export default function Home() {
               {caseCorrection && (
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#0071e3]/5 to-[#34c759]/5 rounded-[16px] p-5">
+                    <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#007AFF]/5 to-[#34c759]/5 rounded-[16px] p-5">
                       <div className="text-[56px] font-bold tabular-nums leading-none" style={{
                         color: caseCorrection.score >= 75 ? "#34c759" : caseCorrection.score >= 50 ? "#ff9f0a" : "#ff3b30"
                       }}>
                         {caseCorrection.score}
                       </div>
                       <div className="text-[13px] font-medium text-[#1d1d1f] mt-1">{caseCorrection.verdict}</div>
-                      <div className="text-[11px] text-[#0071e3] mt-1 flex items-center gap-1">
+                      <div className="text-[11px] text-[#007AFF] mt-1 flex items-center gap-1">
                         <Sparkles size={11} /> +{caseCorrection.xp_gagne} XP
                       </div>
                     </div>
                   </div>
                   <div className="bg-[#f5f5f7] rounded-[12px] p-3 flex gap-2 items-start">
-                    <Zap size={14} className="text-[#0071e3] mt-0.5 shrink-0" />
+                    <Zap size={14} className="text-[#007AFF] mt-0.5 shrink-0" />
                     <p className="text-[13px] text-[#1d1d1f] italic leading-relaxed">{caseCorrection.analogie}</p>
                   </div>
                   <div>
-                    <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-2">Correction</div>
+                    <div className="text-[10px] font-semibold text-[#007AFF] uppercase tracking-wider mb-2">Correction</div>
                     <p className="text-[13px] text-[#1d1d1f] leading-relaxed">{caseCorrection.correction}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -2600,16 +2600,16 @@ export default function Home() {
                       ))}
                     </div>
                     <div>
-                      <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-1.5">À améliorer</div>
+                      <div className="text-[10px] font-semibold text-[#007AFF] uppercase tracking-wider mb-1.5">À améliorer</div>
                       {caseCorrection.axes_amelioration.map((p, i) => (
                         <p key={i} className="text-[12px] text-[#1d1d1f] flex gap-1.5 items-start mb-1">
-                          <span className="text-[#0071e3] font-bold mt-0.5">→</span>{p}
+                          <span className="text-[#007AFF] font-bold mt-0.5">→</span>{p}
                         </p>
                       ))}
                     </div>
                   </div>
                   <button onClick={closeCasePratique}
-                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white font-medium text-[13px] shadow-md hover:shadow-lg transition-all">
+                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white font-medium text-[13px] shadow-md hover:shadow-lg transition-all">
                     Terminer
                   </button>
                 </div>
@@ -2654,7 +2654,7 @@ export default function Home() {
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
                             (a as any).arc_actuel === "Rupture" ? "bg-[#ff3b30]/10 text-[#ff3b30]" :
                             (a as any).arc_actuel === "Trahison" ? "bg-[#ff9f0a]/10 text-[#ff9f0a]" :
-                            "bg-[#0071e3]/10 text-[#0071e3]"}`}>Arc : {(a as any).arc_actuel}</span>
+                            "bg-[#007AFF]/10 text-[#007AFF]"}`}>Arc : {(a as any).arc_actuel}</span>
                         )}
                       </div>
                     </div>
@@ -2682,7 +2682,7 @@ export default function Home() {
                     <div className="text-[10px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5">Compétences DEC</div>
                     <div className="flex flex-wrap gap-1">
                       {competences.map((c, i) => (
-                        <span key={i} className="text-[11px] bg-[#0071e3]/8 text-[#0071e3] px-2 py-0.5 rounded-md font-medium">{c}</span>
+                        <span key={i} className="text-[11px] bg-[#007AFF]/8 text-[#007AFF] px-2 py-0.5 rounded-md font-medium">{c}</span>
                       ))}
                     </div>
                   </div>
@@ -2699,7 +2699,7 @@ export default function Home() {
                             <div className="text-[12px] font-medium text-[#1d1d1f] truncate">{d.client}</div>
                             <div className="text-[10px] text-[#6e6e73]">{d.theme}</div>
                           </div>
-                          <div className="text-[10px] tabular-nums font-semibold" style={{ color: d.etat === "perdu" ? "#ff3b30" : d.etat === "avance" ? "#34c759" : d.etat === "surveillance" ? "#ff9f0a" : "#0071e3" }}>
+                          <div className="text-[10px] tabular-nums font-semibold" style={{ color: d.etat === "perdu" ? "#ff3b30" : d.etat === "avance" ? "#34c759" : d.etat === "surveillance" ? "#ff9f0a" : "#007AFF" }}>
                             {d.progression}%
                           </div>
                         </div>
@@ -2765,7 +2765,7 @@ export default function Home() {
               <div className="px-6 py-3 bg-[#fafafa] border-t border-[#d2d2d7]/40">
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    { id: "talk", label: "Parler", desc: "+3 Confiance", icon: MessageSquare, color: "#0071e3", cd: cooldowns.talk },
+                    { id: "talk", label: "Parler", desc: "+3 Confiance", icon: MessageSquare, color: "#007AFF", cd: cooldowns.talk },
                     { id: "reward", label: "Récompenser", desc: "+7 Conf · +5 Loy", icon: Award, color: "#34c759", cd: cooldowns.reward },
                     { id: "train", label: "Former", desc: "1 PA · 3k€", icon: BookOpen, color: "#bf5af2", cd: cooldowns.train },
                     { id: "reprimand", label: "Réprimander", desc: "−6 Conf · +Peur", icon: Megaphone, color: "#ff3b30", cd: cooldowns.reprimand },
@@ -2788,7 +2788,7 @@ export default function Home() {
                   })}
                 </div>
                 {actionFeedback && (
-                  <div className="mt-2 text-[11px] text-[#0071e3] text-center">{actionFeedback}</div>
+                  <div className="mt-2 text-[11px] text-[#007AFF] text-center">{actionFeedback}</div>
                 )}
               </div>
             </div>
@@ -2800,9 +2800,9 @@ export default function Home() {
       {activeDeonto && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 flex items-center justify-between bg-gradient-to-r from-[#0071e3]/5 to-[#5e5ce6]/5">
+            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5e5ce6]/5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0071e3] to-[#0040a3] flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
                   <Award size={18} className="text-white" />
                 </div>
                 <div>
@@ -2827,11 +2827,11 @@ export default function Home() {
                   <div className="space-y-4">
                     {/* Progress bar */}
                     <div className="h-[3px] bg-[#e5e5ea] rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-[#0071e3] to-[#5e5ce6] transition-all" style={{ width: `${((deontoIndex + 1) / activeDeonto.length) * 100}%` }} />
+                      <div className="h-full bg-gradient-to-r from-[#007AFF] to-[#5e5ce6] transition-all" style={{ width: `${((deontoIndex + 1) / activeDeonto.length) * 100}%` }} />
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#0071e3]/10 text-[#0071e3]">{q.categorie}</span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#007AFF]/10 text-[#007AFF]">{q.categorie}</span>
                       <span className="text-[10px] font-medium text-[#6e6e73]">{q.theme}</span>
                       <span className="text-[10px] text-[#8e8e93] ml-auto">
                         {q.type === "qcm_simple" ? "QCM simple" : q.type === "qcm_multiple" ? "QCM multiple" : q.type === "vrai_faux" ? "Vrai/Faux" : "Réponse courte"}
@@ -2846,7 +2846,7 @@ export default function Home() {
                         onChange={(e) => setDeontoText(q.id, e.target.value)}
                         rows={4}
                         placeholder="Ta réponse (cite les références, articles, normes…)"
-                        className="w-full text-[13px] p-3 border border-[#d2d2d7] rounded-[12px] outline-none focus:border-[#0071e3] resize-none leading-relaxed"
+                        className="w-full text-[13px] p-3 border border-[#d2d2d7] rounded-[12px] outline-none focus:border-[#007AFF] resize-none leading-relaxed"
                       />
                     ) : (
                       <div className="space-y-1.5">
@@ -2855,9 +2855,9 @@ export default function Home() {
                           return (
                             <button key={i} onClick={() => toggleDeontoOption(q.id, i, isMulti)}
                               className={`w-full text-left px-3 py-2.5 rounded-[10px] border-2 transition-all flex items-start gap-2.5 ${
-                                selected ? "border-[#0071e3] bg-[#0071e3]/5" : "border-[#d2d2d7]/60 hover:border-[#0071e3]/40 hover:bg-[#f5f5f7]"
+                                selected ? "border-[#007AFF] bg-[#007AFF]/5" : "border-[#d2d2d7]/60 hover:border-[#007AFF]/40 hover:bg-[#f5f5f7]"
                               }`}>
-                              <div className={`w-5 h-5 rounded-${isMulti ? "[4px]" : "full"} border-2 flex items-center justify-center shrink-0 mt-0.5 ${selected ? "border-[#0071e3] bg-[#0071e3]" : "border-[#c7c7cc]"}`}>
+                              <div className={`w-5 h-5 rounded-${isMulti ? "[4px]" : "full"} border-2 flex items-center justify-center shrink-0 mt-0.5 ${selected ? "border-[#007AFF] bg-[#007AFF]" : "border-[#c7c7cc]"}`}>
                                 {selected && <CheckCircle size={10} className="text-white" />}
                               </div>
                               <span className="text-[13px] text-[#1d1d1f]">{opt}</span>
@@ -2875,7 +2875,7 @@ export default function Home() {
               {deontoResult && (
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#0071e3]/5 to-[#34c759]/5 rounded-[16px] p-5">
+                    <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#007AFF]/5 to-[#34c759]/5 rounded-[16px] p-5">
                       <div className="text-[56px] font-bold tabular-nums leading-none" style={{
                         color: deontoResult.score_20 >= 14 ? "#34c759" : deontoResult.score_20 >= 10 ? "#ff9f0a" : "#ff3b30"
                       }}>
@@ -2922,7 +2922,7 @@ export default function Home() {
                   </div>
 
                   <button onClick={closeDeonto}
-                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white font-medium text-[13px] shadow-md">
+                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white font-medium text-[13px] shadow-md">
                     Terminer
                   </button>
                 </div>
@@ -2940,12 +2940,12 @@ export default function Home() {
                 </span>
                 {deontoIndex < activeDeonto.length - 1 ? (
                   <button onClick={() => setDeontoIndex(deontoIndex + 1)}
-                    className="px-3 py-1.5 text-[12px] rounded-[8px] bg-[#0071e3] text-white">
+                    className="px-3 py-1.5 text-[12px] rounded-[8px] bg-[#007AFF] text-white">
                     Suivant →
                   </button>
                 ) : (
                   <button onClick={submitDeonto} disabled={deontoSubmitting}
-                    className="px-4 py-1.5 text-[12px] font-semibold rounded-[8px] bg-gradient-to-br from-[#34c759] to-[#0071e3] text-white shadow-md flex items-center gap-1.5">
+                    className="px-4 py-1.5 text-[12px] font-semibold rounded-[8px] bg-gradient-to-br from-[#34c759] to-[#007AFF] text-white shadow-md flex items-center gap-1.5">
                     {deontoSubmitting ? <><RefreshCw size={11} className="animate-spin" /> Correction…</> : <><CheckCircle size={11} /> Valider mes 20 réponses</>}
                   </button>
                 )}
@@ -3052,8 +3052,8 @@ export default function Home() {
                         <p className="text-[11px] text-[#3a3a3c] leading-relaxed">{d.feedback}</p>
                         <p className="text-[10px] text-[#8e8e93] mt-1">Vocabulaire DEC : {d.mots_cles_trouves}/{d.mots_cles_total} termes attendus</p>
                         {d.correction_style && (
-                          <div className="mt-1.5 bg-white/80 rounded-md p-2 border border-[#0071e3]/20">
-                            <p className="text-[9px] font-semibold text-[#0071e3] uppercase tracking-wider mb-0.5">Correction style EC</p>
+                          <div className="mt-1.5 bg-white/80 rounded-md p-2 border border-[#007AFF]/20">
+                            <p className="text-[9px] font-semibold text-[#007AFF] uppercase tracking-wider mb-0.5">Correction style EC</p>
                             <p className="text-[11px] text-[#3a3a3c]">{d.correction_style}</p>
                           </div>
                         )}
@@ -3062,7 +3062,7 @@ export default function Home() {
                   </div>
 
                   <button onClick={closeMission}
-                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#bf5af2] to-[#0040a3] text-white font-medium text-[13px] shadow-md">
+                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#bf5af2] to-[#0040DD] text-white font-medium text-[13px] shadow-md">
                     Terminer
                   </button>
                 </div>
@@ -3085,7 +3085,7 @@ export default function Home() {
                   </button>
                 ) : (
                   <button onClick={submitMission} disabled={missionSubmitting}
-                    className="px-4 py-1.5 text-[12px] font-semibold rounded-[8px] bg-gradient-to-br from-[#bf5af2] to-[#0040a3] text-white shadow-md flex items-center gap-1.5">
+                    className="px-4 py-1.5 text-[12px] font-semibold rounded-[8px] bg-gradient-to-br from-[#bf5af2] to-[#0040DD] text-white shadow-md flex items-center gap-1.5">
                     {missionSubmitting ? <><RefreshCw size={11} className="animate-spin" /> Évaluation…</> : <><CheckCircle size={11} /> Soumettre la mission</>}
                   </button>
                 )}
@@ -3099,9 +3099,9 @@ export default function Home() {
       {activeTask && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 flex items-center justify-between bg-gradient-to-r from-[#0071e3]/5 to-[#5e5ce6]/5">
+            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5e5ce6]/5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0071e3] to-[#0040a3] flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
                   <ClipboardCheck size={18} className="text-white" />
                 </div>
                 <div>
@@ -3118,7 +3118,7 @@ export default function Home() {
               {!taskResult && (
                 <>
                   <div className="bg-[#f5f5f7] rounded-[12px] p-3 mb-4">
-                    <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-1">Contexte</div>
+                    <div className="text-[10px] font-semibold text-[#007AFF] uppercase tracking-wider mb-1">Contexte</div>
                     <p className="text-[12px] text-[#1d1d1f] leading-relaxed">{activeTask.contexte}</p>
                   </div>
 
@@ -3152,7 +3152,7 @@ export default function Home() {
                       onChange={(e) => setTaskNote(e.target.value)}
                       placeholder="Ex : « L'amende de 450€ est non déductible (art. 39-2 CGI). À réintégrer extra-comptablement. »"
                       rows={3}
-                      className="w-full text-[12px] p-3 border border-[#d2d2d7] rounded-[10px] outline-none focus:border-[#0071e3] resize-none leading-relaxed"
+                      className="w-full text-[12px] p-3 border border-[#d2d2d7] rounded-[10px] outline-none focus:border-[#007AFF] resize-none leading-relaxed"
                     />
                     <p className="text-[9px] text-[#8e8e93] mt-1">Cite les articles (CGI, PCG, IFRS, BOFiP…) pour maximiser ton score.</p>
                   </div>
@@ -3177,7 +3177,7 @@ export default function Home() {
               {taskResult && (
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#0071e3]/5 to-[#34c759]/5 rounded-[16px] p-5">
+                    <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#007AFF]/5 to-[#34c759]/5 rounded-[16px] p-5">
                       <div className="text-[56px] font-bold tabular-nums leading-none" style={{
                         color: taskResult.score >= 80 ? "#34c759" : taskResult.score >= 50 ? "#ff9f0a" : "#ff3b30"
                       }}>
@@ -3201,11 +3201,11 @@ export default function Home() {
 
                   {/* Analyse détaillée Claude de la note rédigée par le joueur */}
                   {taskResult.analyse_note && (
-                    <div className="bg-gradient-to-br from-[#0071e3]/5 to-[#5e5ce6]/5 border border-[#0071e3]/20 rounded-[12px] p-3">
+                    <div className="bg-gradient-to-br from-[#007AFF]/5 to-[#5e5ce6]/5 border border-[#007AFF]/20 rounded-[12px] p-3">
                       <div className="flex items-start gap-2">
-                        <Sparkles size={13} className="text-[#0071e3] mt-0.5 shrink-0" />
+                        <Sparkles size={13} className="text-[#007AFF] mt-0.5 shrink-0" />
                         <div>
-                          <div className="text-[10px] font-semibold text-[#0071e3] uppercase tracking-wider mb-1">
+                          <div className="text-[10px] font-semibold text-[#007AFF] uppercase tracking-wider mb-1">
                             Analyse critique de ta note rédigée {taskResult.note_score_claude !== null && <span className="text-[#1d1d1f]">({taskResult.note_score_claude}/20)</span>}
                           </div>
                           <p className="text-[12px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">{taskResult.analyse_note}</p>
@@ -3257,7 +3257,7 @@ export default function Home() {
                   )}
 
                   <button onClick={closeTask}
-                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white font-medium text-[13px] shadow-md hover:shadow-lg transition-all">
+                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white font-medium text-[13px] shadow-md hover:shadow-lg transition-all">
                     Terminer
                   </button>
                 </div>
@@ -3271,8 +3271,8 @@ export default function Home() {
       {showEcritureModal && activeTask?.ecriture_correction && (
         <div className="fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#d2d2d7]/40 bg-gradient-to-r from-[#0071e3]/5 to-[#34c759]/5 flex items-center gap-2.5">
-              <Calculator size={16} className="text-[#0071e3]" />
+            <div className="px-5 py-4 border-b border-[#d2d2d7]/40 bg-gradient-to-r from-[#007AFF]/5 to-[#34c759]/5 flex items-center gap-2.5">
+              <Calculator size={16} className="text-[#007AFF]" />
               <div>
                 <h3 className="font-semibold text-[14px] text-[#1d1d1f]">Écriture de correction</h3>
                 <p className="text-[11px] text-[#6e6e73]">Propose l'écriture comptable de la régularisation</p>
@@ -3284,26 +3284,26 @@ export default function Home() {
                   <label className="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-wider block mb-1">Compte Débit</label>
                   <input value={ecritureDebit} onChange={e => setEcritureDebit(e.target.value)}
                     placeholder="Ex : 658"
-                    className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#0071e3] font-mono tabular-nums" />
+                    className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#007AFF] font-mono tabular-nums" />
                 </div>
                 <div>
                   <label className="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-wider block mb-1">Compte Crédit</label>
                   <input value={ecritureCredit} onChange={e => setEcritureCredit(e.target.value)}
                     placeholder="Ex : 707"
-                    className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#0071e3] font-mono tabular-nums" />
+                    className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#007AFF] font-mono tabular-nums" />
                 </div>
               </div>
               <div>
                 <label className="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-wider block mb-1">Montant (€)</label>
                 <input value={ecritureMontant} onChange={e => setEcritureMontant(e.target.value)} type="number"
                   placeholder="Ex : 1770"
-                  className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#0071e3] tabular-nums" />
+                  className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#007AFF] tabular-nums" />
               </div>
               <div>
                 <label className="text-[10px] font-semibold text-[#6e6e73] uppercase tracking-wider block mb-1">Libellé</label>
                 <input value={ecritureLibelle} onChange={e => setEcritureLibelle(e.target.value)}
                   placeholder="Ex : Réintégration extra-comptable"
-                  className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#0071e3]" />
+                  className="w-full text-[13px] p-2 border border-[#d2d2d7] rounded-[8px] outline-none focus:border-[#007AFF]" />
               </div>
               <p className="text-[10px] text-[#8e8e93] leading-relaxed">
                 Bonus : +5 Légitimité si écriture parfaite · −10 si imprécise (ton équipe doit refaire = coût trésorerie)
@@ -3317,7 +3317,7 @@ export default function Home() {
               <button onClick={() => submitTask("refuser")} disabled={!ecritureDebit || !ecritureCredit || !ecritureMontant || taskSubmitting}
                 className={`ml-auto px-4 py-2 text-[12px] font-medium rounded-[10px] transition-all flex items-center gap-1.5 ${
                   ecritureDebit && ecritureCredit && ecritureMontant && !taskSubmitting
-                    ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white shadow-md"
+                    ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md"
                     : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"
                 }`}>
                 {taskSubmitting ? <><RefreshCw size={11} className="animate-spin" /> Évaluation…</> : "Soumettre"}
@@ -3331,9 +3331,9 @@ export default function Home() {
       {showKeyModal && (
         <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="bg-white rounded-[22px] shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 bg-gradient-to-r from-[#0071e3]/5 to-[#5e5ce6]/5">
+            <div className="px-6 py-4 border-b border-[#d2d2d7]/40 bg-gradient-to-r from-[#007AFF]/5 to-[#5e5ce6]/5">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0071e3] to-[#0040a3] flex items-center justify-center shadow-md">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
                   <Key size={15} className="text-white" />
                 </div>
                 <div>
@@ -3348,7 +3348,7 @@ export default function Home() {
                 Elle est stockée uniquement dans <strong>ton navigateur</strong> (localStorage) et ne quitte ton appareil que pour appeler l'API Anthropic via ce site.
               </p>
               <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[12px] text-[#0071e3] hover:underline">
+                className="inline-flex items-center gap-1 text-[12px] text-[#007AFF] hover:underline">
                 Obtenir une clé sur console.anthropic.com <ExternalLink size={11} />
               </a>
               <div>
@@ -3359,7 +3359,7 @@ export default function Home() {
                   onChange={(e) => setKeyInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") saveApiKey(); }}
                   placeholder="sk-ant-api03-..."
-                  className="w-full text-[12px] p-3 border border-[#d2d2d7] rounded-[12px] outline-none focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 font-mono"
+                  className="w-full text-[12px] p-3 border border-[#d2d2d7] rounded-[12px] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/20 font-mono"
                 />
                 <p className="text-[10px] text-[#8e8e93] mt-1.5">
                   Format attendu : <code className="bg-[#f5f5f7] px-1 rounded">sk-ant-...</code>
@@ -3368,7 +3368,7 @@ export default function Home() {
 
               {apiStatusDetails?.needs_credit && (
                 <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener noreferrer"
-                  className="block bg-gradient-to-br from-[#0071e3] to-[#5e5ce6] text-white rounded-[14px] p-3.5 shadow-md hover:shadow-lg transition-all">
+                  className="block bg-gradient-to-br from-[#007AFF] to-[#5e5ce6] text-white rounded-[14px] p-3.5 shadow-md hover:shadow-lg transition-all">
                   <div className="flex items-center gap-2 mb-1">
                     <Sparkles size={14} />
                     <span className="font-semibold text-[13px]">Charger ton compte Anthropic</span>
@@ -3416,7 +3416,7 @@ export default function Home() {
                   <div className="mt-2 space-y-1.5">
                     {(apiStatusReason.toLowerCase().includes("credit") || apiStatusReason.toLowerCase().includes("balance") || apiStatusReason.toLowerCase().includes("billing")) && (
                       <a href="https://console.anthropic.com/settings/billing" target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[#0071e3] hover:underline">
+                        className="flex items-center gap-1 text-[#007AFF] hover:underline">
                         <ExternalLink size={10} /> Recharger mon compte Anthropic (5$ minimum)
                       </a>
                     )}
@@ -3458,7 +3458,7 @@ export default function Home() {
               <button onClick={saveApiKey} disabled={!keyInput.trim() || keySaving}
                 className={`px-4 py-2 text-[12px] font-medium rounded-[10px] transition-all flex items-center gap-1.5 ${
                   keyInput.trim() && !keySaving
-                    ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white shadow-md hover:shadow-lg"
+                    ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md hover:shadow-lg"
                     : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"
                 }`}>
                 {keySaving ? <><RefreshCw size={11} className="animate-spin" /> Test…</> : "Tester et enregistrer"}
@@ -3472,7 +3472,7 @@ export default function Home() {
       <div className="fixed bottom-5 right-5 z-40">
         {claudeOpen ? (
           <div className="bg-white rounded-[18px] shadow-2xl w-[380px] h-[500px] flex flex-col border border-[#d2d2d7]/40 overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#d2d2d7]/40 bg-gradient-to-r from-[#0071e3] to-[#5e5ce6] flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-[#d2d2d7]/40 bg-gradient-to-r from-[#007AFF] to-[#5e5ce6] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
                   <Sparkles size={13} className="text-white" />
@@ -3490,13 +3490,13 @@ export default function Home() {
             <div ref={claudeContainerRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
               {store.claude_history.length === 0 && (
                 <div className="text-center py-6 px-2">
-                  <Sparkles size={24} className="text-[#0071e3] mx-auto mb-2" />
+                  <Sparkles size={24} className="text-[#007AFF] mx-auto mb-2" />
                   <p className="text-[12px] text-[#1d1d1f] font-medium mb-1">Bonjour 👋</p>
                   <p className="text-[11px] text-[#6e6e73] leading-relaxed">Je suis Claude. Je vois tout le cabinet en temps réel. Demande-moi des conseils sur les agents, dossiers, agenda, ou un rappel technique DEC.</p>
                   <div className="mt-3 flex flex-col gap-1.5">
                     {["Que faire en priorité ?", "État du cabinet ?", "Rappel sur les IFRS"].map(s => (
                       <button key={s} onClick={() => { setClaudeInput(s); }}
-                        className="text-[11px] text-[#0071e3] bg-[#0071e3]/8 hover:bg-[#0071e3]/12 px-2.5 py-1 rounded-full transition-colors">
+                        className="text-[11px] text-[#007AFF] bg-[#007AFF]/8 hover:bg-[#007AFF]/12 px-2.5 py-1 rounded-full transition-colors">
                         {s}
                       </button>
                     ))}
@@ -3507,7 +3507,7 @@ export default function Home() {
                 <div key={i} className={`flex ${m.role === "user" ? "justify-end" : ""}`}>
                   <div className={`max-w-[85%] px-3 py-2 rounded-[14px] text-[12px] leading-relaxed whitespace-pre-wrap ${
                     m.role === "user"
-                      ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white rounded-br-[4px]"
+                      ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white rounded-br-[4px]"
                       : "bg-[#f5f5f7] text-[#1d1d1f] rounded-tl-[4px]"
                   }`}>
                     {m.content}
@@ -3545,7 +3545,7 @@ export default function Home() {
                 <button onClick={sendToClaude} disabled={!claudeInput.trim() || claudeSending}
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${
                     claudeInput.trim() && !claudeSending
-                      ? "bg-gradient-to-br from-[#0071e3] to-[#0040a3] text-white shadow-sm"
+                      ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-sm"
                       : "bg-[#e5e5ea] text-[#8e8e93] cursor-not-allowed"
                   }`}>
                   <Send size={12} />
@@ -3555,7 +3555,7 @@ export default function Home() {
           </div>
         ) : (
           <button onClick={() => setClaudeOpen(true)}
-            className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0071e3] via-[#5e5ce6] to-[#bf5af2] shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center group">
+            className="w-14 h-14 rounded-full bg-gradient-to-br from-[#007AFF] via-[#5e5ce6] to-[#bf5af2] shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center group">
             <Sparkles size={22} className="text-white group-hover:rotate-12 transition-transform" />
           </button>
         )}
@@ -3613,7 +3613,7 @@ function ScoreCard({ score, playerMessage, onClose }: { score: ScoreResult; play
 
       <div className="bg-[#f5f5f7] rounded-[12px] p-3 mb-2.5">
         <div className="flex items-start gap-2">
-          <Zap size={12} className="text-[#0071e3] mt-0.5 shrink-0" />
+          <Zap size={12} className="text-[#007AFF] mt-0.5 shrink-0" />
           <p className="text-[12px] text-[#3a3a3c] leading-relaxed italic">{score.feedback}</p>
         </div>
       </div>
@@ -3637,7 +3637,7 @@ function ScoreCard({ score, playerMessage, onClose }: { score: ScoreResult; play
             <div className="space-y-1">
               {score.axes_amelioration.map(a => (
                 <p key={a} className="text-[11px] text-[#3a3a3c] flex gap-1.5 items-start">
-                  <span className="text-[#0071e3] font-bold mt-0.5">→</span>{a}
+                  <span className="text-[#007AFF] font-bold mt-0.5">→</span>{a}
                 </p>
               ))}
             </div>
@@ -3667,7 +3667,7 @@ function MiniStat({ label, value, color, display }: { label: string; value: numb
 function AgentBar({ label, value, warn, invert }: { label: string; value: number; warn?: number; invert?: boolean }) {
   const bad = warn ? value > warn : false;
   const good = invert && value > 70;
-  const color = bad ? "#ff3b30" : good ? "#34c759" : "#0071e3";
+  const color = bad ? "#ff3b30" : good ? "#34c759" : "#007AFF";
   return (
     <div className="flex items-center gap-2">
       <span className="text-[10px] text-[#8e8e93] w-14">{label}</span>
@@ -3693,7 +3693,7 @@ function StatChip({ label, value, warn, invert }: { label: string; value: number
 function EmotionChip({ emotion, small }: { emotion: string; small?: boolean }) {
   const map: Record<string, string> = {
     "Stable": "bg-[#34c759]/10 text-[#34c759]",
-    "Concentré": "bg-[#0071e3]/10 text-[#0071e3]",
+    "Concentré": "bg-[#007AFF]/10 text-[#007AFF]",
     "Anxieux": "bg-[#ff9f0a]/10 text-[#ff9f0a]",
     "Frustré": "bg-[#ff3b30]/10 text-[#ff3b30]",
     "Euphorique": "bg-[#bf5af2]/10 text-[#bf5af2]",
