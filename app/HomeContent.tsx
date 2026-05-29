@@ -146,9 +146,12 @@ export default function HomeContent() {
 
   return (
     <div className="flex h-screen overflow-hidden relative">
-      {/* Background gradient pastel doux inspiré PHDDEC */}
-      <div className="absolute inset-0 -z-10" style={{
+      {/* Background gradient adaptatif clair/sombre */}
+      <div className="absolute inset-0 -z-10 transition-colors duration-500 dark:hidden" style={{
         background: "linear-gradient(135deg, #FFF1EC 0%, #FCE9F7 30%, #F0EAFF 60%, #E8F4FF 100%)"
+      }} />
+      <div className="absolute inset-0 -z-10 transition-colors duration-500 hidden dark:block" style={{
+        background: "linear-gradient(135deg, #1c1c1e 0%, #2c1c2e 30%, #1c2030 60%, #1c1c2e 100%)"
       }} />
       <Sidebar
         activeTab={activeTab} setActiveTab={setActiveTab}

@@ -74,7 +74,7 @@ export function DossiersView() {
             <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
               <span>☼</span><span>Portefeuille</span><span>·</span><span>Fiches clients</span>
             </div>
-            <h2 className="text-[56px] font-semibold text-[#1D1D1F] tracking-[-0.04em] leading-[0.95]">Dossiers.</h2>
+            <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">Dossiers.</h2>
             <p className="text-[14px] text-[#86868B] mt-2">Aperçu temps réel · Les statuts évoluent selon ton travail</p>
           </div>
           <div className="flex gap-1.5">

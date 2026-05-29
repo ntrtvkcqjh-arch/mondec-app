@@ -121,7 +121,7 @@ export function EquipeView() {
             <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
               <span>☼</span><span>Talents</span><span>·</span><span>Management</span>
             </div>
-            <h2 className="text-[56px] font-semibold text-[#1D1D1F] tracking-[-0.04em] leading-[0.95]">Équipe.</h2>
+            <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">Équipe.</h2>
             <p className="text-[14px] text-[#86868B] mt-2">{store.agents.length} collaborateurs · Cabinet Morel &amp; Associés</p>
           </div>
           <div className="flex gap-1 bg-[#F5F5F7] p-1 rounded-[10px]">

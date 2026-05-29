@@ -124,7 +124,7 @@ export function TasksView() {
             <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
               <span>☼</span><span>Validation</span><span>·</span><span>Pédagogie DEC</span>
             </div>
-            <h2 className="text-[56px] font-semibold text-[#1D1D1F] tracking-[-0.04em] leading-[0.95]">Tâches.</h2>
+            <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">Tâches.</h2>
             <p className="text-[14px] text-[#86868B] mt-2">Documents préparés par l'équipe à contrôler. Détecte les erreurs DEC.</p>
           </div>
         </div>

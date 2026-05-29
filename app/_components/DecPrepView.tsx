@@ -130,7 +130,7 @@ export function DecPrepView() {
             <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
               <span>☼</span><span>Examen</span><span>·</span><span>Préparation DEC</span>
             </div>
-            <h2 className="text-[56px] font-semibold text-[#1D1D1F] tracking-[-0.04em] leading-[0.95]">DEC Prep.</h2>
+            <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">DEC Prep.</h2>
             <p className="text-[14px] text-[#86868B] mt-2">Niveau {store.player_level}/10 · {store.player_xp} XP · {store.dec_badges.length} badge{store.dec_badges.length > 1 ? "s" : ""}</p>
           </div>
           <div className="text-right">

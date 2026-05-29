@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { ErrorBoundary } from "./ErrorBoundary";
 import HomeContent from "./HomeContent";
+import { ThemeProvider } from "./_components/ThemeProvider";
 
 export default function Page() {
   // Guard de montage : on attend que le client soit hydraté avant de render
@@ -24,8 +25,10 @@ export default function Page() {
   }
 
   return (
-    <ErrorBoundary>
-      <HomeContent />
-    </ErrorBoundary>
+    <ThemeProvider>
+      <ErrorBoundary>
+        <HomeContent />
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }
