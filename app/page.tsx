@@ -64,6 +64,7 @@ interface AgendaSlot {
   duree_min: number;
   xp_max: number;
   niveau_requis: number;
+  case_id?: string;
 }
 interface DeontoQuestion {
   id: string;
@@ -820,13 +821,31 @@ export default function Home() {
 
   function fallbackCase(slot: AgendaSlot): CaseStudy | null {
     if (!casesPool.length) return null;
-    // Filtrer par niveau requis et thème proche
-    const themeKeywords = slot.theme.toLowerCase().split(/\s+/);
-    const matching = casesPool.filter(c =>
+
+    // Priorité 1 : case_id exact défini dans le slot agenda
+    if (slot.case_id) {
+      const exact = casesPool.find((c: any) => c.case_id === slot.case_id);
+      if (exact) {
+        return {
+          titre: exact.titre,
+          client: exact.client,
+          contexte: exact.contexte,
+          enonce: exact.enonce,
+          question: exact.question,
+          xp_potentiel: exact.xp_potentiel,
+          criteres: exact.criteres,
+        };
+      }
+    }
+
+    // Priorité 2 : matching par mots-clés (avec filtre stopwords)
+    const stopwords = new Set(["et", "le", "la", "les", "des", "du", "de", "un", "une", "à", "sur", "pour", "par", "en", "rapide", "jour", "session", "matin"]);
+    const themeKeywords = slot.theme.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !stopwords.has(w));
+    const matching = casesPool.filter((c: any) =>
       c.niveau_min <= store.player_level &&
       c.themes.some((t: string) => themeKeywords.some(k => t.toLowerCase().includes(k) || k.includes(t.toLowerCase())))
     );
-    const pool = matching.length ? matching : casesPool.filter(c => c.niveau_min <= store.player_level);
+    const pool = matching.length ? matching : casesPool.filter((c: any) => c.niveau_min <= store.player_level);
     if (!pool.length) return null;
     const chosen = pool[Math.floor(Math.random() * pool.length)];
     return {
@@ -873,6 +892,17 @@ export default function Home() {
     setCaseResponse("");
     setCaseCorrection(null);
     setCaseLoading(true);
+
+    // Si l'IA est down, on saute direct au fallback case_id (plus rapide)
+    if (apiStatus === "error" && slot.case_id) {
+      const fb = fallbackCase(slot);
+      if (fb) {
+        setActiveCase(fb);
+        setCaseLoading(false);
+        return;
+      }
+    }
+
     try {
       const a = slot.agent_id ? store.agents.find(x => x.id === slot.agent_id) : null;
       const res = await apiFetch("/api/case-study", {
@@ -880,6 +910,8 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           theme: slot.theme,
+          titre_slot: slot.titre,
+          type_slot: slot.type,
           player_level: store.player_level,
           hour: store.game_hour,
           day: store.game_day,

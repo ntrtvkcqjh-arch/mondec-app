@@ -4,41 +4,45 @@
       "heure": "08:30",
       "type": "briefing",
       "titre": "Briefing matinal équipe",
-      "theme": "Revue rapide des dossiers du jour",
+      "theme": "Identification 3 priorités du jour selon clôture bilan",
       "agent_id": "naima_bensaid",
       "duree_min": 30,
       "xp_max": 15,
-      "niveau_requis": 1
+      "niveau_requis": 1,
+      "case_id": "task_bilan_vidal"
     },
     {
       "heure": "09:30",
       "type": "cas_pratique",
       "titre": "Calcul acompte IS — Martin SARL",
-      "theme": "Acompte IS et taux applicable post-réforme",
+      "theme": "Acompte IS — calcul base de l'IS N-1, application taux réduit PME, quotité 1/4",
       "agent_id": "thomas_lefevre",
       "duree_min": 45,
       "xp_max": 25,
-      "niveau_requis": 1
+      "niveau_requis": 1,
+      "case_id": "acompte_is"
     },
     {
       "heure": "10:30",
       "type": "rdv_client",
       "titre": "RDV client Vidal Industrie",
-      "theme": "Provision risque client sous-évaluée — arbitrage",
+      "theme": "Provision créance client en sauvegarde judiciaire — calcul provision adéquate, déductibilité fiscale",
       "agent_id": "naima_bensaid",
       "duree_min": 60,
       "xp_max": 40,
-      "niveau_requis": 3
+      "niveau_requis": 3,
+      "case_id": "provision_risque"
     },
     {
       "heure": "11:30",
       "type": "cas_pratique",
       "titre": "Traitement écart de conversion IFRS",
-      "theme": "Écart de conversion sur filiale étrangère — IFRS",
+      "theme": "Écart de conversion filiale étrangère USD — méthode cours clôture IAS 21, OCI vs résultat",
       "agent_id": "samuel_dubois",
       "duree_min": 45,
       "xp_max": 35,
-      "niveau_requis": 4
+      "niveau_requis": 4,
+      "case_id": "ifrs_conversion"
     },
     {
       "heure": "12:30",
@@ -52,52 +56,57 @@
     {
       "heure": "14:00",
       "type": "cas_pratique",
-      "titre": "Liasse fiscale — petite SARL",
-      "theme": "Constitution liasse 2065 — entreprise individuelle",
+      "titre": "Liasse fiscale 2065 — petite SARL",
+      "theme": "Retraitements fiscaux liasse 2065 : amendes routières, cadeaux clients > seuil, charges non déductibles",
       "agent_id": "lea_garnier",
       "duree_min": 45,
       "xp_max": 20,
-      "niveau_requis": 1
+      "niveau_requis": 1,
+      "case_id": "liasse"
     },
     {
       "heure": "15:00",
       "type": "mediation",
       "titre": "Médiation conflit Hugo / Amélie",
-      "theme": "Gestion conflit interne — répartition dossiers",
+      "theme": "Gestion d'un conflit de répartition de dossiers entre collaborateur ancien et stagiaire DEC — approche managériale et déontologique",
       "agent_id": "lea_garnier",
       "duree_min": 45,
       "xp_max": 30,
-      "niveau_requis": 2
+      "niveau_requis": 2,
+      "case_id": "mediation"
     },
     {
       "heure": "16:00",
       "type": "cas_pratique",
-      "titre": "Provision pour risque — méthodologie",
-      "theme": "Évaluation provision risque client (CRC 99-02)",
+      "titre": "Provision risque — méthodologie CRC",
+      "theme": "Évaluation et comptabilisation d'une provision pour risque client (CRC 99-02, PCG art. 322, déductibilité art. 39-1-5 CGI)",
       "agent_id": "naima_bensaid",
       "duree_min": 45,
       "xp_max": 30,
-      "niveau_requis": 3
+      "niveau_requis": 3,
+      "case_id": "provision_risque"
     },
     {
       "heure": "17:00",
       "type": "validation",
       "titre": "Validation bilan Petit",
-      "theme": "Phase P4 — vérification cohérence bilan PME",
+      "theme": "Revue de cohérence d'un bilan PME : analyse créances clients vs CA, cohérence stocks/charges, signaux d'alerte trésorerie",
       "agent_id": "amelie_durand",
       "duree_min": 30,
       "xp_max": 25,
-      "niveau_requis": 2
+      "niveau_requis": 2,
+      "case_id": "task_bilan_validation"
     },
     {
       "heure": "18:00",
       "type": "debrief",
       "titre": "Debrief fin de journée",
-      "theme": "Bilan du jour — préparation lendemain",
+      "theme": "Bilan stratégique de la journée — actions à mener demain pour la campagne bilan 30/06",
       "agent_id": "thomas_lefevre",
       "duree_min": 30,
       "xp_max": 15,
-      "niveau_requis": 1
+      "niveau_requis": 1,
+      "case_id": "debrief"
     }
   ],
   "evenements_recurrents": [

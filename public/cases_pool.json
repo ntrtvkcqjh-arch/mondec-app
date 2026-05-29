@@ -1,6 +1,72 @@
 {
   "cases": [
     {
+      "case_id": "briefing",
+      "niveau_min": 1,
+      "themes": ["Briefing", "Identification priorités", "stratégie"],
+      "titre": "Briefing matinal — Priorités du jour",
+      "client": "Équipe Cabinet",
+      "contexte": "Naïma anime le briefing de 8h30. J-16 avant clôture bilan Vidal Industrie. 6 dossiers à finaliser dans la semaine. Stress équipe modéré, Léa anxieuse, Hugo en arc Rupture.",
+      "enonce": "Naïma te demande de définir les 3 priorités stratégiques du jour à annoncer à l'équipe : qui s'occupe de quoi, quel dossier en alerte rouge, quelles tâches déléguer. Tu disposes de : 1 manager fiscal (Thomas), 1 directrice audit (Naïma), 1 responsable RH (Sophie), 4 collaborateurs et 1 stagiaire DEC.",
+      "question": "Énonce tes 3 priorités du jour avec l'agent responsable, l'objectif chiffré et l'heure butoir. Adopte un ton EC associé : direct, factuel.",
+      "xp_potentiel": 15,
+      "criteres": ["Hiérarchisation logique", "Affectation cohérente par compétence", "Objectifs SMART"],
+      "correction_officielle": "Priorité 1 (URGENT) : Naïma finalise la revue Vidal Industrie avant 11h pour libérer la provision créance Bertrand (29k€). Priorité 2 (DÉCISION) : Thomas valide l'acompte IS Martin SARL avec moi à 9h30, dépôt obligatoire 15/05. Priorité 3 (RH) : Sophie organise médiation Hugo/Amélie à 15h pour débloquer dossier Petit avant fin de semaine."
+    },
+    {
+      "case_id": "debrief",
+      "niveau_min": 1,
+      "themes": ["Debrief", "bilan journée", "Préparation lendemain"],
+      "titre": "Debrief — Synthèse de la journée",
+      "client": "Cabinet (équipe restreinte)",
+      "contexte": "18h, fin de journée. Tu fais le point avec Thomas avant de partir. Il faut identifier ce qui est terminé, ce qui glisse, et préparer la priorisation de demain.",
+      "enonce": "Aujourd'hui : 2 cas pratiques validés (acompte IS Martin OK, écart conversion IFRS Dubois en attente arbitrage), bilan Vidal toujours en suspens (provision 29k€ à statuer), Hugo a refusé la médiation. Demain : RDV signature CAC Vidal à 10h, deadline TVA J-3, entretien Sophie en fin de journée.",
+      "question": "Rédige le compte-rendu de fin de journée (style mail interne) : 3 acquis, 2 points en suspens, 3 actions prioritaires demain.",
+      "xp_potentiel": 15,
+      "criteres": ["Synthèse claire", "Hiérarchisation des urgences", "Style EC professionnel"],
+      "correction_officielle": "ACQUIS : (1) Validation acompte IS Martin, dépôt confirmé. (2) Échéance TVA en bonne voie (77% prêt). (3) Revue analytique Dubois finalisée par Samuel. SUSPENS : (1) Provision Vidal 29k€ — décision joueur sous 48h. (2) Conflit Hugo/Amélie — relancer médiation. DEMAIN : Préparer RDV Vidal 9h, finaliser écart conversion IFRS, entretien Sophie."
+    },
+    {
+      "case_id": "mediation",
+      "niveau_min": 2,
+      "themes": ["Médiation", "Conflit interne", "Drama", "gestion conflit"],
+      "titre": "Médiation Hugo / Amélie — Dossier Petit",
+      "client": "Cabinet interne",
+      "contexte": "Hugo (collab 4 ans, ambitieux, arc Rupture) refuse de transmettre les pièces du dossier Petit à Amélie (stagiaire DEC, anxieuse). Hugo considère le dossier comme 'sien'. Amélie pleure dans la salle de pause. Le client Petit veut son bilan lundi. Léa Garnier vient te voir.",
+      "enonce": "Tu as 30 minutes avant ton prochain RDV. Le client Petit appelle dans 2h. Hugo a déjà brisé une promesse d'augmentation, il est sur le point de partir au concurrent. Amélie a besoin de ce dossier pour valider son stage. La situation impacte aussi Léa (loyale, stress 72).",
+      "question": "Décris ta marche à suivre en 4 actions ordonnées qui (1) sauvent le client Petit, (2) ne perdent pas Hugo, (3) protègent Amélie, (4) respectent la déontologie EC.",
+      "xp_potentiel": 30,
+      "criteres": ["Priorité client", "Respect collaborateurs", "Décision tranchée managériale", "Désamorçage RH"],
+      "correction_officielle": "(1) Entretien rapide Hugo en privé (10 min) : valider sa frustration légitime, rappeler décision managériale, garantir reconnaissance écrite de son travail historique sur Petit. (2) Binôme Amélie + Hugo 1h en supervision Naïma : transmission complète des pièces avec passation orale. (3) Validation client Petit : appel personnel pour garantir le respect du délai. (4) J+2 : entretien individuel Hugo pour discussion perspective évolution + revue augmentation promise."
+    },
+    {
+      "case_id": "task_bilan_validation",
+      "niveau_min": 2,
+      "themes": ["Validation bilan", "Revue cohérence", "PME"],
+      "titre": "Validation bilan PME — Revue de cohérence",
+      "client": "Boulangerie Petit",
+      "contexte": "Amélie a finalisé son premier bilan. Tu dois valider la cohérence avant signature. CA 850k€ (+5% vs N-1).",
+      "enonce": "Le bilan présente : Stocks 45k€ (vs 38k€ N-1, +18%), Créances clients 92k€ (vs 65k€ N-1, +41% alors que CA +5%), Trésorerie 12k€ (faible), Dettes fournisseurs 78k€ (vs 71k€ N-1), Capitaux propres 145k€.",
+      "question": "Identifie les 3 anomalies majeures et formule les diligences complémentaires à demander avant signature.",
+      "xp_potentiel": 25,
+      "criteres": ["Détection écart créances vs CA", "Analyse stocks vs activité", "Alerte trésorerie", "Diligences claires"],
+      "correction_officielle": "Anomalies : (1) Hausse créances +41% incohérente avec CA +5% → risque créances non recouvrables, demander balance âgée, provisionner si > 90j. (2) Stocks +18% / activité +5% → vérifier inventaire physique signé, risque obsolescence/double-comptage. (3) Trésorerie 12k€ très faible → demander prévisionnel 12 mois, vérifier covenant bancaire, ajouter mention annexe."
+    },
+    {
+      "case_id": "task_bilan_vidal",
+      "niveau_min": 1,
+      "themes": ["Bilan Vidal", "Revue dossiers"],
+      "titre": "Revue dossiers — État Vidal Industrie",
+      "client": "Vidal Industrie",
+      "contexte": "Briefing matin. Tu fais le point sur Vidal avec Naïma : créance Bertrand 45k€ TTC en sauvegarde, provision actuelle 8 500€ insuffisante.",
+      "enonce": "Naïma te demande comment tu veux traiter ce point sur Vidal. Le client conteste, l'écart est de 29k€ HT à compléter en provision. La signature du bilan est prévue dans 14 jours.",
+      "question": "Quelle est ta décision : compléter la provision avant signature (arbitrage technique) ou maintenir la provision client (risque réserve dans rapport CAC) ? Justifie en 4-5 phrases avec les références applicables.",
+      "xp_potentiel": 15,
+      "criteres": ["Référence PCG 322-1 et CGI 39-1-5", "Position EC associé claire", "Anticipation impact CAC", "Ton management"],
+      "correction_officielle": "Décision : compléter la provision à 37 500 € HT (intégralité de la créance). Justifications : (1) PCG art. 322-1 et 322-5 — risque probable identifié (procédure de sauvegarde ouverte). (2) Art. 39-1-5 CGI — provision déductible car individualisée et perte nettement précisée. (3) Refuser l'ajustement = risque réserve dans le rapport Naïma = +30% prob risque pénal et perte légitimité. Action : convaincre dirigeant Vidal par écrit, documenter au dossier permanent."
+    },
+    {
+      "case_id": "acompte_is",
       "niveau_min": 1,
       "themes": ["Acompte IS", "Calcul acompte IS", "IS"],
       "titre": "Acompte IS — Martin SARL",
