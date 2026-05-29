@@ -96,19 +96,19 @@ export function CascadeNotifications() {
         const c = colorMap[n.type];
 
         return (
-          <div key={n.id} className={`bg-white border ${c.border} rounded-[14px] p-3 shadow-xl pointer-events-auto animate-in slide-in-from-right duration-500`}>
+          <div key={n.id} className={`bg-white dark:bg-[#1c1c1e] border ${c.border} dark:border-[#38383a]/60 rounded-[14px] p-3 shadow-xl dark:shadow-black/40 pointer-events-auto animate-in slide-in-from-right duration-500 backdrop-blur-xl`}>
             <div className="flex items-start gap-2.5">
               <div className={`w-8 h-8 rounded-full ${c.bg} flex items-center justify-center shrink-0 text-white text-[14px]`}>
                 {n.emoji}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="text-[12px] font-semibold text-[#1D1D1F] leading-snug">{n.title}</h4>
-                  <button onClick={() => dismissNotif(n.id)} className="shrink-0 -mt-0.5 -mr-0.5 w-4 h-4 rounded-full bg-[#F5F5F7] hover:bg-[#E5E5EA] flex items-center justify-center">
-                    <X size={9} className="text-[#86868B]" />
+                  <h4 className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white leading-snug">{n.title}</h4>
+                  <button onClick={() => dismissNotif(n.id)} className="shrink-0 -mt-0.5 -mr-0.5 w-4 h-4 rounded-full bg-[#F5F5F7] dark:bg-[#2c2c2e] hover:bg-[#E5E5EA] dark:hover:bg-[#38383a] flex items-center justify-center">
+                    <X size={9} className="text-[#86868B] dark:text-[#98989D]" />
                   </button>
                 </div>
-                <p className="text-[10px] text-[#86868B] mt-1 leading-relaxed line-clamp-2">{n.description}</p>
+                <p className="text-[10px] text-[#86868B] dark:text-[#98989D] mt-1 leading-relaxed line-clamp-2">{n.description}</p>
               </div>
             </div>
           </div>

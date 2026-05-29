@@ -117,26 +117,26 @@ export function ClaudeTuteur({ onOpenChat }: Props) {
 
   if (!conseil || dismissed) return null;
 
-  const priorityColor = conseil.priority === "haute" ? "border-[#FF3B30]/40 bg-[#FF3B30]/8" : conseil.priority === "moyenne" ? "border-[#FF9500]/40 bg-[#FF9500]/8" : "border-[#007AFF]/40 bg-[#007AFF]/8";
+  const priorityColor = conseil.priority === "haute" ? "border-[#FF3B30]/40 bg-[#FF3B30]/8 dark:bg-[#FF3B30]/12" : conseil.priority === "moyenne" ? "border-[#FF9500]/40 bg-[#FF9500]/8 dark:bg-[#FF9500]/12" : "border-[#007AFF]/40 bg-[#007AFF]/8 dark:bg-[#007AFF]/12";
 
   return (
     <div className={`mx-3 mb-2 p-2.5 rounded-[12px] border ${priorityColor} relative`}>
-      <button onClick={() => setDismissed(true)} className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center">
-        <X size={9} className="text-[#86868B]" />
+      <button onClick={() => setDismissed(true)} className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 flex items-center justify-center">
+        <X size={9} className="text-[#86868B] dark:text-[#98989D]" />
       </button>
       <div className="flex items-start gap-2 pr-4">
         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#007AFF] via-[#5856D6] to-[#AF52DE] flex items-center justify-center shrink-0">
           <Sparkles size={11} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-semibold text-[#1D1D1F] mb-0.5 flex items-center gap-1">
+          <div className="text-[10px] font-semibold text-[#1D1D1F] dark:text-white mb-0.5 flex items-center gap-1">
             <span>Claude tuteur</span>
             <span className="w-1 h-1 rounded-full bg-[#34C759] animate-pulse" />
           </div>
-          <p className="text-[10px] text-[#3a3a3c] leading-snug">
+          <p className="text-[10px] text-[#3a3a3c] dark:text-[#98989D] leading-snug">
             <span className="mr-1">{conseil.emoji}</span>{conseil.text}
           </p>
-          <button onClick={onOpenChat} className="mt-1 text-[10px] text-[#007AFF] hover:underline font-medium">
+          <button onClick={onOpenChat} className="mt-1 text-[10px] text-[#007AFF] dark:text-[#0A84FF] hover:underline font-medium">
             Demander conseil →
           </button>
         </div>
