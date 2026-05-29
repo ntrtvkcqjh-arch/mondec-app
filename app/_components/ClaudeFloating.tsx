@@ -17,6 +17,15 @@ export function ClaudeFloating() {
     if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth" });
   }, [store.claude_history, open]);
 
+  // Écouter l'event custom pour ouvrir le chat depuis le ClaudeTuteur
+  useEffect(() => {
+    function handleOpen() { setOpen(true); }
+    if (typeof window !== "undefined") {
+      window.addEventListener("open-claude-chat", handleOpen);
+      return () => window.removeEventListener("open-claude-chat", handleOpen);
+    }
+  }, []);
+
   async function send() {
     const text = input.trim();
     if (!text || sending) return;

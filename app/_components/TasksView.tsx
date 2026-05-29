@@ -109,15 +109,31 @@ export function TasksView() {
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-end justify-between mb-5">
+        <div className="flex items-end justify-between mb-3">
           <div>
             <h2 className="text-[32px] font-semibold text-[#1D1D1F] tracking-[-0.022em] leading-tight">Tâches — Validation pédagogique</h2>
             <p className="text-[13px] text-[#86868B] mt-1">Documents préparés par l'équipe à contrôler. Détecte les erreurs DEC.</p>
           </div>
-          <div className="text-right">
-            <div className="text-[11px] text-[#86868B]">Validés / Total</div>
-            <div className="text-[22px] font-bold text-[#34C759] tabular-nums">{completedTasks.size}/{pool.length}</div>
+        </div>
+
+        {/* Barre Validés/Total animée */}
+        <div className="bg-white rounded-[14px] p-3 border border-[#E5E5EA]/40 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Progression session</span>
+            <span className="text-[14px] font-bold tabular-nums">
+              <span className="text-[#34C759]">{completedTasks.size}</span>
+              <span className="text-[#86868B]">/{pool.length}</span>
+            </span>
           </div>
+          <div className="h-[8px] bg-[#F5F5F7] rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-[#34C759] to-[#007AFF] rounded-full transition-all duration-700"
+              style={{ width: `${(completedTasks.size / Math.max(1, pool.length)) * 100}%` }} />
+          </div>
+          {completedTasks.size === pool.length && pool.length > 0 && (
+            <div className="mt-2 text-[12px] font-semibold text-[#34C759] text-center animate-pulse">
+              🎉 Session validée ! Tous les documents traités.
+            </div>
+          )}
         </div>
 
         <div className="bg-gradient-to-r from-[#007AFF]/8 to-[#5856D6]/8 border border-[#007AFF]/15 rounded-[14px] p-3 mb-4">

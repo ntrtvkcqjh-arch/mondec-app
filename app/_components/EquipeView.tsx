@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import {
   Users, Heart, Filter, ArrowUpDown, GitBranch, Grid3x3, Lock,
-  X, MessageSquare, Award, BookOpen, Megaphone, CheckCircle
+  X, MessageSquare, Award, BookOpen, Megaphone, CheckCircle, Flame
 } from "lucide-react";
 
 function EmotionChip({ emotion, small }: { emotion: string; small?: boolean }) {
@@ -43,7 +43,7 @@ function AgentBar({ label, value, warn, invert }: { label: string; value: number
 
 export function EquipeView() {
   const store = useGameStore();
-  const [view, setView] = useState<"grid" | "org">("grid");
+  const [view, setView] = useState<"grid" | "org" | "crise">("grid");
   const [filter, setFilter] = useState<"tous" | "en_ligne" | "en_alerte" | "stagiaires" | "managers">("tous");
   const [sort, setSort] = useState<"confiance" | "stress" | "nom">("confiance");
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -111,8 +111,10 @@ export function EquipeView() {
 
   const detailAgent = detailId ? store.agents.find((a) => a.id === detailId) : null;
 
+  const enCrise = store.agents.filter((a: any) => a.stress > 70 || a.fatigue > 70 || a.emotion === "En conflit" || a.emotion === "Frustré" || a.arc_actuel === "Rupture" || a.arc_actuel === "Crise");
+
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className={`flex-1 overflow-y-auto p-6 ${view === "crise" ? "bg-gradient-to-br from-[#FF3B30]/5 via-white to-[#FF9500]/5" : ""}`}>
       <div className="max-w-5xl mx-auto">
         <div className="flex items-end justify-between mb-4">
           <div>
@@ -127,6 +129,10 @@ export function EquipeView() {
             <button onClick={() => setView("org")}
               className={`px-2.5 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${view === "org" ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B]"}`}>
               <GitBranch size={11} /> Organigramme
+            </button>
+            <button onClick={() => setView("crise")}
+              className={`px-2.5 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${view === "crise" ? "bg-[#FF3B30] text-white shadow-sm" : "text-[#FF3B30]"}`}>
+              <Flame size={11} /> Mode Crise
             </button>
           </div>
         </div>
@@ -228,6 +234,79 @@ export function EquipeView() {
               );
             })}
           </div>
+        )}
+
+        {/* Mode Crise */}
+        {view === "crise" && (
+          <>
+            <div className="bg-gradient-to-r from-[#FF3B30] to-[#FF9500] text-white rounded-[16px] p-4 mb-4 flex items-center gap-3 shadow-md">
+              <Flame size={28} className="animate-pulse" />
+              <div>
+                <div className="text-[15px] font-bold">Mode Crise activé</div>
+                <div className="text-[12px] text-white/90">{enCrise.length} collaborateur{enCrise.length > 1 ? "s" : ""} en détresse · Intervention recommandée</div>
+              </div>
+              {enCrise.length > 0 && (
+                <button onClick={() => enCrise.forEach((a) => store.talkAgent(a.id))}
+                  className="ml-auto px-3 py-1.5 bg-white text-[#FF3B30] rounded-[8px] text-[12px] font-semibold hover:bg-white/90 transition-all">
+                  Intervenir sur tous (+1 PA/personne)
+                </button>
+              )}
+            </div>
+
+            {enCrise.length === 0 ? (
+              <div className="bg-white rounded-[16px] p-12 text-center border border-[#34C759]/20">
+                <CheckCircle size={48} className="text-[#34C759] mx-auto mb-3" />
+                <p className="text-[15px] font-semibold text-[#34C759]">Aucune crise détectée</p>
+                <p className="text-[12px] text-[#86868B] mt-1">Toute l'équipe est dans le vert. Bon travail !</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {enCrise.map((a: any) => {
+                  const alerts = getAlerts(a);
+                  return (
+                    <div key={a.id} onClick={() => setDetailId(a.id)}
+                      className="bg-white rounded-[18px] p-4 border-l-[4px] border-l-[#FF3B30] border-y border-r border-[#FF3B30]/20 shadow-md hover:shadow-xl hover:-translate-y-0.5 cursor-pointer transition-all">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="relative shrink-0">
+                          <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold shadow-md" style={{ backgroundColor: a.avatar_color }}>
+                            {a.initiales}
+                          </div>
+                          <div className="absolute inset-0 rounded-full ring-2 ring-[#FF3B30] animate-pulse pointer-events-none" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="font-semibold text-[14px] text-[#1D1D1F] truncate">{a.nom}</span>
+                            <span className="text-[10px] font-bold bg-[#FF3B30] text-white px-1.5 py-0.5 rounded-md">🔥 URGENT</span>
+                          </div>
+                          <div className="text-[11px] text-[#86868B] truncate">{a.role}</div>
+                          <div className="mt-1 flex items-center gap-1 flex-wrap">
+                            <EmotionChip emotion={a.emotion || "Stable"} small />
+                            {alerts.map((alert, i) => <span key={i} title={alert.label} className="text-[12px]">{alert.icon}</span>)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <AgentBar label="Stress" value={a.stress} warn={70} />
+                        <AgentBar label="Fatigue" value={a.fatigue} warn={70} />
+                        <AgentBar label="Confiance" value={a.confiance_joueur} invert />
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 mt-2.5" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => handleAction(a.id, "talk")} className="px-1 py-1.5 text-[10px] bg-[#007AFF]/8 text-[#007AFF] hover:bg-[#007AFF]/15 rounded-[6px] flex items-center justify-center gap-1 font-medium">
+                          <MessageSquare size={10} /> Parler
+                        </button>
+                        <button onClick={() => handleAction(a.id, "train")} className="px-1 py-1.5 text-[10px] bg-[#AF52DE]/8 text-[#AF52DE] hover:bg-[#AF52DE]/15 rounded-[6px] flex items-center justify-center gap-1 font-medium">
+                          <BookOpen size={10} /> Former
+                        </button>
+                        <button onClick={() => handleAction(a.id, "reward")} className="px-1 py-1.5 text-[10px] bg-[#34C759]/8 text-[#34C759] hover:bg-[#34C759]/15 rounded-[6px] flex items-center justify-center gap-1 font-medium">
+                          <Award size={10} /> Récomp.
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {/* Vue Organigramme */}

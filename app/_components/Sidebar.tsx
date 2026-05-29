@@ -6,6 +6,7 @@ import { signOut } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Mail, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key, BarChart3, UserPlus } from "lucide-react";
 import { apiFetch, getUserApiKey, hasUserApiKey } from "@/lib/api-client";
+import { ClaudeTuteur } from "./ClaudeTuteur";
 
 export type Tab = "messages" | "equipe" | "agenda" | "tasks" | "dossiers" | "fiscal" | "rh" | "dec";
 
@@ -16,6 +17,7 @@ interface Props {
   dossiersAlerte: number;
   tasksDispos: number;
   onOpenKeyModal: () => void;
+  onOpenClaudeChat?: () => void;
   apiStatus: "checking" | "ok" | "error";
   apiStatusReason: string;
   generatingEvents: boolean;
@@ -172,6 +174,9 @@ export function Sidebar(props: Props) {
           );
         })}
       </nav>
+
+      {/* Claude Tuteur — bulle contextuelle */}
+      <ClaudeTuteur onOpenChat={props.onOpenClaudeChat || (() => {})} />
 
       <div className="px-3 py-3 border-t border-[#E5E5EA]/40 space-y-2">
         <MiniStat label="Légitimité" value={store.legitimite} color="#007AFF" />

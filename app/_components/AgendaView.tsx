@@ -237,6 +237,31 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
 
         <div className="relative">
           <div className="absolute left-[68px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-[#E5E5EA]/0 via-[#E5E5EA] to-[#E5E5EA]/0" />
+
+          {/* Ligne "Maintenant" qui se déplace avec l'heure jeu */}
+          {(() => {
+            const startMin = 8 * 60;
+            const endMin = 19 * 60;
+            const currentMin = store.game_hour * 60 + store.game_minute;
+            if (currentMin < startMin || currentMin > endMin) return null;
+            const slotsBefore = slots.filter((s) => {
+              const sMin = timeToMinutes(s.heure);
+              return sMin <= currentMin;
+            }).length;
+            const offsetPx = slotsBefore * 84 + 30; // approximation hauteur slot
+            return (
+              <div className="absolute left-[64px] right-0 z-10 pointer-events-none" style={{ top: `${offsetPx}px` }}>
+                <div className="relative flex items-center">
+                  <div className="w-3 h-3 rounded-full bg-[#007AFF] shadow-[0_0_8px_rgba(0,122,255,0.6)] animate-pulse" />
+                  <div className="flex-1 h-[2px] bg-[#007AFF]/40" />
+                  <span className="ml-2 text-[10px] font-bold text-[#007AFF] bg-white/80 backdrop-blur px-2 py-0.5 rounded-full shadow-sm border border-[#007AFF]/30">
+                    Maintenant · {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="space-y-2">
             {slots.map((slot) => {
               const slotMin = timeToMinutes(slot.heure);

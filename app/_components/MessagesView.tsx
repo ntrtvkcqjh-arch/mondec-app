@@ -20,6 +20,28 @@ function getNiveauDot(n: string) {
   }
 }
 
+interface UrgenceBadge {
+  emoji: string;
+  label: string;
+  color: string;
+  bg: string;
+  border: string;
+  rowBg: string;
+}
+
+function getUrgenceBadge(heures: number): UrgenceBadge {
+  if (heures <= 0) {
+    return { emoji: "🔴", label: "RETARD", color: "text-white", bg: "bg-[#FF3B30]", border: "border-l-[#FF3B30]", rowBg: "bg-[#FF3B30]/8" };
+  }
+  if (heures <= 24) {
+    return { emoji: "🟠", label: "J-1", color: "text-white", bg: "bg-[#FF9500]", border: "border-l-[#FF9500]", rowBg: "bg-[#FF9500]/5" };
+  }
+  if (heures <= 72) {
+    return { emoji: "🟡", label: "J-3", color: "text-[#A35900]", bg: "bg-[#FFCC00]", border: "border-l-[#FFCC00]", rowBg: "" };
+  }
+  return { emoji: "🔵", label: "COURANT", color: "text-white", bg: "bg-[#007AFF]", border: "border-l-[#007AFF]", rowBg: "" };
+}
+
 function getNiveauLabel(n: string) {
   switch (n) {
     case "N1": return "Info"; case "N2": return "Question";
@@ -193,14 +215,14 @@ export function MessagesView({ onOpenKeyModal }: Props) {
             return (
               <div key={a.id}
                 onClick={() => handleSelectAgent(a.id)}
-                className={`group mx-2 mb-1 p-3 rounded-[14px] cursor-pointer transition-all ${isSelected ? "bg-gradient-to-r from-[#007AFF] to-[#0a84ff] text-white shadow-md" : conv.unread === 0 ? "opacity-75 hover:bg-white/80" : "hover:bg-white/80"}`}>
+                className={`group mx-2 mb-1 p-3 rounded-[14px] cursor-pointer transition-all border-l-4 ${isSelected ? "bg-gradient-to-r from-[#007AFF] to-[#0a84ff] text-white shadow-md border-l-transparent" : `${conv.pendingMsg ? getUrgenceBadge(conv.pendingMsg.delai_reponse_heures).border + " " + getUrgenceBadge(conv.pendingMsg.delai_reponse_heures).rowBg : "border-l-transparent"} ${conv.unread === 0 ? "opacity-75 hover:bg-white/80" : "hover:bg-white/80"}`}`}>
                 <div className="flex items-start gap-2.5">
                   <div className="relative shrink-0">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shadow-sm" style={{ backgroundColor: a.avatar_color }}>
                       {a.initiales}
                     </div>
-                    {conv.pendingMsg && (
-                      <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 ${isSelected ? "border-[#007AFF]" : "border-[#f5f5f7]"} ${getNiveauDot(conv.pendingMsg.niveau)}`} />
+                    {a.statut === "En ligne" && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#34C759] border-2 border-white" title="En ligne — réponse rapide possible" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -208,9 +230,16 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                       <span className={`text-[13px] font-semibold truncate ${isSelected ? "text-white" : "text-[#1D1D1F]"}`}>
                         {a.nom}
                       </span>
-                      {conv.unread > 0 && !isSelected && (
-                        <span className="text-[9px] font-bold text-white bg-[#007AFF] rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center shrink-0">{conv.unread}</span>
-                      )}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {conv.pendingMsg && !isSelected && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${getUrgenceBadge(conv.pendingMsg.delai_reponse_heures).bg} ${getUrgenceBadge(conv.pendingMsg.delai_reponse_heures).color}`}>
+                            {getUrgenceBadge(conv.pendingMsg.delai_reponse_heures).label}
+                          </span>
+                        )}
+                        {conv.unread > 0 && !isSelected && (
+                          <span className="text-[9px] font-bold text-white bg-[#007AFF] rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center">{conv.unread}</span>
+                        )}
+                      </div>
                     </div>
                     <p className={`text-[12px] truncate mb-1 ${isSelected ? "text-white/80" : "text-[#86868B]"}`}>
                       {display.sujet}
@@ -221,12 +250,17 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                           {conv.pendingMsg.niveau}
                         </span>
                       )}
+                      {conv.pendingMsg && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-md ${isSelected ? "bg-white/15 text-white" : "bg-[#F5F5F7] text-[#86868B]"}`}>
+                          ⏰ {conv.pendingMsg.delai_reponse_heures}h
+                        </span>
+                      )}
                       <span className={`text-[9px] px-1.5 py-0.5 rounded-md ${isSelected ? "bg-white/15 text-white" : "bg-[#f5f5f7] text-[#86868B]"}`}>
-                        {conv.messages.length} message{conv.messages.length > 1 ? "s" : ""}
+                        {conv.messages.length} msg
                       </span>
                       {!conv.pendingMsg && (
                         <span className={`text-[9px] px-1.5 py-0.5 rounded-md ${isSelected ? "bg-white/15 text-white" : "bg-[#34C759]/10 text-[#34C759]"}`}>
-                          À jour
+                          ✓ À jour
                         </span>
                       )}
                     </div>

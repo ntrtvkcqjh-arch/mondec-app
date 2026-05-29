@@ -149,6 +149,10 @@ export default function HomeContent() {
         activeTab={activeTab} setActiveTab={setActiveTab}
         unreadCount={unreadCount} dossiersAlerte={dossiersAlerte} tasksDispos={tasksDispos}
         onOpenKeyModal={() => setShowKeyModal(true)}
+        onOpenClaudeChat={() => {
+          // Le panel Claude se trouve dans ClaudeFloating ; on dispatch un event custom
+          if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("open-claude-chat"));
+        }}
         apiStatus={apiStatus} apiStatusReason={apiStatusReason}
         generatingEvents={generatingEvents}
       />
