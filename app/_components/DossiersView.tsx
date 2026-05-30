@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
-import { FolderOpen, Sparkles, RefreshCw, UserCog, X } from "lucide-react";
+import { FolderOpen, Sparkles, RefreshCw, UserCog, X, MessageCircle } from "lucide-react";
 import { ClientFicheModal } from "./ClientFicheModal";
 import { SectorTag } from "./SectorTag";
+import { DossierChatModal } from "./DossierChatModal";
 
 function getPhaseColor(phase: string | null) {
   switch (phase) {
@@ -30,6 +31,7 @@ export function DossiersView() {
   const [filter, setFilter] = useState<"en_cours" | "surveillance" | "avance" | "cloture" | "perdu" | "tous">("en_cours");
   const [ficheId, setFicheId] = useState<string | null>(null);
   const [reassignDossierId, setReassignDossierId] = useState<string | null>(null);
+  const [chatDossierId, setChatDossierId] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => store.recomputeAllDossierStatus(), 8000);
@@ -197,12 +199,16 @@ export function DossiersView() {
                       </div>
                     )}
 
-                    {/* Bouton Réaffecter (disponible pour les dossiers actifs) */}
+                    {/* Boutons d'action sur le dossier */}
                     {(d.etat === "en_cours" || d.etat === "surveillance" || d.etat === "avance") && (
-                      <div className="mt-2.5 flex gap-1.5">
+                      <div className="mt-2.5 flex gap-1.5 flex-wrap">
                         <button onClick={(e) => { e.stopPropagation(); setReassignDossierId(d.id); }}
                           className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#007AFF]/10 dark:bg-[#0A84FF]/15 text-[#007AFF] dark:text-[#0A84FF] hover:bg-[#007AFF]/15 dark:hover:bg-[#0A84FF]/25 font-semibold transition-all flex items-center gap-1">
                           <UserCog size={11} /> Réaffecter
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); setChatDossierId(d.id); }}
+                          className="text-[11px] px-2.5 py-1 rounded-[8px] bg-gradient-to-r from-[#AF52DE]/12 to-[#5856D6]/12 dark:from-[#BF5AF2]/20 dark:to-[#5E5CE6]/20 text-[#AF52DE] dark:text-[#BF5AF2] hover:from-[#AF52DE]/20 hover:to-[#5856D6]/20 font-semibold transition-all flex items-center gap-1">
+                          <MessageCircle size={11} /> Discuter
                         </button>
                       </div>
                     )}
@@ -232,6 +238,13 @@ export function DossiersView() {
         const d = store.dossiers.find((x) => x.id === reassignDossierId);
         if (!d) return null;
         return <ReassignModal dossier={d} onClose={() => setReassignDossierId(null)} />;
+      })()}
+
+      {/* Modal chat dédié dossier */}
+      {chatDossierId && (() => {
+        const d = store.dossiers.find((x) => x.id === chatDossierId);
+        if (!d) return null;
+        return <DossierChatModal dossier={d} onClose={() => setChatDossierId(null)} />;
       })()}
     </div>
   );

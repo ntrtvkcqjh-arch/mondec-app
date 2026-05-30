@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import type { Dossier } from "@/lib/supabase-store";
-import { X, AlertTriangle, CheckCircle, Star } from "lucide-react";
+import { X, AlertTriangle, CheckCircle, Star, MessageCircle } from "lucide-react";
 import { SectorTag } from "./SectorTag";
+import { DossierChatModal } from "./DossierChatModal";
 
 interface Props {
   dossier: Dossier;
@@ -32,6 +34,7 @@ export function ClientFicheModal({ dossier: d, onClose }: Props) {
   const store = useGameStore();
   const agent = store.agents.find((x) => x.id === d.agent_id);
   const incompat = store.computeIncompatibilites(d.id, d.agent_id);
+  const [showChat, setShowChat] = useState(false);
 
   const profil = d.profil_relationnel || 50;
   const complexite = d.complexite_comptable || 50;
@@ -194,12 +197,17 @@ export function ClientFicheModal({ dossier: d, onClose }: Props) {
           </div>
         </div>
 
-        <div className="px-6 py-3 bg-[#fafafa] dark:bg-[#161618] border-t border-[#E5E5EA]/40 dark:border-[#38383a]/60 flex items-center justify-end">
+        <div className="px-6 py-3 bg-[#fafafa] dark:bg-[#161618] border-t border-[#E5E5EA]/40 dark:border-[#38383a]/60 flex items-center justify-between gap-2">
+          <button onClick={() => setShowChat(true)}
+            className="px-4 py-2 text-[12px] font-medium rounded-[10px] bg-gradient-to-br from-[#AF52DE] to-[#5856D6] text-white shadow-md hover:shadow-lg flex items-center gap-1.5">
+            <MessageCircle size={13} /> Discuter de ce dossier
+          </button>
           <button onClick={onClose} className="px-4 py-2 text-[12px] font-medium rounded-[10px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md">
             Fermer
           </button>
         </div>
       </div>
+      {showChat && <DossierChatModal dossier={d} onClose={() => setShowChat(false)} />}
     </div>
   );
 }

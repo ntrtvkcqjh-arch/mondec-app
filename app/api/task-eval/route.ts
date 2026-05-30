@@ -11,6 +11,8 @@ interface TaskErreur {
   correction: string;
 }
 
+type DecisionAnomalie = "corriger" | "refuser" | "valider_quand_meme";
+
 export async function POST(req: NextRequest) {
   const apiKey = getApiKey(req);
   const body = await req.json();
@@ -20,11 +22,13 @@ export async function POST(req: NextRequest) {
     lignes_signalees, // array of line indexes the player flagged
     note_correction,
     ecriture_proposee, // { debit_compte, credit_compte, montant, libelle }
+    decisions_par_anomalie, // Record<ligne_index, DecisionAnomalie> — mode revue rapide
   } = body;
 
   const erreurs: TaskErreur[] = task?.erreurs || [];
   const indicesErreursReelles = new Set<number>(erreurs.map((e) => e.ligne_index));
   const indicesSignales = new Set<number>(lignes_signalees || []);
+  const decisionsAnomalies: Record<number, DecisionAnomalie> = decisions_par_anomalie || {};
 
   // Évaluation déterministe (toujours fonctionnelle)
   const erreurs_trouvees: TaskErreur[] = [];
@@ -32,7 +36,9 @@ export async function POST(req: NextRequest) {
   const fausses_alertes: number[] = [];
 
   erreurs.forEach((e) => {
-    if (indicesSignales.has(e.ligne_index)) erreurs_trouvees.push(e);
+    // Une anomalie est "trouvée" si la ligne est flaggée OU si elle a une décision (revue rapide)
+    const hasDecision = decisionsAnomalies[e.ligne_index] !== undefined;
+    if (indicesSignales.has(e.ligne_index) || hasDecision) erreurs_trouvees.push(e);
     else erreurs_manquees.push(e);
   });
   indicesSignales.forEach((idx) => {
@@ -45,7 +51,25 @@ export async function POST(req: NextRequest) {
   score -= erreurs_manquees.length * 30;
   score -= fausses_alertes.length * 10;
 
-  // Bonus / malus selon la décision
+  // Mode revue rapide : impact par décision/anomalie
+  // - Corriger : +15 (geste expert, on règle direct)
+  // - Refuser : +10 (on renvoie au collaborateur, formation)
+  // - Valider malgré tout : -25 (risque fiscal pris en connaissance de cause)
+  let decisions_recap: Array<{ ligne_index: number; description: string; decision: DecisionAnomalie; impact_score: number; consequence: string }> = [];
+  Object.entries(decisionsAnomalies).forEach(([ligneIdxStr, dec]) => {
+    const ligneIdx = parseInt(ligneIdxStr);
+    const err = erreurs.find((e) => e.ligne_index === ligneIdx);
+    if (!err) return;
+    let impact = 0;
+    let consequence = "";
+    if (dec === "corriger") { impact = 15; consequence = "Tu as corrigé direct — pro mais coûte de ton temps."; }
+    else if (dec === "refuser") { impact = 10; consequence = "Renvoyé au collaborateur — il apprend, mais retard de 24h."; }
+    else if (dec === "valider_quand_meme") { impact = -25; consequence = "⚠ Risque fiscal pris en connaissance de cause."; }
+    score += impact;
+    decisions_recap.push({ ligne_index: ligneIdx, description: err.description, decision: dec, impact_score: impact, consequence });
+  });
+
+  // Bonus / malus selon la décision globale
   if (decision === "valider" && erreurs.length > 0) score -= 25; // a validé un doc avec erreurs
   if (decision === "refuser" && erreurs.length === 0) score -= 15; // a refusé un doc OK
   if (decision === "refuser" && erreurs.length > 0) score += 10; // bonne décision
@@ -206,6 +230,7 @@ Note la note rédigée sur 20 selon : qualité des références citées, vocabul
     note_score_claude,
     analyse_note,
     corrige_par_anomalie,
+    decisions_recap,
     ecriture_eval,
     feedback_general,
     impact_legitimite,

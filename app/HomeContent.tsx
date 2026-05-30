@@ -9,6 +9,7 @@ import { apiFetch, hasUserApiKey } from "@/lib/api-client";
 import { Sidebar, type Tab, CabinetLogo } from "./_components/Sidebar";
 import { MessagesView } from "./_components/MessagesView";
 import { MorningBriefingModal } from "./_components/MorningBriefingModal";
+import { EveningRecapModal } from "./_components/EveningRecapModal";
 import { EquipeView } from "./_components/EquipeView";
 import { AgendaView } from "./_components/AgendaView";
 import { DossiersView } from "./_components/DossiersView";
@@ -34,6 +35,7 @@ export default function HomeContent() {
   const [apiStatusReason, setApiStatusReason] = useState("");
   const [apiStatusDetails, setApiStatusDetails] = useState<any>(null);
   const [showBriefing, setShowBriefing] = useState(false);
+  const [showEveningRecap, setShowEveningRecap] = useState(false);
 
   // Briefing matinal : 1x par game_day (au démarrage / à la rotation)
   useEffect(() => {
@@ -45,6 +47,19 @@ export default function HomeContent() {
       localStorage.setItem("last_briefing_day", String(store.game_day));
     }
   }, [store.game_day, store.isAuthenticated, store.isLoading, store.agents.length]);
+
+  // Récap fin de journée : 1x par game_day quand game_hour >= 18
+  useEffect(() => {
+    if (!store.isAuthenticated || store.isLoading) return;
+    if (typeof window === "undefined") return;
+    if (store.game_hour < 18) return;
+    if (store.agents.length === 0) return;
+    const lastRecapDay = parseInt(localStorage.getItem("last_evening_recap_day") || "0");
+    if (lastRecapDay !== store.game_day) {
+      setShowEveningRecap(true);
+      localStorage.setItem("last_evening_recap_day", String(store.game_day));
+    }
+  }, [store.game_day, store.game_hour, store.isAuthenticated, store.isLoading, store.agents.length]);
 
   useEffect(() => {
     store.loadGameState();
@@ -230,6 +245,7 @@ export default function HomeContent() {
           }}
         />
       )}
+      {showEveningRecap && <EveningRecapModal onClose={() => setShowEveningRecap(false)} />}
     </div>
   );
 }

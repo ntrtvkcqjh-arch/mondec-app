@@ -30,11 +30,14 @@ interface TaskResult {
   note_score_claude: number | null;
   analyse_note: string | null;
   corrige_par_anomalie?: CorrigeAnomalie[];
+  decisions_recap?: Array<{ ligne_index: number; description: string; decision: "corriger" | "refuser" | "valider_quand_meme"; impact_score: number; consequence: string }>;
   ecriture_eval: { ok: boolean; feedback: string } | null;
   feedback_general: string;
   impact_legitimite: number;
   xp_gagne: number;
 }
+
+type DecisionAnomalie = "corriger" | "refuser" | "valider_quand_meme";
 
 export function TasksView() {
   const store = useGameStore();
@@ -49,6 +52,9 @@ export function TasksView() {
   const [eCredit, setECredit] = useState("");
   const [eMontant, setEMontant] = useState("");
   const [eLibelle, setELibelle] = useState("");
+  // Mode revue rapide : décision par anomalie
+  const [showRevueRapide, setShowRevueRapide] = useState(false);
+  const [decisionsAnomalies, setDecisionsAnomalies] = useState<Record<number, DecisionAnomalie>>({});
 
   function open(task: TaskDoc) {
     if (store.player_level < task.niveau_min) {
@@ -60,6 +66,8 @@ export function TasksView() {
     setNote("");
     setResult(null);
     setEDebit(""); setECredit(""); setEMontant(""); setELibelle("");
+    setShowRevueRapide(false);
+    setDecisionsAnomalies({});
   }
 
   function toggleLine(idx: number) {
@@ -91,6 +99,7 @@ export function TasksView() {
           lignes_signalees: Array.from(flagged),
           note_correction: note,
           ecriture_proposee: ecriture,
+          decisions_par_anomalie: decisionsAnomalies,
         }),
       });
       const data = await res.json();
@@ -259,11 +268,65 @@ export function TasksView() {
                   </div>
 
                   <div className="mb-4">
-                    <div className="text-[10px] font-semibold text-[#86868B] uppercase tracking-wider mb-1.5">Note de correction (cite les articles)</div>
+                    <div className="text-[10px] font-semibold text-[#86868B] dark:text-[#98989D] uppercase tracking-wider mb-1.5">Note de correction (cite les articles)</div>
                     <textarea value={note} onChange={(e) => setNote(e.target.value)}
                       placeholder="Ex : « L'amende de 450€ est non déductible (art. 39-2 CGI). À réintégrer extra-comptablement. »"
                       rows={3}
-                      className="w-full text-[12px] p-3 border border-[#E5E5EA] rounded-[10px] outline-none focus:border-[#007AFF] resize-none leading-relaxed" />
+                      className="w-full text-[12px] p-3 border border-[#E5E5EA] dark:border-[#38383a] rounded-[10px] outline-none focus:border-[#007AFF] resize-none leading-relaxed bg-white dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white" />
+                  </div>
+
+                  {/* MODE REVUE RAPIDE — actions directes par anomalie (alternative à la détection libre) */}
+                  <div className="mb-4 border border-[#AF52DE]/30 dark:border-[#BF5AF2]/30 rounded-[12px] overflow-hidden">
+                    <button
+                      onClick={() => setShowRevueRapide(!showRevueRapide)}
+                      className="w-full px-3 py-2 bg-gradient-to-r from-[#AF52DE]/8 to-[#5856D6]/8 dark:from-[#BF5AF2]/12 dark:to-[#5E5CE6]/12 flex items-center justify-between hover:from-[#AF52DE]/12 hover:to-[#5856D6]/12 transition-colors"
+                    >
+                      <span className="text-[11px] font-semibold text-[#AF52DE] dark:text-[#BF5AF2] flex items-center gap-1.5">
+                        <Sparkles size={12} /> Mode revue rapide — décider par anomalie
+                      </span>
+                      <span className="text-[10px] text-[#86868B] dark:text-[#98989D]">{showRevueRapide ? "Masquer ▴" : "Afficher ▾"}</span>
+                    </button>
+                    {showRevueRapide && (
+                      <div className="p-3 space-y-2 bg-white dark:bg-[#1c1c1e]">
+                        <p className="text-[10px] text-[#86868B] dark:text-[#98989D] italic mb-2">
+                          Pour chaque anomalie identifiée par le collaborateur, choisis ton action. C'est plus rapide que la note libre, et le score tient compte de chacune de tes décisions.
+                        </p>
+                        {active.erreurs.map((err, i) => {
+                          const dec = decisionsAnomalies[err.ligne_index];
+                          return (
+                            <div key={i} className="bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[10px] p-2.5">
+                              <div className="text-[11px] font-medium text-[#1D1D1F] dark:text-white mb-0.5">
+                                ⚠ L{err.ligne_index + 1} · {err.description}
+                              </div>
+                              <div className="text-[9px] text-[#86868B] dark:text-[#98989D] mb-1.5 italic">📖 {err.reference_legale}</div>
+                              <div className="grid grid-cols-3 gap-1.5">
+                                {[
+                                  { id: "corriger" as const, label: "✓ Corriger", desc: "+15 score · pro", color: "bg-[#34C759]" },
+                                  { id: "refuser" as const, label: "↩ Refuser", desc: "+10 · renvoyer", color: "bg-[#FF9500]" },
+                                  { id: "valider_quand_meme" as const, label: "⚠ Valider", desc: "−25 · risque", color: "bg-[#FF3B30]" },
+                                ].map((opt) => (
+                                  <button
+                                    key={opt.id}
+                                    onClick={() => setDecisionsAnomalies({ ...decisionsAnomalies, [err.ligne_index]: opt.id })}
+                                    className={`px-1.5 py-1.5 rounded-[8px] text-[10px] font-semibold transition-all flex flex-col items-center gap-0.5 ${
+                                      dec === opt.id ? `${opt.color} text-white shadow-md` : "bg-white dark:bg-[#1c1c1e] text-[#3a3a3c] dark:text-[#d1d1d6] border border-[#E5E5EA] dark:border-[#38383a] hover:border-[#86868B]"
+                                    }`}
+                                  >
+                                    <span>{opt.label}</span>
+                                    <span className={`text-[8px] ${dec === opt.id ? "text-white/80" : "text-[#86868B] dark:text-[#98989D]"}`}>{opt.desc}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {Object.keys(decisionsAnomalies).length === active.erreurs.length && active.erreurs.length > 0 && (
+                          <div className="text-[10px] text-[#34C759] font-medium bg-[#34C759]/10 px-2 py-1 rounded">
+                            ✓ Toutes les anomalies décidées — tu peux soumettre maintenant
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-2">
@@ -305,6 +368,31 @@ export function TasksView() {
                   <div className="bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[12px] p-3">
                     <p className="text-[12px] text-[#1D1D1F] italic leading-relaxed">"{result.feedback_general}"</p>
                   </div>
+
+                  {/* Récap des décisions du mode revue rapide */}
+                  {result.decisions_recap && result.decisions_recap.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#AF52DE] dark:text-[#BF5AF2] uppercase tracking-wider mb-2">Tes décisions par anomalie</div>
+                      <div className="space-y-1.5">
+                        {result.decisions_recap.map((d, i) => {
+                          const decStyle = d.decision === "corriger"
+                            ? { bg: "bg-[#34C759]/8 dark:bg-[#30D158]/12", text: "text-[#248A3D] dark:text-[#30D158]", label: "✓ Corrigé" }
+                            : d.decision === "refuser"
+                              ? { bg: "bg-[#FF9500]/8 dark:bg-[#FF9F0A]/12", text: "text-[#C76A00] dark:text-[#FF9F0A]", label: "↩ Refusé" }
+                              : { bg: "bg-[#FF3B30]/8 dark:bg-[#FF453A]/12", text: "text-[#FF3B30] dark:text-[#FF453A]", label: "⚠ Validé malgré tout" };
+                          return (
+                            <div key={i} className={`${decStyle.bg} rounded-[10px] px-3 py-2 flex items-center gap-2`}>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${decStyle.text} bg-white/60 dark:bg-black/30 shrink-0`}>{decStyle.label}</span>
+                              <span className="text-[11px] text-[#1D1D1F] dark:text-[#d1d1d6] flex-1">L{d.ligne_index + 1} · {d.description}</span>
+                              <span className={`text-[11px] font-semibold tabular-nums shrink-0 ${d.impact_score > 0 ? "text-[#34C759]" : "text-[#FF3B30]"}`}>
+                                {d.impact_score > 0 ? "+" : ""}{d.impact_score}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {result.analyse_note && (
                     <div className="bg-gradient-to-br from-[#007AFF]/5 to-[#5856D6]/5 dark:from-[#0A84FF]/10 dark:to-[#5E5CE6]/10 border border-[#007AFF]/20 dark:border-[#0A84FF]/30 rounded-[12px] p-3">
