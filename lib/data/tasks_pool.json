@@ -216,6 +216,187 @@
         "montant": 9000,
         "libelle": "Charges constatées d'avance — loyer trim. N+1"
       }
+    },
+    {
+      "id": "task_acompte_is_vidal",
+      "type": "acompte_is",
+      "branche": "Fiscal",
+      "titre": "Acompte IS — SAS Vidal Industries",
+      "client": "SAS Vidal Industries",
+      "niveau_min": 2,
+      "contexte": "Le collaborateur a préparé le calcul de l'acompte d'IS du 15 mai. Bénéfice fiscal N-1 : 480 000 €. Vérifie le montant et le compte de TVA / IS.",
+      "lignes": [
+        { "label": "Résultat fiscal N-1", "valeur": "480 000 €" },
+        { "label": "Taux IS retenu (réduit ?)", "valeur": "15 % sur les 42 500 premiers + 25 % au-delà" },
+        { "label": "Calcul acompte (1/4 IS théorique)", "valeur": "(42 500×15% + 437 500×25%) ÷ 4 = 28 953 €" },
+        { "label": "Date limite versement", "valeur": "15 mai 2026" },
+        { "label": "Imputation IS payé année N-1", "valeur": "Non vérifiée" },
+        { "label": "Acompte minoré demandé (form. 2571)", "valeur": "Non" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 1,
+          "description": "Taux réduit 15 % applicable uniquement si CA < 10 M€ et capital détenu à 75 % par personnes physiques",
+          "reference_legale": "Art. 219 I-b du CGI",
+          "correction": "Vérifier que SAS Vidal remplit les conditions (PME au sens fiscal). Sinon, IS plein à 25 % dès le 1er euro."
+        },
+        {
+          "ligne_index": 4,
+          "description": "L'imputation IS N-1 doit être vérifiée avant le 1er acompte (sinon doublon)",
+          "reference_legale": "BOI-IS-DECLA-20-10",
+          "correction": "Si l'IS N-1 dégage un excédent, il s'impute sur les acomptes N. Toujours sortir le détail de l'IS payé."
+        }
+      ],
+      "ecriture_correction": {
+        "debit_compte": "695",
+        "credit_compte": "444",
+        "montant": 28953,
+        "libelle": "Acompte IS 15 mai 2026 — exercice 2026"
+      }
+    },
+    {
+      "id": "task_cfe_petit",
+      "type": "cfe",
+      "branche": "Fiscal",
+      "titre": "Avis CFE 2026 — SARL Petit Plomberie",
+      "client": "SARL Petit Plomberie",
+      "niveau_min": 1,
+      "contexte": "Avis CFE reçu pour 2026. Le collaborateur veut le passer en charge déductible. Vérifie la base et le compte.",
+      "lignes": [
+        { "label": "Base d'imposition (valeur locative)", "valeur": "12 800 €" },
+        { "label": "Taux d'imposition local 2026", "valeur": "26,8 %" },
+        { "label": "Montant CFE notifié", "valeur": "3 430 €" },
+        { "label": "Compte utilisé par le stagiaire", "valeur": "635110 (CFE)" },
+        { "label": "Date limite de paiement", "valeur": "15 décembre 2026" },
+        { "label": "Acompte CFE 2026 déjà payé", "valeur": "1 715 € (50 %)" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 5,
+          "description": "Acompte déjà versé non imputé sur la déclaration finale",
+          "reference_legale": "Art. 1679 quinquies du CGI",
+          "correction": "L'acompte du 15 juin doit être déduit du solde. Solde dû = 3 430 − 1 715 = 1 715 €. Sinon double paiement."
+        }
+      ],
+      "ecriture_correction": {
+        "debit_compte": "63511",
+        "credit_compte": "447",
+        "montant": 1715,
+        "libelle": "Solde CFE 2026 — SARL Petit Plomberie"
+      }
+    },
+    {
+      "id": "task_cvae_dubois",
+      "type": "cvae",
+      "branche": "Fiscal",
+      "titre": "Déclaration CVAE — Groupe Dubois Industries",
+      "client": "Groupe Dubois Industries",
+      "niveau_min": 3,
+      "contexte": "CVAE 2026. La VA est calculée par le collaborateur. Vérifie l'assiette et le taux.",
+      "lignes": [
+        { "label": "Chiffre d'affaires HT 2025", "valeur": "8 450 000 €" },
+        { "label": "Valeur ajoutée fiscale calculée", "valeur": "2 180 000 €" },
+        { "label": "Taux théorique CVAE 2026", "valeur": "0,28 % (suppression progressive)" },
+        { "label": "CVAE due (avant frais gestion)", "valeur": "2 180 000 × 0,28 % = 6 104 €" },
+        { "label": "Frais de gestion 1 %", "valeur": "Non ajoutés" },
+        { "label": "Date dépôt formulaire 1330", "valeur": "3e jour ouvré de mai 2027" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 2,
+          "description": "Taux CVAE 2026 est de 0,19 % et non 0,28 % (réforme de suppression progressive PLF 2024)",
+          "reference_legale": "Art. 1586 quater I du CGI modifié par loi de finances 2024",
+          "correction": "La CVAE est en suppression progressive : taux 0,28 % en 2024, 0,19 % en 2025, 0,09 % en 2026, suppression en 2027. CVAE due = 2 180 000 × 0,09 % = 1 962 €."
+        },
+        {
+          "ligne_index": 4,
+          "description": "Frais de gestion 1 % à ajouter au total dû",
+          "reference_legale": "Art. 1647 du CGI",
+          "correction": "L'État prélève 1 % de frais de gestion. Total à verser = CVAE × 1,01."
+        }
+      ],
+      "ecriture_correction": {
+        "debit_compte": "63513",
+        "credit_compte": "447",
+        "montant": 1982,
+        "libelle": "CVAE 2026 — Groupe Dubois Industries (avec frais 1%)"
+      }
+    },
+    {
+      "id": "task_signature_bilan_moreau",
+      "type": "signature_validation",
+      "branche": "Audit & IFRS",
+      "titre": "Signature bilan préparé — Établissements Moreau & Fils",
+      "client": "Établissements Moreau & Fils",
+      "niveau_min": 3,
+      "contexte": "Le bilan annuel a été préparé par le collaborateur. Il te demande ta signature pour validation avant remise au client. Contrôle les points sensibles avant d'apposer ton paraphe d'expert-comptable inscrit à l'Ordre.",
+      "lignes": [
+        { "label": "Bilan actif (immobilisations + actif circulant)", "valeur": "1 240 000 €" },
+        { "label": "Bilan passif (capitaux + dettes)", "valeur": "1 240 000 €" },
+        { "label": "Résultat de l'exercice", "valeur": "+86 000 €" },
+        { "label": "Annexe : engagements hors bilan", "valeur": "Non renseigné" },
+        { "label": "Annexe : règles et méthodes comptables", "valeur": "Renseigné" },
+        { "label": "Stock final inventorié physiquement", "valeur": "Oui (rapport joint)" },
+        { "label": "Provision pour risques (litige client X)", "valeur": "Non comptabilisée" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 3,
+          "description": "Engagements hors bilan non renseignés (caution dirigeant, crédit-bail, retraite)",
+          "reference_legale": "PCG art. 833-2 & 833-3",
+          "correction": "L'annexe doit lister TOUS les engagements hors bilan : cautions, garanties, IDR, leasings. Refus de signature tant que c'est manquant."
+        },
+        {
+          "ligne_index": 6,
+          "description": "Provision non comptabilisée alors qu'un litige est en cours",
+          "reference_legale": "PCG art. 322-1 — principe de prudence",
+          "correction": "Si un litige est probable et chiffrable, il FAUT provisionner. Sinon, le bilan est trompeur et engage ta responsabilité d'EC signataire."
+        }
+      ],
+      "ecriture_correction": {
+        "debit_compte": "6815",
+        "credit_compte": "1511",
+        "montant": 25000,
+        "libelle": "Provision pour litige client X — bilan 2025"
+      }
+    },
+    {
+      "id": "task_liasse_2065_vidal",
+      "type": "liasse_2065",
+      "branche": "Fiscal",
+      "titre": "Liasse fiscale 2065 — SAS Vidal Industries",
+      "client": "SAS Vidal Industries",
+      "niveau_min": 3,
+      "contexte": "Préparation de la liasse fiscale 2065 (IS). Le collaborateur a rempli les principaux tableaux. Vérifie la cohérence avant télétransmission EDI.",
+      "lignes": [
+        { "label": "Tableau 2058-A — Détermination résultat fiscal", "valeur": "Résultat comptable + réintégrations 12 000 − déductions 4 500 = 487 500" },
+        { "label": "Réintégration amendes pénales", "valeur": "Non réintégré (2 800 €)" },
+        { "label": "Réintégration TVS véhicule directeur", "valeur": "Réintégré (3 600 €)" },
+        { "label": "Tableau 2058-B — Déficits reportables", "valeur": "Aucun" },
+        { "label": "Tableau 2059-A — Plus-values long terme", "valeur": "Cession fonds 45 000 € à 12,8 %" },
+        { "label": "Tableau 2033-D — Provisions", "valeur": "Renseigné" },
+        { "label": "Tableau 2065 bis — Affectation résultat", "valeur": "À compléter par AG" }
+      ],
+      "erreurs": [
+        {
+          "ligne_index": 1,
+          "description": "Amendes pénales non réintégrées au résultat fiscal",
+          "reference_legale": "Art. 39-2 du CGI",
+          "correction": "Toutes les amendes pénales sont non déductibles. À réintégrer en 2058-A ligne WJ. Résultat fiscal correct = 490 300 €."
+        },
+        {
+          "ligne_index": 4,
+          "description": "Plus-value de cession de fonds — taux 12,8 % n'existe pas pour les sociétés à l'IS",
+          "reference_legale": "Art. 39 duodecies du CGI",
+          "correction": "Pour une société IS, les plus-values nettes à court terme sont taxées au taux IS normal (25 %), pas à 12,8 % (qui est un taux IR). PV fonds = soumise au taux IS standard."
+        }
+      ],
+      "ecriture_correction": {
+        "debit_compte": "695",
+        "credit_compte": "444",
+        "montant": 122575,
+        "libelle": "IS 2025 — résultat fiscal 490 300 × 25 %"
+      }
     }
   ]
 }

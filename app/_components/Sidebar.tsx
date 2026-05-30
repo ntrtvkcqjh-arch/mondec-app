@@ -64,20 +64,58 @@ export function Sidebar(props: Props) {
   const { theme, setTheme } = useTheme();
 
   const mailUnread = store.mails.filter((m) => m.direction === "in" && !m.read).length;
-  const navItems: { id: Tab; icon: any; label: string; badge?: number }[] = [
-    { id: "accueil", icon: Home, label: "Accueil" },
-    { id: "messages", icon: MessageCircle, label: "Messagerie", badge: props.unreadCount },
-    { id: "mail", icon: Mail, label: "Mail", badge: mailUnread },
-    { id: "equipe", icon: Users, label: "Équipe" },
-    { id: "entretiens", icon: Briefcase, label: "Entretiens" },
-    { id: "agenda", icon: Calendar, label: "Agenda" },
-    { id: "tasks", icon: ClipboardCheck, label: "Tâches", badge: props.tasksDispos },
-    { id: "dossiers", icon: FolderOpen, label: "Dossiers", badge: props.dossiersAlerte },
-    { id: "affectations", icon: Grid3x3, label: "Affectations" },
-    { id: "fiscal", icon: BarChart3, label: "Suivi Fiscal" },
-    { id: "rh", icon: UserPlus, label: "RH" },
-    { id: "dec", icon: GraduationCap, label: "DEC Prep" },
-    { id: "corrections", icon: BookOpen, label: "Corrections", badge: store.chat_corrections.filter((c) => c.game_day === store.game_day).length },
+  const correctionsToday = store.chat_corrections.filter((c) => c.game_day === store.game_day).length;
+
+  // Sidebar organisée par CATÉGORIES métier. Chaque catégorie a un titre puis
+  // ses onglets liés (raccourcit la charge cognitive).
+  type Section = {
+    titre: string;
+    items: { id: Tab; icon: any; label: string; badge?: number }[];
+  };
+  const sections: Section[] = [
+    {
+      titre: "Vue d'ensemble",
+      items: [
+        { id: "accueil", icon: Home, label: "Accueil" },
+      ],
+    },
+    {
+      titre: "Communications",
+      items: [
+        { id: "messages", icon: MessageCircle, label: "Messagerie", badge: props.unreadCount },
+        { id: "mail", icon: Mail, label: "Mail", badge: mailUnread },
+      ],
+    },
+    {
+      titre: "Équipe & dossiers",
+      items: [
+        { id: "equipe", icon: Users, label: "Équipe" },
+        { id: "affectations", icon: Grid3x3, label: "Affectations" },
+        { id: "dossiers", icon: FolderOpen, label: "Dossiers", badge: props.dossiersAlerte },
+      ],
+    },
+    {
+      titre: "Production",
+      items: [
+        { id: "agenda", icon: Calendar, label: "Agenda" },
+        { id: "tasks", icon: ClipboardCheck, label: "Tâches", badge: props.tasksDispos },
+        { id: "fiscal", icon: BarChart3, label: "Suivi Fiscal" },
+      ],
+    },
+    {
+      titre: "Ressources Humaines",
+      items: [
+        { id: "rh", icon: UserPlus, label: "RH" },
+        { id: "entretiens", icon: Briefcase, label: "Entretiens" },
+      ],
+    },
+    {
+      titre: "Formation DEC",
+      items: [
+        { id: "dec", icon: GraduationCap, label: "DEC Prep" },
+        { id: "corrections", icon: BookOpen, label: "Corrections", badge: correctionsToday },
+      ],
+    },
   ];
 
   function handleLogout() {
@@ -100,32 +138,43 @@ export function Sidebar(props: Props) {
         </div>
       </div>
 
-      {/* Navigation principale */}
-      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = props.activeTab === item.id;
-          const colors = navColors[item.id];
-          return (
-            <button
-              key={item.id}
-              onClick={() => props.setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-2.5 py-2.5 rounded-[14px] text-[14px] transition-all group ${
-                isActive ? "bg-white/80 dark:bg-[#2c2c2e] shadow-sm" : "hover:bg-white/40 dark:hover:bg-[#2c2c2e]/60"
-              }`}
-            >
-              <div className={`w-8 h-8 rounded-[10px] ${colors.bg} ${isActive ? "ring-2 " + colors.ring : ""} flex items-center justify-center shrink-0 transition-all`}>
-                <Icon size={15} className={colors.text} />
+      {/* Navigation principale — par sections */}
+      <nav className="flex-1 px-3 py-2 overflow-y-auto">
+        {sections.map((section, sIdx) => (
+          <div key={section.titre} className={sIdx === 0 ? "" : "mt-3"}>
+            {sIdx > 0 && (
+              <div className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#86868B] dark:text-[#86868B]">
+                {section.titre}
               </div>
-              <span className={`flex-1 text-left font-medium ${isActive ? "text-[#1D1D1F] dark:text-white" : "text-[#3a3a3c] dark:text-[#d0d0d5]"}`}>{item.label}</span>
-              {item.badge && item.badge > 0 ? (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center ${isActive ? "bg-[#1D1D1F] text-white" : "bg-[#FF3B30] text-white"}`}>
-                  {item.badge}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
+            )}
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = props.activeTab === item.id;
+                const colors = navColors[item.id];
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => props.setActiveTab(item.id)}
+                    className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-[12px] text-[13px] transition-all group ${
+                      isActive ? "bg-white/80 dark:bg-[#2c2c2e] shadow-sm" : "hover:bg-white/40 dark:hover:bg-[#2c2c2e]/60"
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-[9px] ${colors.bg} ${isActive ? "ring-2 " + colors.ring : ""} flex items-center justify-center shrink-0 transition-all`}>
+                      <Icon size={13} className={colors.text} />
+                    </div>
+                    <span className={`flex-1 text-left font-medium ${isActive ? "text-[#1D1D1F] dark:text-white" : "text-[#3a3a3c] dark:text-[#d0d0d5]"}`}>{item.label}</span>
+                    {item.badge && item.badge > 0 ? (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center ${isActive ? "bg-[#1D1D1F] text-white" : "bg-[#FF3B30] text-white"}`}>
+                        {item.badge}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Niveau joueur + XP — compact, sous la nav */}
@@ -183,11 +232,18 @@ export function Sidebar(props: Props) {
           </div>
           <button
             onClick={() => {
-              if (confirm("⚠️ Réinitialiser le jeu ?\n\nToutes tes données seront supprimées : dossiers, agents, messages, conversations, scores. Tu repars de zéro.\n\nContinuer ?")) {
+              if (confirm(
+                "⚠️ Réinitialiser le jeu ?\n\n" +
+                "Toutes tes données seront supprimées : dossiers, agents, messages, conversations, scores, mails.\n\n" +
+                "À l'écran suivant, tu pourras choisir entre :\n" +
+                "  • Cabinet de zéro (50 k€, équipe vide, à construire)\n" +
+                "  • Cabinet prêt à jouer (5 collaborateurs, dossiers, 145 k€)\n\n" +
+                "Continuer ?"
+              )) {
                 store.resetGame();
               }
             }}
-            title="Réinitialiser le jeu (repartir de zéro)"
+            title="Réinitialiser le jeu — re-choisir le scénario de démarrage"
             className="w-7 h-7 rounded-full bg-white dark:bg-[#2c2c2e] hover:bg-[#FF9500]/10 dark:hover:bg-[#FF9500]/20 flex items-center justify-center transition-colors group">
             <RotateCcw size={12} className="text-[#86868B] dark:text-[#a0a0a5] group-hover:text-[#FF9500]" />
           </button>

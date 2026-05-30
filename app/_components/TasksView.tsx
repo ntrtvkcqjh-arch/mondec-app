@@ -72,33 +72,56 @@ export function TasksView() {
   }
 
   // 🔗 AUTO-OPEN : si une obligation fiscale pending arrive, on cherche la tâche
-  // qui correspond (type + client) et on ouvre directement le modal
+  // qui correspond (type + client) — fallback par type, puis par niveau.
   useEffect(() => {
     if (!store.pending_obligation_id || !store.pending_obligation_meta || active) return;
     const meta = store.pending_obligation_meta;
-    // Map type fiscal → mots-clés dans le type/titre de la tâche
+    // Mots-clés avec word-boundaries pour éviter les faux positifs (ex : "is"
+    // qui matche "industries", "fiscale" etc.). On utilise des espaces autour
+    // pour les acronymes courts.
     const typeKeywords: Record<string, string[]> = {
       TVA: ["tva", "ca3"],
-      IS: ["is", "acompte_is", "impôt sur les sociétés"],
-      Liasse: ["liasse", "2065", "2033"],
+      IS: ["acompte_is", " is ", "is ", " is", "impôt sur les sociétés", "impot societes", "acompte is"],
+      Liasse: ["liasse", "2065", "2033", "bilan"],
       CVAE: ["cvae"],
       CFE: ["cfe"],
     };
     const keywords = typeKeywords[meta.type] || [meta.type.toLowerCase()];
-    const match = pool.find((t) => {
-      const titre = t.titre.toLowerCase();
-      const type = t.type.toLowerCase();
+
+    function typeMatch(t: TaskDoc, kws: string[]): boolean {
+      const titre = " " + t.titre.toLowerCase() + " ";
+      const type = " " + t.type.toLowerCase() + " ";
+      return kws.some((k) => titre.includes(k) || type.includes(k));
+    }
+
+    // 1) match parfait : type + client
+    let match = pool.find((t) => {
       const client = t.client.toLowerCase();
-      const matchesType = keywords.some((k) => titre.includes(k) || type.includes(k));
       const matchesClient = client.includes(meta.client.toLowerCase().split(" ")[0]) || meta.client.toLowerCase().includes(client.split(" ")[0]);
-      return matchesType && matchesClient;
-    }) || pool.find((t) => keywords.some((k) => t.titre.toLowerCase().includes(k) || t.type.toLowerCase().includes(k))); // fallback type seul
-    if (match && store.player_level >= match.niveau_min) {
-      setTimeout(() => open(match), 200);
-    } else if (!match) {
-      // Aucune tâche correspondante — message clair
+      return typeMatch(t, keywords) && matchesClient;
+    });
+    // 2) fallback : même type, accessible au niveau actuel, non encore traité
+    if (!match) {
+      match = pool.find((t) =>
+        typeMatch(t, keywords)
+        && store.player_level >= t.niveau_min
+        && !store.completed_tasks.includes(t.id)
+      );
+    }
+    // 3) fallback ultime : n'importe quelle tâche dispo au bon niveau, non encore traitée
+    if (!match) {
+      match = pool.find((t) => store.player_level >= t.niveau_min && !store.completed_tasks.includes(t.id));
+    }
+
+    if (match) {
       setTimeout(() => {
-        alert(`Aucun cas pratique disponible pour ${meta.type} - ${meta.client}. L'obligation reste en attente. (Niveau actuel : ${store.player_level})`);
+        // Sub le client de la tâche par le client de l'obligation pour l'affichage
+        const matchClone: TaskDoc = { ...match!, client: meta.client };
+        open(matchClone);
+      }, 200);
+    } else {
+      setTimeout(() => {
+        alert(`Toutes les tâches de niveau ${store.player_level} ont déjà été traitées. Monte de niveau pour débloquer plus de cas pratiques (${meta.type} — ${meta.client}).`);
         store.clearPendingObligation();
       }, 300);
     }
@@ -134,6 +157,7 @@ export function TasksView() {
           note_correction: note,
           ecriture_proposee: ecriture,
           decisions_par_anomalie: decisionsAnomalies,
+          player_level: store.player_level,
         }),
       });
       const data = await res.json();

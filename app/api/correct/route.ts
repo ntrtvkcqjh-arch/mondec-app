@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
 import { callAnthropic } from "@/lib/anthropic-helper";
+import { getToneInstructions } from "@/lib/tone-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,10 @@ export async function POST(req: NextRequest) {
 
   const { case_study, player_response, player_level } = await req.json();
 
-  const systemPrompt = `Tu es un correcteur DEC senior.
+  const tone = getToneInstructions(player_level || 1, { role: "examinateur" });
+  const systemPrompt = `${tone.systemBlock}
+
+Tu es un correcteur DEC senior.
 
 CAS PRATIQUE PROPOSÉ AU JOUEUR :
 - Titre : ${case_study?.titre}

@@ -32,7 +32,11 @@ interface Recrutement {
 
 export function RhView() {
   const store = useGameStore();
-  const allCandidats: Candidat[] = (cvData as any).candidats || [];
+  // Pool statique + CVs dynamiques (cascade démission + saisons) fusionnés
+  const allCandidats: Candidat[] = [
+    ...((cvData as any).candidats || []),
+    ...(store.dynamic_cvs || []),
+  ];
   const allRecrutements: Recrutement[] = (cvData as any).recrutements_actifs || [];
 
   // Filtre : exclure les candidats déjà embauchés et les postes pourvus

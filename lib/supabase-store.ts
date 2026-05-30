@@ -260,6 +260,14 @@ export interface GameState {
   pending_obligation_id: string | null;
   pending_obligation_meta: { type: string; client: string } | null;
 
+  // Sprint 9 : Mode de démarrage (zéro / prêt)
+  start_mode: "zero" | "ready" | null;
+  start_mode_chosen: boolean; // true une fois que la joueuse a fait son choix
+
+  // Sprint 9 : CVs reçus dynamiquement (par cascade démission/burn-out + saisons)
+  dynamic_cvs: any[]; // candidats fictifs ajoutés après le démarrage
+  last_seasonal_cv_day: number;
+
   agents: Agent[];
   messages: Message[];
   dossiers: Dossier[];
@@ -359,6 +367,11 @@ export interface GameState {
   // Sprint 8 : Lien Suivi Fiscal → Tâches
   setPendingObligation: (id: string, type: string, client: string) => void;
   clearPendingObligation: () => void;
+
+  // Sprint 9 : Choix de scénario de démarrage
+  setStartMode: (mode: "zero" | "ready") => void;
+  generateSeasonalCV: () => void; // appelé chaque jour : ajoute 0-2 CV selon saison
+  pushUrgentCVsAfterDeparture: (n?: number) => void; // cascade fireAgent → recrut. urgent
 
   // Sprint 7 : Système Mail
   sendMail: (payload: { to: MailContact[]; cc: MailContact[]; subject: string; body: string; parent_id?: string; expected_cc_ids?: string[] }) => void;
@@ -522,6 +535,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   last_mail_check_iso: null,
   pending_obligation_id: null,
   pending_obligation_meta: null,
+  start_mode: null,
+  start_mode_chosen: false,
+  dynamic_cvs: [],
+  last_seasonal_cv_day: 0,
 
   agents: [],
   messages: [],
@@ -574,6 +591,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       .select("agent_id")
       .eq("user_id", user.id)
       .limit(1);
+
+    // Si le joueur a choisi "Cabinet de zéro", on bypasse le seed et on charge vide
+    let startModeStored: string | null = null;
+    try { startModeStored = typeof window !== "undefined" ? localStorage.getItem("start_mode") : null; } catch {}
+    if (startModeStored === "zero") {
+      set({
+        agents: [],
+        dossiers: [],
+        start_mode: "zero",
+        start_mode_chosen: true,
+        isLoading: false,
+      });
+      return;
+    }
 
     if (!existingAgents || existingAgents.length === 0) {
       try {
@@ -1221,26 +1252,48 @@ export const useGameStore = create<GameState>((set, get) => ({
       }),
     }));
 
-    // 3. Messages auto inter-agents
+    // 3. Messages : pas d'auto-OK. Le nouvel agent ne parle que s'il a un problème
+    //   (surcharge, stress élevé, ou burn-out déclaré). L'ancien agent reste silencieux.
     const motifText = motif ? ` Motif : ${motif}.` : "";
-    if (oldAgent) {
+    const newAgentStress = newAgent.stress;
+    const newAgentFatigue = newAgent.fatigue;
+    const isOverloaded = newCharge >= 5 || newAgentStress >= 60 || newAgentFatigue >= 60;
+    const isBurnoutRisk = newAgentStress >= 80 || newAgentFatigue >= 80;
+
+    // 3a. RISQUE DÉMISSION : si agent en burn-out (stress>80 OU fatigue>80) et qu'on lui
+    //   refile encore un dossier → 50% qu'il démissionne dans la foulée.
+    if (isBurnoutRisk && Math.random() < 0.5) {
+      // On reannule la réaffectation côté agent : le dossier reste affecté (audit trail),
+      // puis on déclenche fireAgent en mode démission. Les dossiers seront re-transférés.
+      const demissionMotif = `Burn-out confirmé — refus du dossier ${dossier.client} (stress ${newAgentStress}, fatigue ${newAgentFatigue}).`;
+      // Mail de démission émotionnel (avant qu'on le retire)
       get().addNewMessage({
-        agent_id: oldAgent.id,
-        niveau: "N1",
-        type: "Information",
-        sujet: `📤 Transfert dossier — ${dossier.client}`,
-        contenu: `Bien noté chef. Je transfère le dossier ${dossier.client} à ${newAgent.nom.split(" ")[0]}.${motifText} Je lui fais une passation orale ce matin et je lui envoie les pièces.`,
-        delai_reponse_heures: 48,
+        agent_id: newAgent.id,
+        niveau: "N5",
+        type: "Crise",
+        sujet: `🚨 Démission — je ne tiens plus`,
+        contenu: `Chef, je suis désolé mais je ne peux plus. Quand tu m'as réaffecté ${dossier.client}, c'était la goutte d'eau. Stress ${newAgentStress}/100, fatigue ${newAgentFatigue}/100 — je suis cuit. Je remets ma démission avec effet immédiat. J'ai besoin de souffler. Merci pour tout, sincèrement.`,
+        delai_reponse_heures: 1,
+      });
+      // Déclenche la démission après un micro-tick pour que le message soit visible
+      setTimeout(() => get().fireAgent(newAgent.id, demissionMotif, "burnout"), 100);
+      get().saveGameState();
+      return { ok: true, reason: "Démission burn-out déclenchée" };
+    }
+
+    // 3b. Si surchargé sans burn-out : il pousse une alerte "j'aimerais en parler"
+    if (isOverloaded) {
+      get().addNewMessage({
+        agent_id: newAgent.id,
+        niveau: "N3",
+        type: "Décision",
+        sujet: `⚠️ Affectation ${dossier.client} — je ne suis pas OK`,
+        contenu: `Chef, j'ai bien reçu le dossier ${dossier.client} mais je ne le sens pas. J'ai déjà ${newCharge} dossiers en cours, stress à ${newAgentStress}/100. Je préfère qu'on en parle avant que je m'engage : soit on rééchelonne, soit on bascule ce dossier à quelqu'un d'autre.${motifText}`,
+        delai_reponse_heures: 12,
       });
     }
-    get().addNewMessage({
-      agent_id: newAgent.id,
-      niveau: "N3",
-      type: "Décision",
-      sujet: `📥 Nouveau dossier reçu — ${dossier.client}`,
-      contenu: `Chef, j'ai récupéré le dossier ${dossier.client} (phase ${dossier.phase}, ${dossier.progression}% d'avancement, qualité ${dossier.qualite}%). Je m'y mets dès aujourd'hui.${motifText} Tu confirmes la priorisation par rapport à mes dossiers actuels (j'en ai déjà ${newCharge}) ?`,
-      delai_reponse_heures: 12,
-    });
+    // 3c. Sinon : SILENCE — pas de message auto. L'ancien agent ne dit rien non plus.
+    void motifText; void oldAgent;
 
     // 4. History pour les 2 agents
     set((s) => ({
@@ -1746,6 +1799,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       "hired_candidates",
       "filled_positions",
       "mails_state",
+      // Sprint 9 : choix de scénario + CVs dynamiques (sinon le modal ne réapparaît pas)
+      "start_mode",
+      "dynamic_cvs",
+      "pending_entretien",
     ];
     // Aussi purger toutes les clés dynamiques de tracking (retard_X, drama_check_X, etc.)
     const allKeys = Object.keys(localStorage);
@@ -1758,19 +1815,24 @@ export const useGameStore = create<GameState>((set, get) => ({
       try { localStorage.removeItem(k); } catch {}
     }
 
-    // 2. Purge Supabase si user connecté (messages, conversations, profile, agents_state)
+    // 2. Purge Supabase si user connecté (messages, conversations, agents_state)
+    //    → indispensable pour que le modal "Choix de scénario" se rejoue proprement
     if (state.user_id) {
       try {
         await Promise.all([
           supabase.from("messages").delete().eq("user_id", state.user_id),
           supabase.from("conversations").delete().eq("user_id", state.user_id),
+          supabase.from("agents_state").delete().eq("user_id", state.user_id),
         ]);
       } catch (e) {
         console.warn("[Reset] Erreur purge Supabase :", e);
       }
     }
 
-    // 3. Reload de la page : tout repart from scratch
+    // 3. Reset in-memory du flag start_mode_chosen pour que le modal s'affiche
+    set({ start_mode: null, start_mode_chosen: false, dynamic_cvs: [], agents: [], dossiers: [] });
+
+    // 4. Reload de la page : tout repart from scratch + le modal de choix s'affiche
     if (typeof window !== "undefined") window.location.reload();
   },
 
@@ -2163,8 +2225,121 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().recomputeTeamHealth();
     get().recomputeMood();
     get().saveGameState();
+
+    // 7. PAS DE GAME OVER — si la cabinet se vide, on déclenche un recrutement
+    //    urgent automatique (3 CVs spontanés + mail système).
+    const newAgentCount = get().agents.length;
+    if (newAgentCount <= 1) {
+      get().pushUrgentCVsAfterDeparture(3);
+    }
+
     return { ok: true };
   },
+
+  // ════════════════════════════════════════════════════════════════
+  //  SPRINT 9 — Mode de démarrage + CVs dynamiques + cascade fire
+  // ════════════════════════════════════════════════════════════════
+
+  setStartMode: (mode) => {
+    set({ start_mode: mode, start_mode_chosen: true });
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("start_mode", mode); } catch {}
+    }
+    if (mode === "zero") {
+      // Vide l'équipe + dossiers, donne un fonds de roulement réduit
+      set({
+        agents: [],
+        dossiers: [],
+        tresorerie: 50000,         // budget de démarrage minimal
+        legitimite: 30,             // jeune cabinet, faible légitimité
+        reputation: 25,             // peu connu
+        stress_global: 20,          // calme initial
+        player_level: 1,
+        team_health: 100,
+      });
+      persistAgents(get());
+      persistDossiers(get());
+      persistPlayerState(get());
+      // Génère 6 CVs initiaux pour pouvoir recruter
+      get().pushUrgentCVsAfterDeparture(6);
+    }
+    // mode "ready" : on garde l'état seedé par défaut
+  },
+
+  /**
+   * Pousse N candidats spontanés dans dynamic_cvs.
+   * Utilisé après un départ d'agent OU au démarrage mode zéro.
+   */
+  pushUrgentCVsAfterDeparture: (n = 3) => {
+    const POOL = [
+      { nom: "Léa Marchand", age: 26, poste_vise: "Collaborateur Comptable", experience_annees: 3, competence_pct: 65, specialites: ["Tenue comptable", "DSN", "TVA"], salaire_demande: 34000, filiere: "Comptable", trait_dominant: "Loyal", notes_sophie: "Spontanée — disponibilité immédiate.", score_match: 72 },
+      { nom: "Karim Sefa", age: 31, poste_vise: "Manager Fiscal", experience_annees: 8, competence_pct: 84, specialites: ["IS", "CGI avancé", "Contentieux"], salaire_demande: 52000, filiere: "Fiscal", trait_dominant: "Rigoureux", notes_sophie: "Ex Cabinet Big4 — solide.", score_match: 88 },
+      { nom: "Manon Dupré", age: 24, poste_vise: "Stagiaire DEC", experience_annees: 0, competence_pct: 40, specialites: ["Stage 3e année DEC"], salaire_demande: 24000, filiere: "Audit & IFRS", trait_dominant: "Créatif", notes_sophie: "Très motivée — formera bien.", score_match: 65 },
+      { nom: "Thomas Régnier", age: 38, poste_vise: "Directeur Audit", experience_annees: 14, competence_pct: 92, specialites: ["IFRS", "Consolidation", "CAC"], salaire_demande: 75000, filiere: "Audit & IFRS", trait_dominant: "Ambitieux", notes_sophie: "Profil senior — coûteux mais expert.", score_match: 95 },
+      { nom: "Aïcha Bensaïd", age: 28, poste_vise: "Collaborateur Social", experience_annees: 4, competence_pct: 70, specialites: ["Paie", "DSN", "Droit social"], salaire_demande: 36000, filiere: "Social", trait_dominant: "Empathique", notes_sophie: "Très demandée — saisir vite.", score_match: 80 },
+      { nom: "Hugo Vasseur", age: 35, poste_vise: "Chef de mission Fiscal", experience_annees: 10, competence_pct: 78, specialites: ["TVA intracom.", "Optimisation IS", "Contrôles fiscaux"], salaire_demande: 48000, filiere: "Fiscal", trait_dominant: "Rigide", notes_sophie: "Profil opérationnel.", score_match: 82 },
+      { nom: "Inès Faure", age: 27, poste_vise: "Collaboratrice Comptable", experience_annees: 3, competence_pct: 60, specialites: ["Tenue", "Lettrage", "TVA"], salaire_demande: 32000, filiere: "Comptable", trait_dominant: "Loyal", notes_sophie: "Profil junior fiable.", score_match: 68 },
+    ];
+
+    const existingIds = new Set(get().dynamic_cvs.map((c: any) => c.id));
+    const newCVs: any[] = [];
+    for (let i = 0; i < n && i < POOL.length; i++) {
+      const base = POOL[Math.floor(Math.random() * POOL.length)];
+      const id = `dyn_cv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      if (existingIds.has(id)) continue;
+      newCVs.push({
+        ...base,
+        id,
+        disponibilite: "Immédiate",
+        arrived_game_day: get().game_day,
+      });
+    }
+    set((s) => ({ dynamic_cvs: [...newCVs, ...s.dynamic_cvs].slice(0, 30) }));
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("dynamic_cvs", JSON.stringify(get().dynamic_cvs)); } catch {}
+    }
+
+    // Message N1 de Sophie (RH) annonçant l'arrivée des CVs
+    const sophie = get().agents.find((a) => (a.role || "").toLowerCase().includes("rh"));
+    if (sophie) {
+      get().addNewMessage({
+        agent_id: sophie.id,
+        niveau: "N3",
+        type: "RH",
+        sujet: `📨 ${newCVs.length} nouveau(x) CV reçus`,
+        contenu: `Chef, suite à la situation, j'ai poussé un appel à candidatures express. ${newCVs.length} CV qualifiés sont arrivés ce matin. Je te les ai mis dans l'onglet RH — à toi de voir qui tu veux rencontrer en priorité. Disponibilités immédiates pour la plupart.`,
+        delai_reponse_heures: 24,
+      });
+    }
+  },
+
+  /**
+   * Génère 0-2 CVs spontanés selon le mois en cours.
+   * Pics : janvier-mars (rentrée fiscale) et septembre.
+   * Appelé une fois par jour de jeu via HomeContent.
+   */
+  generateSeasonalCV: () => {
+    const state = get();
+    if (state.last_seasonal_cv_day === state.game_day) return;
+    // Date réelle approximative basée sur game_day (départ : 14 mai 2026)
+    const start = new Date(2026, 4, 14);
+    start.setDate(start.getDate() + state.game_day - 1);
+    const month = start.getMonth() + 1; // 1-12
+    let intensity: "haute" | "moyenne" | "basse" = "basse";
+    if (month >= 1 && month <= 3) intensity = "haute";    // rentrée fiscale
+    else if (month === 9) intensity = "haute";             // rentrée scolaire
+    else if (month === 5 || month === 6 || month === 11) intensity = "moyenne";
+    else intensity = "basse";
+
+    const proba = intensity === "haute" ? 0.7 : intensity === "moyenne" ? 0.35 : 0.12;
+    const roll = Math.random();
+    set({ last_seasonal_cv_day: state.game_day });
+    if (roll > proba) return; // pas de CV ce jour
+
+    const count = intensity === "haute" ? (Math.random() < 0.4 ? 2 : 1) : 1;
+    get().pushUrgentCVsAfterDeparture(count);
+  },
+
 
   acceptProspect: (id, agentId) => {
     const state = get();
@@ -2225,17 +2400,21 @@ export const useGameStore = create<GameState>((set, get) => ({
     persistPlayerState(get());
     get().saveGameState();
 
-    // Message N1 du collaborateur pour confirmer la prise en charge
+    // Pas d'auto-OK : le collaborateur ne notifie le patron QUE s'il est surchargé.
     const newAgent = get().agents.find((a) => a.id === agentId);
     if (newAgent) {
-      get().addNewMessage({
-        agent_id: newAgent.id,
-        niveau: "N1",
-        type: "Information",
-        sujet: `🆕 Nouveau dossier — ${prospect.client}`,
-        contenu: `${newAgent.nom.split(" ")[0]} : OK chef, je récupère ${prospect.client} (${prospect.secteur}). Lettre de mission signée, acompte de ${(acompte / 1000).toFixed(1)}k€ encaissé. J'ouvre le dossier permanent et je commence dès demain. Solde honoraires (${((prospect.honoraires_annuels - acompte) / 1000).toFixed(1)}k€) à la clôture.`,
-        delai_reponse_heures: 48,
-      });
+      const charge = get().dossiers.filter((d) => d.agent_id === agentId && d.etat === "en_cours").length;
+      const surcharge = charge >= 5 || newAgent.stress >= 60 || newAgent.fatigue >= 60;
+      if (surcharge) {
+        get().addNewMessage({
+          agent_id: newAgent.id,
+          niveau: "N3",
+          type: "Décision",
+          sujet: `⚠️ ${prospect.client} — charge à discuter`,
+          contenu: `Chef, j'ai bien reçu ${prospect.client} (${prospect.secteur}). Mais j'ai déjà ${charge} dossiers actifs, stress ${newAgent.stress}/100. Je préfère qu'on en parle : soit on étale la prise en charge, soit on confie ce dossier à un collègue moins chargé.`,
+          delai_reponse_heures: 12,
+        });
+      }
     }
 
     // Recompute stress agent (charge dossiers a augmenté)
@@ -2698,6 +2877,19 @@ export const useGameStore = create<GameState>((set, get) => ({
             return { messages: [...onlyLocal, ...merged] };
           });
         }
+      }
+
+      // Restaure mode de démarrage + CVs dynamiques
+      const startMode = localStorage.getItem("start_mode");
+      if (startMode === "zero" || startMode === "ready") {
+        set({ start_mode: startMode, start_mode_chosen: true });
+      }
+      const dynCVs = localStorage.getItem("dynamic_cvs");
+      if (dynCVs) {
+        try {
+          const arr = JSON.parse(dynCVs);
+          if (Array.isArray(arr)) set({ dynamic_cvs: arr });
+        } catch {}
       }
 
       // Restaure le compteur Temps (mais le reset si on a changé de game_day)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
 import { callAnthropic } from "@/lib/anthropic-helper";
+import { getToneInstructions } from "@/lib/tone-helper";
 
 export async function POST(req: NextRequest) {
   const apiKey = getApiKey(req);
@@ -8,7 +9,34 @@ export async function POST(req: NextRequest) {
 
   const { agents, game_state, existing_subjects, agents_with_unread } = await req.json();
 
-  const systemPrompt = `Tu es le moteur narratif autonome d'un cabinet d'expertise comptable (simulation stratégique).
+  // === WAVE LOGIC : limite les messages selon l'heure et le jour ===
+  // Plutôt qu'un flot 24h/24, on simule des vagues : matin actif, midi calme,
+  // après-midi décisionnel, soir clôture. Et certains jours sont "calmes".
+  const hour = game_state?.hour ?? 9;
+  const day = game_state?.day ?? 1;
+  // Seed pseudo-aléatoire stable par jour → certains jours = vague forte, d'autres = vague faible
+  const dayIntensity = ((day * 7) % 10) / 10; // 0..0.9
+  const isQuietWindow = hour >= 12 && hour < 14; // pause déjeuner
+  const isEarlyMorning = hour < 9;
+  const isEvening = hour >= 18;
+
+  let maxEvents = 2;
+  if (isQuietWindow) maxEvents = 0;          // silence midi
+  else if (isEarlyMorning) maxEvents = 1;    // calme avant 9h
+  else if (isEvening) maxEvents = 1;         // 1 récap fin de journée
+  else if (dayIntensity < 0.3) maxEvents = 1; // journée calme aléatoire
+  else if (dayIntensity > 0.7) maxEvents = 2; // pic exceptionnel
+  else maxEvents = Math.random() < 0.5 ? 1 : 2;
+
+  if (maxEvents === 0) {
+    return NextResponse.json({ events: [], reason: "Fenêtre silencieuse (pause / hors heures)" });
+  }
+
+  const tone = getToneInstructions(game_state?.player_level || 1, { role: "agent" });
+
+  const systemPrompt = `${tone.systemBlock}
+
+Tu es le moteur narratif autonome d'un cabinet d'expertise comptable (simulation stratégique).
 
 CABINET : Cabinet Morel & Associés
 DATE SIMULÉE : ${game_state?.date || "14 mai 2026"}
@@ -36,7 +64,13 @@ ${(existing_subjects || []).slice(0, 8).join(" | ") || "aucun"}
 
 ---
 
-Génère 1 à 2 nouveaux messages autonomes d'agents.
+Génère MAXIMUM ${maxEvents} nouveau(x) message(s) autonome(s) d'agents (peut être 0 si rien d'urgent — on préfère le silence à du bruit).
+
+⚠️ RÈGLE ANTI-SPAM : les salariés ne sollicitent PAS le patron 24h/24. Ne génère un message QUE si :
+- une urgence métier réelle (échéance, erreur, escalade) ;
+- OU un arc narratif chaud (Rupture, Trahison, Crise) qui doit progresser ;
+- OU une info clé liée à un dossier en cours.
+Sinon, retourne events: []. Le silence est OK.
 
 PRIORITÉS :
 1. Agents en arc Rupture (Hugo Bernard) — risque de départ
@@ -82,6 +116,10 @@ Réponds UNIQUEMENT en JSON valide, rien d'autre :
     if (!jsonMatch) return NextResponse.json({ events: [] });
 
     const parsed = JSON.parse(jsonMatch[0]);
+    // Sécurité : on clampe au maximum décidé par la wave logic
+    if (Array.isArray(parsed.events) && parsed.events.length > maxEvents) {
+      parsed.events = parsed.events.slice(0, maxEvents);
+    }
     return NextResponse.json(parsed);
   } catch {
     return NextResponse.json({ events: [] });

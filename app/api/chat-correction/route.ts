@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
 import { callAnthropic } from "@/lib/anthropic-helper";
+import { getToneInstructions } from "@/lib/tone-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,11 @@ export async function POST(req: NextRequest) {
     ? `\n## DOSSIERS LIÉS À CE COLLABORATEUR\n${dossiers_lies.map((d: any) => `- ${d.client} (${d.secteur || "?"}, ${d.etat}, qualité ${d.qualite}%)`).join("\n")}`
     : "";
 
-  const prompt = `Tu es **Jean-Pierre Lefranc**, expert-comptable inscrit à l'OEC depuis 25 ans, associé d'un cabinet régional (Lyon) qui emploie 18 personnes. Tu es également ancien membre du jury DEC (UE 4 Comptabilité et audit, 2018-2022) et formateur agréé pour le stage. Tu corriges la réponse d'un confrère plus jeune (le "patron" du jeu) à un de ses collaborateurs. Tu écris comme tu parlerais en cabinet — pas comme un manuel.
+  const tone = getToneInstructions(game_state?.player_level || 1, { role: "examinateur" });
+
+  const prompt = `${tone.systemBlock}
+
+Tu es **Jean-Pierre Lefranc**, expert-comptable inscrit à l'OEC depuis 25 ans, associé d'un cabinet régional (Lyon) qui emploie 18 personnes. Tu es également ancien membre du jury DEC (UE 4 Comptabilité et audit, 2018-2022) et formateur agréé pour le stage. Tu corriges la réponse d'un confrère plus jeune (le "patron" du jeu) à un de ses collaborateurs. Tu écris comme tu parlerais en cabinet — pas comme un manuel.
 
 # CONTEXTE
 Cabinet Morel & Associés (France) · Jour ${game_state?.day || 1} · ${String(game_state?.hour || 9).padStart(2, "0")}h${String(game_state?.minute || 0).padStart(2, "0")} · Mood ${game_state?.mood || "?"} · Tréso ${((game_state?.tresorerie || 0) / 1000).toFixed(0)}k€ · Légitimité ${game_state?.legitimite || "?"}/100

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
 import { callAnthropic } from "@/lib/anthropic-helper";
+import { getToneInstructions } from "@/lib/tone-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
     note_correction,
     ecriture_proposee, // { debit_compte, credit_compte, montant, libelle }
     decisions_par_anomalie, // Record<ligne_index, DecisionAnomalie> — mode revue rapide
+    player_level, // niveau de la joueuse (1-10) pour adaptation du ton
   } = body;
 
   const erreurs: TaskErreur[] = task?.erreurs || [];
@@ -75,21 +77,55 @@ export async function POST(req: NextRequest) {
   if (decision === "refuser" && erreurs.length > 0) score += 10; // bonne décision
   if (decision === "deleguer") score += 0; // neutre
 
-  // Évaluation écriture si fournie
+  // Évaluation écriture si fournie. Tolérance élargie :
+  //  - racine compte (2 premiers chiffres) OK (44/65/70/40…)
+  //  - comptes alternatifs valides acceptés (ex : 658 OU 707 pour reg. TVA)
+  //  - montant ± 10%
+  //  - coquilles de saisie (8 chiffres ≈ même montant) tolérées comme "imprécision"
   let ecriture_eval: { ok: boolean; feedback: string } | null = null;
   if (decision === "refuser" && ecriture_proposee && task?.ecriture_correction) {
     const ec = task.ecriture_correction;
-    const debitOk = String(ecriture_proposee.debit_compte || "").trim().startsWith(String(ec.debit_compte).substring(0, 2));
-    const creditOk = String(ecriture_proposee.credit_compte || "").trim().startsWith(String(ec.credit_compte).substring(0, 2));
-    const montantOk = Math.abs((Number(ecriture_proposee.montant) || 0) - ec.montant) < ec.montant * 0.1;
-    const allOk = debitOk && creditOk && montantOk;
+    const VALID_ALTS: Record<string, string[]> = {
+      // Pour redressement TVA collectée
+      "707": ["707", "658", "7588", "777"],
+      "658": ["658", "707", "7588", "777"],
+      // TVA à décaisser / collectée
+      "44571": ["44571", "4457", "44551"],
+      "4457": ["4457", "44571", "44551"],
+      // Autres comptes de produits / charges génériques
+      "606": ["606", "607", "608"],
+      "401": ["401", "404"],
+      "411": ["411", "416", "418"],
+    };
+    function compteMatch(saisi: string, attendu: string): boolean {
+      const s = String(saisi || "").trim();
+      const a = String(attendu).trim();
+      if (!s) return false;
+      // Racine 2 chiffres
+      if (s.substring(0, 2) === a.substring(0, 2)) return true;
+      // Alternatives reconnues
+      const alts = VALID_ALTS[a];
+      if (alts && alts.some((alt) => s.startsWith(alt.substring(0, 3)))) return true;
+      return false;
+    }
+    const debitOk = compteMatch(ecriture_proposee.debit_compte, ec.debit_compte);
+    const creditOk = compteMatch(ecriture_proposee.credit_compte, ec.credit_compte);
+    const saisi = Number(ecriture_proposee.montant) || 0;
+    const ecart = Math.abs(saisi - ec.montant);
+    const montantOk = ecart < ec.montant * 0.1;
+    // Détection coquille : montants très proches mais pas exacts (ex 4580 vs 4850)
+    const isCoquille = !montantOk && ecart < ec.montant * 0.2 && saisi.toString().length === ec.montant.toString().length;
+    const allOk = debitOk && creditOk && (montantOk || isCoquille);
     ecriture_eval = {
       ok: allOk,
       feedback: allOk
-        ? `Écriture correcte. Référence : ${ec.debit_compte} / ${ec.credit_compte} pour ${ec.montant}€. Libellé : "${ec.libelle}"`
+        ? (isCoquille
+          ? `Écriture validée avec réserve : raisonnement correct mais coquille de saisie (${saisi} → ${ec.montant}). Comptes ${ec.debit_compte} / ${ec.credit_compte} acceptés.`
+          : `Écriture correcte. Référence : ${ec.debit_compte} / ${ec.credit_compte} pour ${ec.montant}€. Libellé : "${ec.libelle}"`)
         : `Écriture imprécise. Réponse attendue : Débit ${ec.debit_compte} / Crédit ${ec.credit_compte} / ${ec.montant}€ / "${ec.libelle}"`,
     };
-    if (allOk) score += 5;
+    if (allOk && !isCoquille) score += 5;
+    else if (isCoquille) score += 2;
     else score -= 10;
   }
 
@@ -133,7 +169,10 @@ export async function POST(req: NextRequest) {
       ).join("\n");
       const lignesFlaggees = (lignes_signalees || []).map((i: number) => `L${i + 1}`).join(", ") || "Aucune";
 
-      const prompt = `Tu es un **examinateur DEC senior**, 50 ans d'expérience en cabinet d'expertise comptable français. Tu corriges la copie d'un candidat sur un document comptable.
+      const tone = getToneInstructions(player_level || 1, { role: "examinateur" });
+      const prompt = `${tone.systemBlock}
+
+Tu es un **examinateur DEC senior**, 50 ans d'expérience en cabinet d'expertise comptable français. Tu corriges la copie d'un candidat sur un document comptable.
 
 # DOCUMENT EXAMINÉ
 Titre : ${task.titre}
@@ -157,12 +196,30 @@ ${note_correction || "(le candidat n'a pas rédigé de note)"}
 
 # TA MISSION
 Tu produis un corrigé DÉTAILLÉ. Pour chaque anomalie objective listée ci-dessus :
-- Indique si le candidat l'a "trouvée" (ligne signalée + mentionnée correctement dans sa note), "manquée" (non signalée OU mal traitée), ou si la ligne signalée est une "fausse alerte" (ligne flaguée sans erreur).
-- Cite la source réglementaire EXACTE (article CGI, PCG, BOFiP, IFRS, BOI-numéro, etc.) — comme un vrai EC le ferait.
-- Donne la correction expert : raisonnement complet, écriture comptable si pertinent, jurisprudence ou doctrine si applicable.
-- Commente la performance du candidat sur ce point précis (ce qu'il a bien vu / mal compris / oublié).
+
+⚠️ RÈGLE DE NOTATION CLÉ — LIRE LA NOTE DU CANDIDAT :
+- Une anomalie est "trouvée" si :
+  1. Le candidat a signalé la ligne, OU
+  2. Sa NOTE rédigée mentionne explicitement la nature du problème (même sans terme exact),
+     OU encore explique le bon raisonnement même imparfaitement.
+- Une note explicative est TOUJOURS un PLUS, jamais une faute en elle-même.
+- Si le candidat propose un compte alternatif valide (ex : 658 au lieu de 707 pour
+  un redressement de TVA collectée), considère l'écriture comme CORRECTE et explique
+  juste pourquoi un compte est préférable — NE compte PAS ça comme erreur.
+- Si le calcul du candidat est juste (montant ± 5% du correct) mais transcrit avec
+  une coquille (4 580 au lieu de 4 850), signale-le comme "imprécision de saisie",
+  pas comme "erreur de raisonnement".
+- "manquée" = vraiment ni signalée ni évoquée dans la note.
+- "fausse alerte" = ligne flaggée alors qu'AUCUNE erreur n'existe ET que la note ne
+  justifie pas pourquoi le candidat a flaggé.
+
+Cite la source réglementaire EXACTE (article CGI, PCG, BOFiP, IFRS, BOI-numéro, etc.).
+Donne la correction expert : raisonnement complet, écriture comptable si pertinent, jurisprudence ou doctrine si applicable.
+Commente la performance du candidat sur ce point précis (ce qu'il a bien vu / mal compris / oublié).
 
 Note la note rédigée sur 20 selon : qualité des références citées, vocabulaire EC, rigueur du raisonnement, complétude.
+Si la note explique correctement le sujet et cite des sources : minimum 14/20.
+Si elle propose une alternative valide même non standard : minimum 16/20.
 
 # FORMAT DE RÉPONSE (JSON STRICT, rien d'autre)
 {

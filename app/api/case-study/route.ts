@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
 import { callAnthropic } from "@/lib/anthropic-helper";
+import { getToneInstructions } from "@/lib/tone-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,10 @@ export async function POST(req: NextRequest) {
     debrief: "debrief de fin de journée — synthèse opérationnelle et priorisation",
   };
 
-  const systemPrompt = `Tu es un formateur DEC senior qui prépare un cas pratique terrain pour un expert-comptable en formation.
+  const tone = getToneInstructions(player_level || 1, { role: "examinateur" });
+  const systemPrompt = `${tone.systemBlock}
+
+Tu es un formateur DEC senior qui prépare un cas pratique terrain pour un expert-comptable en formation.
 
 CONTEXTE PRÉCIS DU SLOT AGENDA :
 - Créneau : "${titre_slot || theme}"

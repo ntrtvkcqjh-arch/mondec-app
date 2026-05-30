@@ -79,7 +79,7 @@ export function DecPrepView() {
         question_id: q.id, selected: deontoReponses[q.id]?.selected, texte: deontoReponses[q.id]?.texte,
       }));
       const res = await apiFetch("/api/deontologie-eval", {
-        method: "POST", body: JSON.stringify({ questions: activeDeonto, reponses }),
+        method: "POST", body: JSON.stringify({ questions: activeDeonto, reponses, player_level: store.player_level }),
       });
       const data = await res.json();
       if (data.score_20 !== undefined) {
@@ -108,7 +108,7 @@ export function DecPrepView() {
     try {
       const reponses = activeMission.etapes.map((e) => ({ numero: e.numero, texte: missionReponses[e.numero] || "" }));
       const res = await apiFetch("/api/mission-eval", {
-        method: "POST", body: JSON.stringify({ mission: activeMission, reponses }),
+        method: "POST", body: JSON.stringify({ mission: activeMission, reponses, player_level: store.player_level }),
       });
       const data = await res.json();
       if (data.score_pct !== undefined) {

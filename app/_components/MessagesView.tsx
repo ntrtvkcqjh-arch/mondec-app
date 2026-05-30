@@ -127,6 +127,126 @@ function detectAndExecuteIntent(text: string, agent: any, store: ReturnType<type
   }
 }
 
+/**
+ * Détecte et exécute un envoi de mail demandé par le patron à un agent.
+ * Le marqueur émis par l'API chat est :
+ *   [[MAIL_TO=<Nom>|SUJET=<sujet>|CORPS=<corps>]]
+ * Cette fonction parse, déduit le type de destinataire (agent / client / external),
+ * crée le mail via store.sendMail, et renvoie le texte nettoyé pour affichage.
+ */
+export function extractAndExecuteMailMarker(
+  rawContent: string,
+  sender: any, // agent qui envoie
+  store: ReturnType<typeof useGameStore>
+): string {
+  const re = /\[\[MAIL_TO=([^|]+?)\|SUJET=([^|]+?)\|CORPS=([^\]]+?)\]\]/i;
+  const match = rawContent.match(re);
+  if (!match) return rawContent;
+  const [, destRaw, sujet, corps] = match;
+  const dest = destRaw.trim();
+  const destLower = dest.toLowerCase();
+
+  // 1) Cherche un agent (par nom complet ou prénom)
+  const agentDest = store.agents.find((a) =>
+    a.nom.toLowerCase() === destLower ||
+    a.nom.toLowerCase().split(" ")[0] === destLower ||
+    destLower.includes(a.nom.toLowerCase().split(" ")[0])
+  );
+  // 2) Sinon cherche un client (dossier)
+  const dossierDest = !agentDest ? store.dossiers.find((d) =>
+    d.client.toLowerCase().includes(destLower) ||
+    destLower.includes(d.client.toLowerCase().split(" ")[0])
+  ) : null;
+
+  const senderAgent = sender;
+  const fromContact = {
+    type: "agent" as const,
+    id: senderAgent.id,
+    name: senderAgent.nom,
+    email: `${senderAgent.nom.toLowerCase().replace(/\s+/g, ".")}@cabinet-morel.fr`,
+  };
+
+  let toContact: any;
+  if (agentDest) {
+    toContact = {
+      type: "agent" as const,
+      id: agentDest.id,
+      name: agentDest.nom,
+      email: `${agentDest.nom.toLowerCase().replace(/\s+/g, ".")}@cabinet-morel.fr`,
+    };
+  } else if (dossierDest) {
+    const slug = dossierDest.client.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30);
+    toContact = {
+      type: "client" as const,
+      id: dossierDest.id,
+      name: `Direction ${dossierDest.client}`,
+      email: `direction@${slug}.fr`,
+    };
+  } else {
+    toContact = {
+      type: "external" as const,
+      name: dest,
+      email: `${dest.toLowerCase().replace(/\s+/g, ".")}@externe.fr`,
+    };
+  }
+
+  store.sendMail({
+    to: [toContact],
+    cc: [],
+    subject: sujet.trim(),
+    body: `${corps.trim()}\n\n— ${senderAgent.nom}\nCabinet Morel & Associés`,
+  });
+
+  // Affiche le mail dans le chat sans le marqueur brut
+  const cleaned = rawContent.replace(re, `📧 *Mail envoyé à ${toContact.name} — sujet : "${sujet.trim()}"*`).trim();
+  return cleaned;
+}
+
+/**
+ * Détecte si un message de l'agent demande explicitement un entretien physique
+ * (face à face, RDV, point en privé…). Utilisé pour proposer un bouton "Aller
+ * en entretien" directement depuis la conversation.
+ */
+export function isInterviewRequest(text: string): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  const patterns = [
+    /\bentretien\b/,
+    /\b(en\s+)?face[\s-]?à[\s-]?face\b/,
+    /\b(prendre|fixer|caler|avoir|organiser)\s+(un\s+)?(rdv|rendez[\s-]?vous|point)\b/,
+    /\bse\s+voir\b/,
+    /\bon\s+(peut|pourrait|devrait|doit)\s+se\s+voir\b/,
+    /\bon\s+en\s+parle\s+(en\s+)?(face|tête|direct|live)\b/,
+    /\bj['e]\s*aimerais\s+(qu['e]\s*on|te?)\s+(voir|parler|discuter|rencontrer)\b/,
+    /\bil\s+faut\s+(qu['e]\s*on|que\s+(nous|l'on))\s+se\s+voir\b/,
+    /\bpoint\s+(en\s+)?(privé|face|individuel)\b/,
+    /\bréunion\s+individuelle\b/,
+    /\bbesoin\s+d['e]?\s*un\s+(entretien|temps\s+avec)\b/,
+  ];
+  return patterns.some((p) => p.test(lower));
+}
+
+/**
+ * Déclenche l'ouverture de l'onglet Entretien pré-rempli avec l'agent
+ * sélectionné et un brief résumant la conversation récente. Le brief est
+ * stocké en localStorage pour que EntretiensView le récupère au montage.
+ */
+export function openInterviewWithAgent(agentId: string, contextSummary: string) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("pending_entretien", JSON.stringify({
+      agent_id: agentId,
+      context: contextSummary,
+      ts: Date.now(),
+    }));
+  } catch {}
+  window.dispatchEvent(new CustomEvent("switch-tab", { detail: { tab: "entretiens" } }));
+  // Petit retard pour laisser EntretiensView se monter
+  setTimeout(() => {
+    window.dispatchEvent(new CustomEvent("open-pending-entretien"));
+  }, 100);
+}
+
 // Détermine la "fraîcheur" d'un message à partir de son timestamp réel
 function getMessageAge(timestamp: string): { isNew: boolean; isRecent: boolean; isOld: boolean; ageLabel: string } {
   const ts = new Date(timestamp).getTime();
@@ -333,12 +453,15 @@ export function MessagesView({ onOpenKeyModal }: Props) {
       }
       console.log("[CHAT] Contenu agent reçu, mise à jour conversation_history");
 
+      // 📧 Si la réponse contient un marqueur d'envoi de mail, on l'exécute
+      const cleanedContent = extractAndExecuteMailMarker(data.content, agent, store);
+
       useGameStore.setState((s) => ({
         conversation_history: {
           ...s.conversation_history,
           [agent.id]: [
             ...(s.conversation_history[agent.id] || []),
-            { role: "assistant" as const, content: data.content },
+            { role: "assistant" as const, content: cleanedContent },
           ],
         },
       }));
@@ -610,6 +733,19 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                       <div className="bg-[#E9E9EB] dark:bg-[#2c2c2e] rounded-[20px] rounded-tl-[6px] px-[14px] py-[9px]">
                         <p className="text-[14px] text-[#1D1D1F] dark:text-white leading-[1.4] whitespace-pre-wrap">{m.contenu}</p>
                       </div>
+                      {isInterviewRequest(m.contenu) && (
+                        <button
+                          onClick={() => {
+                            const recent = (store.conversation_history[agent.id] || []).slice(-6)
+                              .map((c) => `${c.role === "user" ? "PATRON" : agent.nom.split(" ")[0]} : ${c.content}`).join("\n\n");
+                            const summary = `Contexte : suite au message « ${m.sujet} » :\n\n${m.contenu}\n\n${recent ? "Échanges récents :\n" + recent : ""}`;
+                            openInterviewWithAgent(agent.id, summary);
+                          }}
+                          className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-gradient-to-br from-[#FF9500] to-[#FF3B30] text-white text-[11px] font-semibold shadow-sm hover:shadow-md transition-all"
+                        >
+                          🤝 Convoquer en entretien
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -638,6 +774,22 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                         {msg.content}
                       </div>
                     </div>
+                    {/* Bouton entretien sous une réponse d'agent qui en demande un */}
+                    {msg.role === "assistant" && isInterviewRequest(msg.content) && (
+                      <div className="flex gap-3 max-w-[78%] mt-1 ml-11">
+                        <button
+                          onClick={() => {
+                            const recent = (store.conversation_history[agent.id] || []).slice(-8)
+                              .map((c) => `${c.role === "user" ? "PATRON" : agent.nom.split(" ")[0]} : ${c.content}`).join("\n\n");
+                            const summary = `Contexte : demande d'entretien évoquée dans le chat.\n\nÉchanges récents :\n${recent}`;
+                            openInterviewWithAgent(agent.id, summary);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-gradient-to-br from-[#FF9500] to-[#FF3B30] text-white text-[11px] font-semibold shadow-sm hover:shadow-md transition-all"
+                        >
+                          🤝 Convoquer en entretien
+                        </button>
+                      </div>
+                    )}
                     {/* Correction inline sous la réponse du joueur (si dispo) */}
                     {matchedCorr && (
                       <div className="flex justify-end mt-1">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
 import { callAnthropic } from "@/lib/anthropic-helper";
+import { getToneInstructions } from "@/lib/tone-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ interface MissionEtapeReponse {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { mission, reponses }: { mission: any; reponses: MissionEtapeReponse[] } = body;
+  const { mission, reponses, player_level }: { mission: any; reponses: MissionEtapeReponse[]; player_level?: number } = body;
   const apiKey = getApiKey(req);
 
   const etapes: Etape[] = mission?.etapes || [];
@@ -109,9 +110,12 @@ export async function POST(req: NextRequest) {
   if (apiKey) {
     try {
       const etapesFaibles = detail.filter(d => d.points_obtenus < d.points_max * 0.5).map(d => d.label);
-      const prompt = `Examinateur DEC mission "${mission.titre}". Score global ${score_20}/20.
+      const tone = getToneInstructions(player_level || 1, { role: "examinateur" });
+      const prompt = `${tone.systemBlock}
+
+Examinateur DEC mission "${mission.titre}". Score global ${score_20}/20.
 Étapes faibles : ${etapesFaibles.join(", ") || "aucune"}.
-Synthèse 2 phrases max (40 mots), ton examinateur. Pas d'intro.`;
+Synthèse 2 phrases max (40 mots), ton examinateur adapté au niveau. Pas d'intro.`;
       const r = await callAnthropic(apiKey, {
         max_tokens: 200,
         messages: [{ role: "user", content: prompt }],

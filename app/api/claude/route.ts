@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
 import { callAnthropic } from "@/lib/anthropic-helper";
+import { getToneInstructions } from "@/lib/tone-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,11 @@ export async function POST(req: NextRequest) {
     ? `\n## 💼 AGENTS EN ARC RUPTURE (risque de départ)\n${game_state.rupture_agents.join(", ")}`
     : "";
 
-  const systemPrompt = `Tu es CLAUDE — l'assistant IA stratégique de l'expert-comptable associé au Cabinet Morel & Associés.
+  const tone = getToneInstructions(game_state?.player_level || 1, { role: "tuteur" });
+
+  const systemPrompt = `${tone.systemBlock}
+
+Tu es CLAUDE — l'assistant IA stratégique de l'expert-comptable associé au Cabinet Morel & Associés.
 
 TON RÔLE :
 - Conseiller le patron du cabinet sur ses arbitrages : équipe, dossiers, trésorerie, fiscal

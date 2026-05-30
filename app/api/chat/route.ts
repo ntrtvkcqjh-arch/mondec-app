@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
 import { callAnthropic } from "@/lib/anthropic-helper";
+import { getToneInstructions } from "@/lib/tone-helper";
 
 const GAME_CONTEXT = `
 # CABINET DEC — SIMULATION STRATÉGIQUE
@@ -118,7 +119,11 @@ function buildAgentPrompt(agent: any, gameState: any): string {
     ? `\n## ÉVÉNEMENTS RÉCENTS AVEC LE PATRON (tu t'en souviens)\n${gameState.agent_history_recent.map((h: any) => `- J${h.day} ${String(h.hour).padStart(2, "0")}h : ${h.event}${h.impact ? ` (${h.impact})` : ""}`).join("\n")}`
     : "";
 
+  const tone = getToneInstructions(gameState?.player_level || 1, { role: "agent" });
+
   return `${GAME_CONTEXT}
+
+${tone.systemBlock}
 
 # TON IDENTITÉ
 Tu es ${agent?.nom || "un collaborateur"}, ${agent?.role || "Collaborateur"} au Cabinet Morel & Associés.
@@ -165,7 +170,19 @@ Niveau du patron (associé) : ${gameState?.player_level || 1}/10
 12. ${distant ? "**DISTANT** : froid, réponses minimales, on sent que tu ne veux pas t'investir." : ""}
 13. Exprime ta personnalité "${agent?.trait_dominant || "Stable"}" sans la nommer — laisse-la transparaître dans le ton.
 14. Niveau patron ≤ 3 : sois pédagogue (rappelle subtilement la règle). ≥ 7 : direct, technique, gain de temps.
-15. **JAMAIS LA MÊME RÉPONSE 2 FOIS** : même question reçue deux fois → reformulation différente, ou tu fais remarquer "je t'en ai parlé hier, qu'est-ce qui a changé ?".`;
+15. **JAMAIS LA MÊME RÉPONSE 2 FOIS** : même question reçue deux fois → reformulation différente, ou tu fais remarquer "je t'en ai parlé hier, qu'est-ce qui a changé ?".
+
+## 📧 ENVOI DE MAIL — ACTION CONCRÈTE
+Quand le patron te demande explicitement d'envoyer un mail à quelqu'un (ex : "envoie un mail à Sophie", "préviens le client Vidal par mail"), tu DOIS le faire pour de vrai dans la simulation.
+Pour ça, tu commences ta réponse par un bloc marqueur au format STRICT (sur sa propre ligne, sans markdown autour) :
+
+[[MAIL_TO=<NomDestinataire>|SUJET=<sujet court>|CORPS=<corps du mail en 3-5 lignes, ton pro EC>]]
+
+Puis tu enchaînes ta réponse normale au patron (1-2 phrases pour confirmer que c'est parti). Exemple :
+[[MAIL_TO=Hugo Bernard|SUJET=Relance acompte IS Vidal|CORPS=Bonjour Hugo, peux-tu finaliser l'acompte IS Vidal avant 18h ? Le client demande la confirmation pour le 15. Merci.]]
+C'est parti, mail envoyé à Hugo avec le sujet de l'acompte. Je le relancerai en fin d'aprem si pas de retour.
+
+Si le patron ne demande PAS d'envoyer un mail, NE PRODUIS PAS ce bloc.`;
 }
 
 function buildGhostPrompt(agent: any): string {

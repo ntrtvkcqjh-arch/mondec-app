@@ -5,6 +5,7 @@ import { useGameStore } from "@/lib/supabase-store";
 import { apiFetch } from "@/lib/api-client";
 import { Briefcase, Clock, Send, X, CheckCircle, AlertTriangle, Sparkles, BookOpen, Play, Pause } from "lucide-react";
 import { PageHeader } from "./ui/PageHeader";
+import { extractAndExecuteMailMarker } from "./MessagesView";
 
 type DureeEntretien = 5 | 15 | 30 | 45;
 type Phase = "list" | "planning" | "session" | "decision" | "correction";
@@ -36,9 +37,39 @@ export function EntretiensView() {
   const [decision, setDecision] = useState<DecisionOption | null>(null);
   const [correction, setCorrection] = useState<any>(null);
   const [loadingCorrection, setLoadingCorrection] = useState(false);
+  // Contexte transmis depuis Messagerie/Mail ("Convoquer en entretien")
+  const [preContext, setPreContext] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const agent = store.agents.find((a) => a.id === selectedAgentId);
+
+  // 🤝 Écoute l'event d'ouverture pré-remplie depuis Messagerie / Mail
+  useEffect(() => {
+    function handlePendingEntretien() {
+      if (typeof window === "undefined") return;
+      try {
+        const raw = localStorage.getItem("pending_entretien");
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        // Vérifie validité (moins de 5 minutes)
+        if (Date.now() - (data.ts || 0) > 5 * 60 * 1000) {
+          localStorage.removeItem("pending_entretien");
+          return;
+        }
+        if (data.agent_id) {
+          setSelectedAgentId(data.agent_id);
+          setPreContext(data.context || null);
+          setPhase("planning");
+          setDuree(30);
+        }
+        localStorage.removeItem("pending_entretien");
+      } catch {}
+    }
+    // Déclenché à l'arrivée + check immédiat (au cas où l'event est passé avant le mount)
+    handlePendingEntretien();
+    window.addEventListener("open-pending-entretien", handlePendingEntretien);
+    return () => window.removeEventListener("open-pending-entretien", handlePendingEntretien);
+  }, []);
 
   // Recommande les agents qui devraient avoir un entretien
   const recommandes = store.agents
@@ -82,16 +113,32 @@ export function EntretiensView() {
 
   function launchSession() {
     setSecondsLeft(duree * 60);
-    setHistory([]);
     setPaused(false);
     setPhase("session");
     // Message d'ouverture de l'agent
     if (agent) {
-      setHistory([{
-        role: "assistant",
-        content: `(${agent.nom.split(" ")[0]} arrive, s'assoit) Bonjour chef. Vous vouliez me voir ? J'avoue je ne sais pas trop pourquoi vous m'avez convoqué. Qu'est-ce que vous voulez qu'on aborde ?`,
-        ts: Date.now(),
-      }]);
+      const initialMsgs: Msg[] = [];
+      // Si pré-contexte (vient d'un chat ou mail), on l'injecte en SYSTEM puis
+      // l'agent ouvre la conversation en y faisant explicitement référence
+      if (preContext) {
+        initialMsgs.push({
+          role: "system",
+          content: `[Brief automatique pour l'entretien — issu de la conversation préalable]\n${preContext}`,
+          ts: Date.now(),
+        });
+        initialMsgs.push({
+          role: "assistant",
+          content: `(${agent.nom.split(" ")[0]} s'assoit, dossier en main) Merci de m'avoir convoqué chef. Je crois qu'on doit prolonger ce qu'on s'est dit. Je suis prêt à entrer dans le détail si tu veux.`,
+          ts: Date.now() + 1,
+        });
+      } else {
+        initialMsgs.push({
+          role: "assistant",
+          content: `(${agent.nom.split(" ")[0]} arrive, s'assoit) Bonjour chef. Vous vouliez me voir ? J'avoue je ne sais pas trop pourquoi vous m'avez convoqué. Qu'est-ce que vous voulez qu'on aborde ?`,
+          ts: Date.now(),
+        });
+      }
+      setHistory(initialMsgs);
     }
   }
 
@@ -105,11 +152,22 @@ export function EntretiensView() {
     setSending(true);
 
     try {
+      // On envoie le brief system comme prefix du premier user message pour que
+      // l'API chat (qui n'accepte que user/assistant) en tienne compte
+      const systemBriefs = newHistory.filter((m) => m.role === "system").map((m) => m.content);
+      const dialog = newHistory.filter((m) => m.role !== "system");
+      const messagesForApi = dialog.map((m, idx) => {
+        if (idx === 0 && m.role === "user" && systemBriefs.length > 0) {
+          return { role: m.role, content: `[BRIEF CONTEXTE — utilise-le pour ta réponse]\n${systemBriefs.join("\n\n")}\n\n[MESSAGE PATRON]\n${m.content}` };
+        }
+        return { role: m.role, content: m.content };
+      });
+
       const r = await apiFetch("/api/chat", {
         method: "POST",
         body: JSON.stringify({
           mode: "agent",
-          messages: newHistory.map((m) => ({ role: m.role, content: m.content })),
+          messages: messagesForApi,
           agent_context: agent,
           game_state: {
             date: store.date_simulation,
@@ -130,7 +188,9 @@ export function EntretiensView() {
       }
       const d = await r.json();
       if (d.content) {
-        setHistory([...newHistory, { role: "assistant", content: d.content, ts: Date.now() }]);
+        // 📧 Exécute un éventuel envoi de mail demandé en entretien
+        const cleaned = extractAndExecuteMailMarker(d.content, agent, store);
+        setHistory([...newHistory, { role: "assistant", content: cleaned, ts: Date.now() }]);
       }
     } catch (e: any) {
       setHistory([...newHistory, { role: "assistant", content: `(Silence gêné) Erreur réseau : ${e?.message || "inconnue"}`, ts: Date.now() }]);
@@ -189,6 +249,13 @@ export function EntretiensView() {
         impact: { confiance: -8, loyaute: -5, stress: 15, legitimite: 5 },
         details: "Pour Ambitieux/Rigide qui ont dépassé les bornes. Risque démission. Renforce ton autorité.",
       },
+      {
+        id: "licencier",
+        label: "🚪 Licenciement",
+        description: "Rupture du contrat — départ effectif sous 48h, dossiers transférés",
+        impact: { confiance: -20, loyaute: -20, stress: 30, legitimite: -5, tresorerie: -8000 },
+        details: "Décision lourde : coût indemnités, impact équipe (peur +10), légitimité −5 (pression sur l'autorité). À réserver aux fautes graves ou inadéquation totale.",
+      },
     ];
     return opts;
   }
@@ -196,6 +263,24 @@ export function EntretiensView() {
   function applyDecision(opt: DecisionOption) {
     setDecision(opt);
     if (!agent) return;
+
+    // Cas spécial : LICENCIEMENT — on déclenche fireAgent (cascade complète)
+    if (opt.id === "licencier") {
+      // Coût indemnités + cascade
+      if (opt.impact.tresorerie) {
+        store.setResources({
+          tresorerie: store.tresorerie + (opt.impact.tresorerie || 0),
+          legitimite: Math.max(0, Math.min(100, store.legitimite + (opt.impact.legitimite || 0))),
+        });
+      }
+      const motif = `Licenciement décidé en entretien (durée ${duree}min). Dossiers réaffectés.`;
+      store.fireAgent(agent.id, motif, "licencie");
+      // Trace dans l'historique des corrections + bascule sur la phase correction
+      fetchCorrection(opt);
+      setPhase("correction");
+      return;
+    }
+
     // Applique les impacts
     store.updateAgent(agent.id, {
       confiance_joueur: Math.max(0, Math.min(100, agent.confiance_joueur + (opt.impact.confiance || 0))),
@@ -379,6 +464,17 @@ export function EntretiensView() {
                 <p className="text-[12px] text-[#86868B] dark:text-[#98989D]">{agent.role} · stress {agent.stress} · confiance {agent.confiance_joueur}</p>
               </div>
             </div>
+            {preContext && (
+              <div className="mb-4 bg-gradient-to-br from-[#FF9500]/8 to-[#FF3B30]/8 border-l-4 border-[#FF9500] rounded-[12px] p-3.5">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#C76A00] dark:text-[#FF9F0A] mb-1.5 flex items-center gap-1.5">
+                  🤝 Brief depuis la conversation
+                </div>
+                <pre className="text-[11px] text-[#3a3a3c] dark:text-[#d1d1d6] whitespace-pre-wrap font-sans leading-relaxed">{preContext.slice(0, 600)}{preContext.length > 600 ? "…" : ""}</pre>
+                <p className="text-[10px] text-[#86868B] dark:text-[#98989D] mt-2 italic">
+                  L'agent reprendra explicitement ce contexte à l'ouverture de l'entretien.
+                </p>
+              </div>
+            )}
             <div className="mb-4">
               <label className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B] dark:text-[#98989D] block mb-2">Durée prévue</label>
               <div className="grid grid-cols-4 gap-2">
@@ -439,22 +535,33 @@ export function EntretiensView() {
               </div>
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-[#fafafa] dark:bg-black">
-              {history.map((m, i) => (
-                <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "gap-2"}`}>
-                  {m.role === "assistant" && agent && (
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[9px] font-semibold shrink-0 mt-1" style={{ backgroundColor: agent.avatar_color }}>
-                      {agent.initiales}
+              {history.map((m, i) => {
+                // Message SYSTEM (brief auto) = bandeau centré, pas de bulle chat
+                if (m.role === "system") {
+                  return (
+                    <div key={i} className="my-2 mx-4 bg-[#FFEFD6] dark:bg-[#3a2a1c] border-l-2 border-[#FF9500] rounded-[10px] px-3 py-2">
+                      <div className="text-[9px] font-bold uppercase tracking-wider text-[#C76A00] dark:text-[#FF9F0A] mb-1">Brief</div>
+                      <pre className="text-[11px] text-[#3a3a3c] dark:text-[#d1d1d6] whitespace-pre-wrap font-sans leading-snug">{m.content}</pre>
                     </div>
-                  )}
-                  <div className={`max-w-[78%] px-3 py-2 rounded-[14px] text-[12px] leading-relaxed whitespace-pre-wrap ${
-                    m.role === "user"
-                      ? "bg-[#007AFF] text-white rounded-br-[4px]"
-                      : "bg-white dark:bg-[#1c1c1e] text-[#1D1D1F] dark:text-white rounded-tl-[4px] border border-[#E5E5EA]/40 dark:border-[#38383a]"
-                  }`}>
-                    {m.content}
+                  );
+                }
+                return (
+                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "gap-2"}`}>
+                    {m.role === "assistant" && agent && (
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[9px] font-semibold shrink-0 mt-1" style={{ backgroundColor: agent.avatar_color }}>
+                        {agent.initiales}
+                      </div>
+                    )}
+                    <div className={`max-w-[78%] px-3 py-2 rounded-[14px] text-[12px] leading-relaxed whitespace-pre-wrap ${
+                      m.role === "user"
+                        ? "bg-[#007AFF] text-white rounded-br-[4px]"
+                        : "bg-white dark:bg-[#1c1c1e] text-[#1D1D1F] dark:text-white rounded-tl-[4px] border border-[#E5E5EA]/40 dark:border-[#38383a]"
+                    }`}>
+                      {m.content}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {sending && (
                 <div className="flex gap-2">
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[9px] font-semibold shrink-0 mt-1" style={{ backgroundColor: agent.avatar_color }}>{agent.initiales}</div>

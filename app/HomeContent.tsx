@@ -27,6 +27,7 @@ import { ClaudeFloating } from "./_components/ClaudeFloating";
 import { ApiKeyModal } from "./_components/ApiKeyModal";
 import { ProspectsModal } from "./_components/ProspectsModal";
 import { CascadeNotifications } from "./_components/CascadeNotifications";
+import { StartModeModal } from "./_components/StartModeModal";
 
 export default function HomeContent() {
   const router = useRouter();
@@ -118,6 +119,13 @@ export default function HomeContent() {
       store.generateProspects();
     }
   }, [store.game_day, store.isAuthenticated, store.isLoading]);
+
+  // Sprint 9 : CVs saisonniers — 1 check par jour
+  useEffect(() => {
+    if (!store.isAuthenticated || store.isLoading) return;
+    if (!store.start_mode_chosen) return; // attend le choix du joueur
+    store.generateSeasonalCV();
+  }, [store.game_day, store.isAuthenticated, store.isLoading, store.start_mode_chosen]);
 
   // Ouvre le modal prospects UNIQUEMENT si le joueur n'a pas déjà fermé le batch du jour
   useEffect(() => {
@@ -261,6 +269,9 @@ export default function HomeContent() {
       <ClaudeFloating />
       <CascadeNotifications />
 
+      {!store.isLoading && store.isAuthenticated && !store.start_mode_chosen && (
+        <StartModeModal onClose={() => { /* le store gère le set */ }} />
+      )}
       {showProspects && <ProspectsModal onClose={() => { setShowProspects(false); store.dismissProspectsForDay(); }} />}
       {showBriefing && (
         <MorningBriefingModal

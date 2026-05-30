@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import type { Email, MailContact } from "@/lib/supabase-store";
-import { Inbox, Send, Pencil, X, Reply, Search, Paperclip, AlertTriangle, Clock, ChevronLeft } from "lucide-react";
+import { apiFetch } from "@/lib/api-client";
+import { Inbox, Send, Pencil, X, Reply, Search, Paperclip, AlertTriangle, Clock, ChevronLeft, Sparkles } from "lucide-react";
+import { isInterviewRequest, openInterviewWithAgent } from "./MessagesView";
 
 type MailFolder = "inbox" | "sent" | "compose";
 
@@ -18,6 +20,8 @@ export function MailView() {
   const [composeBody, setComposeBody] = useState("");
   const [replyParentId, setReplyParentId] = useState<string | null>(null);
   const [replyExpectedCc, setReplyExpectedCc] = useState<string[]>([]);
+  // Pending auto-reply : on garde une trace des mails en attente de réponse IA
+  const [pendingAutoReply, setPendingAutoReply] = useState<Set<string>>(new Set());
 
   // Génère les mails initiaux si vide + check relances toutes les 30s
   useEffect(() => {
@@ -68,16 +72,20 @@ export function MailView() {
     setOpenMail(null);
   }
 
-  function handleSend() {
+  async function handleSend() {
     if (composeTo.length === 0 || !composeSubject.trim()) {
       alert("Indique au moins un destinataire et un objet.");
       return;
     }
+    const sentSubject = composeSubject.trim();
+    const sentBody = composeBody.trim();
+    const sentTo = [...composeTo];
+
     store.sendMail({
-      to: composeTo,
+      to: sentTo,
       cc: composeCc,
-      subject: composeSubject.trim(),
-      body: composeBody.trim(),
+      subject: sentSubject,
+      body: sentBody,
       parent_id: replyParentId || undefined,
       expected_cc_ids: replyExpectedCc,
     });
@@ -88,6 +96,103 @@ export function MailView() {
     setComposeBody("");
     setReplyParentId(null);
     setReplyExpectedCc([]);
+
+    // 🤖 RÉPONSE CONTEXTUELLE AUTO — pour chaque destinataire de type agent/client,
+    // on demande à Claude de générer une réponse cohérente avec le thread.
+    for (const recipient of sentTo) {
+      if (recipient.type !== "agent" && recipient.type !== "client") continue;
+      const replyId = `reply_${Date.now()}_${recipient.email}`;
+      setPendingAutoReply((prev) => new Set(prev).add(replyId));
+      // Petit délai pour simuler le temps de réponse (1.5s à 4s)
+      const delay = 1500 + Math.random() * 2500;
+      setTimeout(async () => {
+        try {
+          // Construit le thread : tous les mails liés (même parent_id ou même sujet)
+          const threadRaw = store.mails.filter((m) =>
+            m.id === replyParentId ||
+            m.parent_id === replyParentId ||
+            (m.subject.replace(/^(Re:\s*)+/i, "") === sentSubject.replace(/^(Re:\s*)+/i, ""))
+          ).slice(0, 8);
+          const thread = threadRaw.map((m) => ({
+            from_name: m.from.name,
+            from_type: m.from.type,
+            subject: m.subject,
+            body: m.body,
+            date_iso: m.date_iso,
+            direction: m.direction,
+          }));
+          // Ajoute le mail qu'on vient d'envoyer en dernier
+          thread.push({
+            from_name: "Toi (Patron)",
+            from_type: "self" as any,
+            subject: sentSubject,
+            body: sentBody,
+            date_iso: new Date().toISOString(),
+            direction: "out" as const,
+          });
+
+          // Contexte agent / client
+          let agent_context: any = null;
+          let client_context: any = null;
+          if (recipient.type === "agent" && recipient.id) {
+            const a = store.agents.find((x) => x.id === recipient.id);
+            if (a) {
+              agent_context = {
+                role: a.role,
+                filiere: a.filiere,
+                stress: a.stress,
+                fatigue: a.fatigue,
+                confiance_joueur: a.confiance_joueur,
+                dossiers: store.dossiers.filter((d) => d.agent_id === a.id).map((d) => ({ client: d.client })),
+              };
+            }
+          } else if (recipient.type === "client" && recipient.id) {
+            const d = store.dossiers.find((x) => x.id === recipient.id);
+            if (d) {
+              client_context = {
+                dossier_client: d.client,
+                secteur: d.secteur,
+                profil_relationnel: d.profil_relationnel,
+                complexite: d.complexite_comptable,
+                satisfaction: d.satisfaction,
+              };
+            }
+          }
+
+          const r = await apiFetch("/api/mail-reply", {
+            method: "POST",
+            body: JSON.stringify({
+              thread,
+              recipient,
+              last_player_mail: { subject: sentSubject, body: sentBody },
+              player_level: store.player_level,
+              agent_context,
+              client_context,
+            }),
+          });
+          const data = await r.json();
+          if (data.skip || !data.body) return;
+
+          // Crée la réponse dans la boîte (mail "in" depuis le destinataire)
+          store.receiveMail({
+            from: recipient,
+            to: [],
+            cc: [],
+            subject: data.subject || `Re: ${sentSubject}`,
+            body: data.body,
+            expected_cc_ids: [],
+          });
+        } catch (e) {
+          console.error("[MailReply] failed:", e);
+        } finally {
+          setPendingAutoReply((prev) => {
+            const next = new Set(prev);
+            next.delete(replyId);
+            return next;
+          });
+        }
+      }, delay);
+    }
   }
 
   // Suggestions de contacts pour To/CC (clients depuis dossiers + agents)
@@ -150,9 +255,17 @@ export function MailView() {
             <span className="text-[10px] text-[#86868B]">{sent.length}</span>
           </button>
         </nav>
+        {pendingAutoReply.size > 0 && (
+          <div className="mx-3 mb-2 px-3 py-2 rounded-[10px] bg-gradient-to-br from-[#5B7CFA]/10 to-[#AF52DE]/10 border border-[#5B7CFA]/20 flex items-center gap-2">
+            <Sparkles size={11} className="text-[#5B7CFA] animate-pulse" />
+            <span className="text-[10px] text-[#3F5BCE] dark:text-[#7B9FFB]">
+              {pendingAutoReply.size} réponse{pendingAutoReply.size > 1 ? "s" : ""} en cours…
+            </span>
+          </div>
+        )}
         <div className="px-3 pb-4 pt-2 border-t border-[#E5E5EA]/30 dark:border-[#38383a]">
           <p className="text-[10px] text-[#86868B] dark:text-[#98989D] leading-snug">
-            <strong>Relances auto</strong> : un mail non répondu après 2 jours déclenche une relance automatique du contact. Max 2 relances par mail.
+            <strong>Réponses contextuelles</strong> : les agents et clients répondent automatiquement à tes mails en tenant compte du fil de discussion. <strong>Relances auto</strong> après 2 jours sans réponse.
           </p>
         </div>
       </div>
@@ -257,6 +370,8 @@ export function MailView() {
 }
 
 function MailDetail({ mail, onClose, onReply, onDelete }: { mail: Email; onClose: () => void; onReply: () => void; onDelete: () => void }) {
+  const isFromAgent = mail.from.type === "agent" && mail.direction === "in";
+  const askForInterview = isFromAgent && (isInterviewRequest(mail.body) || isInterviewRequest(mail.subject));
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center gap-2">
@@ -307,6 +422,28 @@ function MailDetail({ mail, onClose, onReply, onDelete }: { mail: Email; onClose
       </div>
       <div className="flex-1 overflow-y-auto px-6 py-5">
         <pre className="text-[13px] text-[#1D1D1F] dark:text-[#d1d1d6] whitespace-pre-wrap font-sans leading-relaxed">{mail.body}</pre>
+        {askForInterview && mail.from.id && (
+          <div className="mt-5 p-4 rounded-[14px] bg-gradient-to-br from-[#FF9500]/8 to-[#FF3B30]/8 border-l-4 border-[#FF9500] flex items-start gap-3">
+            <div className="text-[22px]">🤝</div>
+            <div className="flex-1">
+              <div className="text-[12px] font-bold text-[#C76A00] dark:text-[#FF9F0A] uppercase tracking-wider mb-1">
+                Demande d'entretien détectée
+              </div>
+              <p className="text-[12px] text-[#3a3a3c] dark:text-[#d1d1d6] mb-3">
+                {mail.from.name} sollicite un face à face dans ce mail. Tu peux ouvrir directement la salle d'entretien avec le brief pré-rempli.
+              </p>
+              <button
+                onClick={() => {
+                  const summary = `Brief depuis mail "${mail.subject}" (${new Date(mail.date_iso).toLocaleString("fr-FR")}) :\n\n${mail.body}`;
+                  openInterviewWithAgent(mail.from.id!, summary);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-gradient-to-br from-[#FF9500] to-[#FF3B30] text-white text-[12px] font-semibold shadow-sm hover:shadow-md"
+              >
+                Ouvrir la salle d'entretien
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

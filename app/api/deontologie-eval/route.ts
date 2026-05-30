@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiKey } from "@/lib/api-key";
 import { callAnthropic } from "@/lib/anthropic-helper";
+import { getToneInstructions } from "@/lib/tone-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ interface Reponse {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { questions, reponses }: { questions: Question[]; reponses: Reponse[] } = body;
+  const { questions, reponses, player_level }: { questions: Question[]; reponses: Reponse[]; player_level?: number } = body;
 
   const apiKey = getApiKey(req);
 
@@ -125,9 +126,12 @@ export async function POST(req: NextRequest) {
     try {
       const themesEchoues = detail.filter(d => !d.is_correct).map(d => d.theme);
       const themesEchecsUniques = Array.from(new Set(themesEchoues));
-      const prompt = `Examinateur DEC déontologie. Synthèse 2 phrases (max 40 mots) du score ${score_20}/20.
+      const tone = getToneInstructions(player_level || 1, { role: "examinateur" });
+      const prompt = `${tone.systemBlock}
+
+Examinateur DEC déontologie. Synthèse 2 phrases (max 40 mots) du score ${score_20}/20.
 Thèmes faibles : ${themesEchecsUniques.join(", ") || "aucun"}.
-Style direct, examinateur. Pas d'intro.`;
+Pas d'intro, applique le ton adapté.`;
       const r = await callAnthropic(apiKey, {
         max_tokens: 200,
         messages: [{ role: "user", content: prompt }],
