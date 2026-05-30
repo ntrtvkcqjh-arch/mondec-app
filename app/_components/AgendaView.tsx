@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { apiFetch } from "@/lib/api-client";
 import { Flame, Trophy, Users, GraduationCap, Briefcase, MessageSquare, CheckCircle, Target, Coffee, Lock, ChevronRight, X, RefreshCw, Sparkles, Zap } from "lucide-react";
+import { PageHeader } from "./ui/PageHeader";
 
 import agendaData from "@/lib/data/agenda.json";
 import casesData from "@/lib/data/cases_pool.json";
@@ -213,18 +214,17 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
   const nonPauseSlots = slots.filter((s) => s.type !== "pause");
 
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-10">
-      <div className="max-w-3xl mx-auto">
-        {/* Header chip + grand titre + actions (style PHDDEC) */}
+    <div className="flex-1 overflow-y-auto">
+      <PageHeader
+        title="AGENDA"
+        stats={[
+          { value: nonPauseSlots.length, label: "créneaux aujourd'hui" },
+          { value: new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }), label: "" },
+        ]}
+      />
+      <div className="max-w-[1200px] mx-auto px-10 pb-16">
         <div className="mb-8">
-          <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
-            <span>☼</span><span>Éphéméride</span><span>·</span><span>Core Briefing</span>
-          </div>
-          <h2 className="text-[60px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95] mb-3">Aujourd'hui.</h2>
-          <p className="text-[14px] text-[#86868B]">
-            {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-          </p>
-          <div className="flex items-center gap-3 mt-5">
+          <div className="flex items-center gap-3">
             <button className="px-4 py-2 bg-[#1D1D1F] hover:bg-[#3a3a3c] text-white rounded-full text-[13px] font-medium flex items-center gap-2 transition-colors">
               <RefreshCw size={13} /> Régénérer
             </button>

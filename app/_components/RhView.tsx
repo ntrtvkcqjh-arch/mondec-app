@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { UserPlus, Award, CheckCircle, X, Briefcase, FileText, Calendar as CalendarIcon, Users, Sparkles } from "lucide-react";
+import { PageHeader } from "./ui/PageHeader";
 
 import cvData from "@/lib/data/cv_pool.json";
 
@@ -103,15 +104,16 @@ export function RhView() {
   const soldeLibre = store.tresorerie - budgetEngage;
 
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-10">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-5">
-          <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
-            <span>☼</span><span>Talents</span><span>·</span><span>Recrutement</span>
-          </div>
-          <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">RH.</h2>
-          <p className="text-[14px] text-[#86868B] mt-2">Compte-rendu Sophie · CV · Gestion des talents</p>
-        </div>
+    <div className="flex-1 overflow-y-auto">
+      <PageHeader
+        title="RH"
+        stats={[
+          { value: store.agents.length, label: "collaborateurs" },
+          { value: `${store.team_health}/100`, label: "climat social", tone: store.team_health < 50 ? "critical" : store.team_health < 70 ? "warning" : "default" },
+          { value: recrutements.length, label: "postes ouverts", tone: recrutements.length > 0 ? "warning" : "default" },
+        ]}
+      />
+      <div className="max-w-[1200px] mx-auto px-10 pb-16">
 
         {/* Bandeau budget RH */}
         {recrutements.length > 0 && (

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { BarChart3, Calendar, AlertTriangle, X, ChevronRight, CheckCircle, Sparkles } from "lucide-react";
+import { PageHeader } from "./ui/PageHeader";
 
 type DetailedStatut = "Brouillon" | "En cours" | "À valider" | "Déposée" | "En retard" | "Relance client";
 
@@ -184,27 +185,28 @@ export function SuiviFiscalView() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-10">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-end justify-between mb-5">
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
-              <span>☼</span><span>Calendrier</span><span>·</span><span>Obligations 12 mois</span>
-            </div>
-            <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">Suivi Fiscal.</h2>
-            <p className="text-[14px] text-[#86868B] mt-2">Obligations sur 12 mois · Affectation par collaborateur</p>
-          </div>
-          <div className="flex gap-1 bg-[#F5F5F7] dark:bg-[#2c2c2e] p-1 rounded-[10px]">
+    <div className="flex-1 overflow-y-auto">
+      <PageHeader
+        title="SUIVI FISCAL"
+        stats={[
+          { value: obligations.length, label: "obligations" },
+          { value: retards.length, label: "retards", tone: retards.length > 0 ? "critical" : "default" },
+          { value: alertesJ1.length, label: "J-1", tone: alertesJ1.length > 0 ? "warning" : "default" },
+        ]}
+      />
+      <div className="max-w-[1200px] mx-auto px-10 pb-16">
+        <div className="flex items-center justify-end mb-6">
+          <div className="flex gap-1 bg-white dark:bg-[#1c1c1e] p-1 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
             <button onClick={() => setView("liste")}
-              className={`px-3 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${view === "liste" ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B]"}`}>
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-full transition-all flex items-center gap-1.5 ${view === "liste" ? "bg-[#111111] dark:bg-white text-white dark:text-[#111111]" : "text-[#6b7280] dark:text-[#98989D]"}`}>
               <BarChart3 size={11} /> Liste
             </button>
             <button onClick={() => setView("calendrier")}
-              className={`px-3 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${view === "calendrier" ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B]"}`}>
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-full transition-all flex items-center gap-1.5 ${view === "calendrier" ? "bg-[#111111] dark:bg-white text-white dark:text-[#111111]" : "text-[#6b7280] dark:text-[#98989D]"}`}>
               <Calendar size={11} /> Calendrier
             </button>
             <button onClick={() => setView("alertes")}
-              className={`px-3 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${view === "alertes" ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B]"}`}>
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-full transition-all flex items-center gap-1.5 ${view === "alertes" ? "bg-[#FF3B30] text-white" : "text-[#FF3B30]"}`}>
               <AlertTriangle size={11} /> Alertes
               {(retards.length + alertesJ1.length) > 0 && (
                 <span className="text-[9px] bg-[#FF3B30] text-white rounded-full px-1.5 py-0.5">{retards.length + alertesJ1.length}</span>

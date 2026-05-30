@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { apiFetch } from "@/lib/api-client";
 import { Trophy, Sparkles, Flame, Award, FileSearch, RefreshCw, ChevronRight, Lock, CheckCircle, X, Clock as ClockIcon } from "lucide-react";
+import { PageHeader } from "./ui/PageHeader";
 
 // IMPORTS STATIQUES — garantit que les pools sont disponibles dès le 1er render
 import deontologieData from "@/lib/data/deontologie_pool.json";
@@ -123,24 +124,16 @@ export function DecPrepView() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-10">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-end justify-between mb-5">
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
-              <span>☼</span><span>Examen</span><span>·</span><span>Préparation DEC</span>
-            </div>
-            <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">DEC Prep.</h2>
-            <p className="text-[14px] text-[#86868B] mt-2">Niveau {store.player_level}/10 · {store.player_xp} XP · {store.dec_badges.length} badge{store.dec_badges.length > 1 ? "s" : ""}</p>
-          </div>
-          <div className="text-right">
-            <div className="flex items-center gap-1.5 justify-end">
-              <Flame size={14} className="text-[#FF9500]" />
-              <span className="text-[22px] font-bold text-[#FF9500] tabular-nums">{store.dec_streak}</span>
-            </div>
-            <div className="text-[10px] text-[#86868B]">jours consécutifs</div>
-          </div>
-        </div>
+    <div className="flex-1 overflow-y-auto">
+      <PageHeader
+        title="DEC PREP"
+        stats={[
+          { value: `N${store.player_level}/10`, label: "niveau" },
+          { value: store.dec_streak, label: "jours consécutifs 🔥", tone: store.dec_streak > 0 ? "default" : "warning" },
+          { value: store.dec_badges.length, label: "badges" },
+        ]}
+      />
+      <div className="max-w-[1200px] mx-auto px-10 pb-16">
 
         <div className="bg-gradient-to-r from-[#007AFF]/8 to-[#5856D6]/8 border border-[#007AFF]/15 rounded-[16px] p-4 mb-4">
           <div className="flex items-center gap-2 mb-2">

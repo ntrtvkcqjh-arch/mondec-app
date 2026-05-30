@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { apiFetch } from "@/lib/api-client";
 import { ClipboardCheck, X, CheckCircle, CornerDownRight, Calculator, RefreshCw, Lock, FileSearch, Sparkles } from "lucide-react";
+import { PageHeader } from "./ui/PageHeader";
 
 import tasksData from "@/lib/data/tasks_pool.json";
 
@@ -149,17 +150,16 @@ export function TasksView() {
   const completedTasks = new Set(store.completed_tasks);
 
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-10">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-end justify-between mb-3">
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
-              <span>☼</span><span>Validation</span><span>·</span><span>Pédagogie DEC</span>
-            </div>
-            <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">Tâches.</h2>
-            <p className="text-[14px] text-[#86868B] mt-2">Documents préparés par l'équipe à contrôler. Détecte les erreurs DEC.</p>
-          </div>
-        </div>
+    <div className="flex-1 overflow-y-auto">
+      <PageHeader
+        title="TÂCHES"
+        stats={[
+          { value: pool.length, label: "documents à contrôler" },
+          { value: completedTasks.size, label: "validés", tone: "default" },
+          { value: pool.length - completedTasks.size, label: "restants", tone: pool.length - completedTasks.size > 0 ? "warning" : "default" },
+        ]}
+      />
+      <div className="max-w-[1200px] mx-auto px-10 pb-16">
 
         {/* Banner liaison Suivi Fiscal → Tâches */}
         {store.pending_obligation_id && store.pending_obligation_meta && (
