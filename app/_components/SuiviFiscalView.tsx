@@ -288,11 +288,17 @@ export function SuiviFiscalView() {
                             <td className="px-2 py-2.5 text-right">
                               {o.statut_detaille !== "Déposée" ? (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); store.markObligationDeposee(o.id, o.type, o.client); }}
-                                  className="text-[10px] font-semibold px-2 py-1 rounded-[8px] bg-[#34C759]/10 dark:bg-[#30D158]/15 text-[#248A3D] dark:text-[#30D158] hover:bg-[#34C759]/20 dark:hover:bg-[#30D158]/25"
-                                  title="Marquer comme déposée"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    store.setPendingObligation(o.id, o.type, o.client);
+                                    if (typeof window !== "undefined") {
+                                      window.dispatchEvent(new CustomEvent("switch-tab", { detail: { tab: "tasks" } }));
+                                    }
+                                  }}
+                                  className="text-[10px] font-semibold px-2 py-1 rounded-[8px] bg-[#007AFF]/10 dark:bg-[#0A84FF]/15 text-[#007AFF] dark:text-[#0A84FF] hover:bg-[#007AFF]/20 dark:hover:bg-[#0A84FF]/25"
+                                  title="Ouvrir le cas pratique de validation dans l'onglet Tâches"
                                 >
-                                  ✓ Déposer
+                                  📝 Traiter dans Tâches
                                 </button>
                               ) : (
                                 <span className="text-[10px] text-[#34C759]">

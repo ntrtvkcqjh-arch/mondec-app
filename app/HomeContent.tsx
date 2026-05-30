@@ -14,6 +14,7 @@ import { EveningRecapModal } from "./_components/EveningRecapModal";
 import { CorrectionsView } from "./_components/CorrectionsView";
 import { AffectationsView } from "./_components/AffectationsView";
 import { MailView } from "./_components/MailView";
+import { EntretiensView } from "./_components/EntretiensView";
 import { EquipeView } from "./_components/EquipeView";
 import { AgendaView } from "./_components/AgendaView";
 import { DossiersView } from "./_components/DossiersView";
@@ -45,11 +46,32 @@ export default function HomeContent() {
   // (plus de popup auto sur refresh — c'était trop intrusif)
   useEffect(() => {
     function handleOpenBriefing() { setShowBriefing(true); }
+    function handleSwitchTab(e: any) {
+      const tab = e?.detail?.tab;
+      if (tab) setActiveTab(tab as Tab);
+    }
     if (typeof window !== "undefined") {
       window.addEventListener("open-morning-briefing", handleOpenBriefing);
-      return () => window.removeEventListener("open-morning-briefing", handleOpenBriefing);
+      window.addEventListener("switch-tab", handleSwitchTab);
+      return () => {
+        window.removeEventListener("open-morning-briefing", handleOpenBriefing);
+        window.removeEventListener("switch-tab", handleSwitchTab);
+      };
     }
   }, []);
+
+  // Stress dynamique : recompute quand dossiers changent + tick toutes les 60s
+  useEffect(() => {
+    if (!store.isAuthenticated || store.isLoading) return;
+    if (store.agents.length === 0 || store.dossiers.length === 0) return;
+    store.recomputeAgentStress();
+  }, [store.dossiers.length, store.isAuthenticated, store.isLoading]);
+
+  useEffect(() => {
+    if (!store.isAuthenticated || store.isLoading) return;
+    const t = setInterval(() => store.recomputeAgentStress(), 60 * 1000);
+    return () => clearInterval(t);
+  }, [store.isAuthenticated, store.isLoading]);
 
   // Récap fin de journée : 1x par game_day quand game_hour >= 18
   useEffect(() => {
@@ -221,6 +243,7 @@ export default function HomeContent() {
         {activeTab === "messages" && <MessagesView onOpenKeyModal={() => setShowKeyModal(true)} />}
         {activeTab === "mail" && <MailView />}
         {activeTab === "equipe" && <EquipeView />}
+        {activeTab === "entretiens" && <EntretiensView />}
         {activeTab === "agenda" && <AgendaView apiStatus={apiStatus} />}
         {activeTab === "tasks" && <TasksView />}
         {activeTab === "dossiers" && <DossiersView />}

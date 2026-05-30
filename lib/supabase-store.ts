@@ -255,6 +255,10 @@ export interface GameState {
   mails: Email[];
   last_mail_check_iso: string | null; // pour générer les relances auto
 
+  // Sprint 8 : Lien Suivi Fiscal ↔ Tâches — obligation en cours de traitement
+  pending_obligation_id: string | null;
+  pending_obligation_meta: { type: string; client: string } | null;
+
   agents: Agent[];
   messages: Message[];
   dossiers: Dossier[];
@@ -328,6 +332,9 @@ export interface GameState {
   reprimandAgent: (agentId: string) => { ok: boolean; reason?: string };
   trainAgent: (agentId: string) => { ok: boolean; reason?: string };
   recomputeTeamHealth: () => void;
+  /** Recalcule le stress de chaque agent selon sa charge réelle de dossiers
+   *  + exigence des clients. Appelée régulièrement et après toute modif dossiers. */
+  recomputeAgentStress: () => void;
 
   // Sprint 2 : Prospects + Dossiers enrichis
   generateProspects: () => void;
@@ -347,6 +354,10 @@ export interface GameState {
 
   // Sprint 6 : Recrutement — marque un candidat embauché + poste pourvu
   markCandidateHired: (candidatId: string, positionId: string | null) => void;
+
+  // Sprint 8 : Lien Suivi Fiscal → Tâches
+  setPendingObligation: (id: string, type: string, client: string) => void;
+  clearPendingObligation: () => void;
 
   // Sprint 7 : Système Mail
   sendMail: (payload: { to: MailContact[]; cc: MailContact[]; subject: string; body: string; parent_id?: string; expected_cc_ids?: string[] }) => void;
@@ -508,6 +519,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   hired_candidates: [],
   mails: [],
   last_mail_check_iso: null,
+  pending_obligation_id: null,
+  pending_obligation_meta: null,
 
   agents: [],
   messages: [],
@@ -676,13 +689,34 @@ export const useGameStore = create<GameState>((set, get) => ({
         return !internalKeywords.some((k) => lower.includes(k));
       }
 
+      // Détecte si une chaîne ressemble à un VRAI nom d'entreprise (SARL/SAS/SA/EURL/SCI/Établissements/
+      // Boulangerie/Brasserie/Cabinet/Atelier/Agence/Restaurant/Menuiserie/Cave/Fleuriste/Association/Club)
+      function looksLikeCompanyName(s: string): boolean {
+        const lower = s.toLowerCase().trim();
+        const companyKeywords = [
+          "sarl", "sas ", "sa ", " sa", "eurl", "sci", "scs", "scop",
+          "établissements", "etablissements", "boulangerie", "brasserie", "cabinet",
+          "atelier", "agence", "restaurant", "menuiserie", "cave", "fleuriste",
+          "traiteur", "association", "club", "groupe", "société", "societe",
+          "industries", "industrie", "conseil", "service", "consulting",
+        ];
+        return companyKeywords.some((k) => lower.includes(k));
+      }
+
       agentsData.forEach((a: any) => {
         (a.dossiers_actifs || []).forEach((d: string, i: number) => {
           if (!isClientDossier(d)) {
             console.log("[Store] Item RH/interne ignoré dans Dossiers :", d);
             return; // skip non-client items
           }
-          const [client, theme] = d.includes(" - ") ? d.split(" - ") : [d, "Dossier"];
+          let [client, theme] = d.includes(" - ") ? d.split(" - ") : [d, "Dossier"];
+          // Si le format est inversé (theme avant client), on swap pour avoir le vrai client
+          // Ex: 'Prépa RDV signature bilan - SAS Vidal Industries' → swap
+          if (theme && looksLikeCompanyName(theme) && !looksLikeCompanyName(client)) {
+            const swap = client;
+            client = theme;
+            theme = swap;
+          }
           dossiers.push({
             id: `${a.agent_id}_d${i}`,
             client: client.trim(),
@@ -1684,6 +1718,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  setPendingObligation: (id, type, client) => {
+    set({ pending_obligation_id: id, pending_obligation_meta: { type, client } });
+  },
+
+  clearPendingObligation: () => {
+    set({ pending_obligation_id: null, pending_obligation_meta: null });
+  },
+
   sendMail: (payload) => {
     const state = get();
     const newMail: Email = {
@@ -2635,6 +2677,50 @@ export const useGameStore = create<GameState>((set, get) => ({
       const mood = health < 50 && state.mood_global !== "En Crise" ? "En Crise" : state.mood_global;
       return { team_health: health, mood_global: mood };
     });
+  },
+
+  recomputeAgentStress: () => {
+    // Stress dynamique basé sur la VRAIE charge de chaque agent.
+    // Base = 15 (état serein). Modifs additives selon dossiers actifs uniquement.
+    set((state) => {
+      const dossiersByAgent: Record<string, any[]> = {};
+      state.dossiers.forEach((d) => {
+        if (d.etat !== "en_cours" && d.etat !== "surveillance") return;
+        if (!dossiersByAgent[d.agent_id]) dossiersByAgent[d.agent_id] = [];
+        dossiersByAgent[d.agent_id].push(d);
+      });
+
+      return {
+        agents: state.agents.map((a) => {
+          const ses = dossiersByAgent[a.id] || [];
+          const charge = ses.length;
+          // Calcul stress cible
+          let target = 15; // base sereine
+          // Charge : 3 dossiers = OK (+5), 4 = chargé (+15), 5+ = surchargé (+25-30)
+          if (charge >= 3) target += (charge - 2) * 10;
+          // Exigence client
+          target += ses.filter((d) => (d.profil_relationnel || 0) > 70).length * 5;
+          target += ses.filter((d) => (d.complexite_comptable || 0) > 70).length * 5;
+          target += ses.filter((d) => (d.reactivite_demandee || 0) > 70).length * 5;
+          // Surveillance / signaux alerte
+          target += ses.filter((d) => d.etat === "surveillance").length * 8;
+          target += ses.reduce((s, d) => s + (d.signaux_alerte?.length || 0) * 3, 0);
+          // Bonus tolérance : agent expérimenté résiste mieux
+          if ((a as any).competence_technique >= 4) target -= 5;
+          if ((a as any).niveau === "Manager" || (a as any).niveau === "Directeur") target -= 3;
+          // Lissage : on rapproche progressivement (50% du delta) pour éviter sauts brusques
+          target = Math.max(5, Math.min(100, target));
+          const newStress = Math.round(a.stress + (target - a.stress) * 0.5);
+          // Émotion auto selon nouveau stress
+          let newEmotion = a.emotion;
+          if (newStress > 80) newEmotion = "Surmené";
+          else if (newStress > 60 && (a as any).trait_dominant === "Anxieux") newEmotion = "Anxieux";
+          else if (newStress < 25) newEmotion = a.emotion === "Surmené" || a.emotion === "Anxieux" ? "Stable" : a.emotion;
+          return { ...a, stress: newStress, emotion: newEmotion };
+        }),
+      };
+    });
+    persistAgents(get());
   },
 
   // Réinitialise les drapeaux du jour quand on change de jour de jeu

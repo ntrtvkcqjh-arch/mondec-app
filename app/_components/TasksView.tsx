@@ -111,6 +111,21 @@ export function TasksView() {
         }
         store.markTaskCompleted(active.id);
 
+        // 🔗 LIAISON SUIVI FISCAL → TÂCHES : si on traitait une obligation pending,
+        // on la marque comme déposée (uniquement si score >= 50, sinon pas validée)
+        if (store.pending_obligation_id && store.pending_obligation_meta && data.score >= 50) {
+          store.markObligationDeposee(
+            store.pending_obligation_id,
+            store.pending_obligation_meta.type,
+            store.pending_obligation_meta.client
+          );
+          store.clearPendingObligation();
+          // Notification visible
+          setTimeout(() => alert(`✅ Obligation fiscale '${store.pending_obligation_meta?.type}' validée et déposée. Suivi Fiscal mis à jour.`), 100);
+        } else if (store.pending_obligation_id && data.score < 50) {
+          setTimeout(() => alert(`⚠ Score insuffisant (${data.score}/100) — l'obligation reste à traiter. Réessaye avec une meilleure analyse.`), 100);
+        }
+
         // CASCADE — Si score < 50 (erreurs manquées importantes) → impact agent
         if (data.score < 50) {
           // Trouve l'agent qui a préparé le document (par nom client matching)
@@ -145,6 +160,28 @@ export function TasksView() {
             <p className="text-[14px] text-[#86868B] mt-2">Documents préparés par l'équipe à contrôler. Détecte les erreurs DEC.</p>
           </div>
         </div>
+
+        {/* Banner liaison Suivi Fiscal → Tâches */}
+        {store.pending_obligation_id && store.pending_obligation_meta && (
+          <div className="bg-gradient-to-r from-[#007AFF]/10 to-[#5856D6]/10 dark:from-[#0A84FF]/15 dark:to-[#5E5CE6]/15 border border-[#007AFF]/30 dark:border-[#0A84FF]/40 rounded-[14px] p-3.5 mb-4 flex items-center gap-3">
+            <div className="text-[22px]">📋</div>
+            <div className="flex-1">
+              <div className="text-[12px] font-semibold text-[#007AFF] dark:text-[#0A84FF] uppercase tracking-wider mb-0.5">Obligation fiscale à valider</div>
+              <div className="text-[13px] text-[#1D1D1F] dark:text-white">
+                Tu traites : <strong>{store.pending_obligation_meta.type}</strong> · {store.pending_obligation_meta.client}
+              </div>
+              <div className="text-[10px] text-[#86868B] dark:text-[#98989D] mt-0.5">
+                Sélectionne la tâche correspondante ci-dessous. Si ton score ≥ 50/100, l'obligation passera automatiquement en "Déposée" dans Suivi Fiscal.
+              </div>
+            </div>
+            <button
+              onClick={() => store.clearPendingObligation()}
+              className="text-[11px] px-2.5 py-1.5 rounded-[8px] bg-white dark:bg-[#2c2c2e] text-[#86868B] hover:text-[#FF3B30] dark:hover:text-[#FF453A]"
+            >
+              Annuler
+            </button>
+          </div>
+        )}
 
         {/* Barre Validés/Total animée */}
         <div className="bg-white dark:bg-[#1c1c1e] rounded-[14px] p-3 border border-[#E5E5EA]/40 dark:border-[#38383a] mb-4">
