@@ -76,8 +76,42 @@ function timeToMinutes(t: string) {
 
 export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "error" }) {
   const store = useGameStore();
-  const slots: AgendaSlot[] = (agendaData as any).slots_quotidiens || [];
+  const staticSlots: AgendaSlot[] = (agendaData as any).slots_quotidiens || [];
   const casesPool: any[] = (casesData as any).cases || [];
+
+  // ═══ SLOTS DYNAMIQUES : on remplace les références hardcodées (Vidal, Moreau…)
+  // par les VRAIS dossiers de la cabinet + agents disponibles ═══
+  const slots: AgendaSlot[] = (() => {
+    const dossiersActifs = store.dossiers.filter((d) => d.etat === "en_cours" || d.etat === "surveillance");
+    const agentsActifs = store.agents;
+    if (dossiersActifs.length === 0 || agentsActifs.length === 0) return staticSlots;
+    return staticSlots.map((slot, idx) => {
+      // On garde les briefings, pauses, debriefs tels quels mais on remplace
+      // l'agent_id par un agent qui existe vraiment
+      let newSlot = { ...slot };
+      if (slot.agent_id) {
+        const agentExists = agentsActifs.find((a) => a.id === slot.agent_id);
+        if (!agentExists) {
+          newSlot.agent_id = agentsActifs[idx % agentsActifs.length].id;
+        }
+      }
+      // Pour les slots cas_pratique / rdv_client / validation : substitue le
+      // theme par un VRAI dossier actif (rotation pour varier)
+      if (["cas_pratique", "rdv_client", "validation"].includes(slot.type)) {
+        const dossier = dossiersActifs[idx % dossiersActifs.length];
+        newSlot.theme = `${dossier.theme} — ${dossier.client}`;
+        newSlot.titre = slot.type === "rdv_client"
+          ? `RDV ${dossier.client}`
+          : slot.type === "validation"
+            ? `Validation ${dossier.theme}`
+            : `Cas pratique : ${dossier.client}`;
+        if (!newSlot.agent_id || !agentsActifs.find((a) => a.id === newSlot.agent_id)) {
+          newSlot.agent_id = dossier.agent_id;
+        }
+      }
+      return newSlot;
+    });
+  })();
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [activeSlot, setActiveSlot] = useState<AgendaSlot | null>(null);
   const [activeCase, setActiveCase] = useState<CaseStudy | null>(null);

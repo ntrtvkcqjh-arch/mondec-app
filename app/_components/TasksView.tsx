@@ -42,7 +42,41 @@ type DecisionAnomalie = "corriger" | "refuser" | "valider_quand_meme";
 
 export function TasksView() {
   const store = useGameStore();
-  const pool: TaskDoc[] = (tasksData as any).tasks || [];
+  const staticPool: TaskDoc[] = (tasksData as any).tasks || [];
+
+  // ═══ POOL DYNAMIQUE : on génère des tâches POUR CHAQUE DOSSIER ACTIF ═══
+  // À partir d'une tâche template, on substitue le client réel. Cohérent avec
+  // la réalité cabinet : chaque client a ses obligations (TVA, IS, liasse…).
+  const pool: TaskDoc[] = (() => {
+    if (store.dossiers.length === 0) return staticPool;
+    const dossiersActifs = store.dossiers.filter((d) => d.etat === "en_cours" || d.etat === "surveillance");
+    // 1) Conserve les tâches statiques DONT le client existe dans nos dossiers
+    const matchingStatic = staticPool.filter((t) =>
+      dossiersActifs.some((d) => d.client.toLowerCase() === t.client.toLowerCase())
+    );
+    // 2) Pour chaque dossier, génère des tâches "templates" en substituant le client
+    // Limité à 1-2 templates par dossier pour ne pas inonder
+    const dynamicTasks: TaskDoc[] = [];
+    dossiersActifs.forEach((d, dIdx) => {
+      // Choisit 1-2 templates parmi les tâches compatibles avec le niveau du joueur
+      const templates = staticPool.filter((t) => t.niveau_min <= store.player_level);
+      if (templates.length === 0) return;
+      const numTasks = 1 + (dIdx % 2); // 1 ou 2 tâches par dossier (varié)
+      for (let i = 0; i < numTasks; i++) {
+        const template = templates[(dIdx * 3 + i * 7) % templates.length];
+        // Si la tâche existe déjà pour ce client (via matchingStatic), skip
+        if (matchingStatic.some((m) => m.id === template.id)) continue;
+        dynamicTasks.push({
+          ...template,
+          id: `${template.id}_${d.id}_${i}`,
+          client: d.client,
+          titre: template.titre.replace(/—.*$/, `— ${d.client}`),
+        });
+      }
+    });
+    return [...matchingStatic, ...dynamicTasks];
+  })();
+
   const [active, setActive] = useState<TaskDoc | null>(null);
   const [flagged, setFlagged] = useState<Set<number>>(new Set());
   const [note, setNote] = useState("");
