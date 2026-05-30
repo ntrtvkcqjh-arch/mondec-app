@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useGameStore } from "@/lib/supabase-store";
-import { UserPlus, Award, CheckCircle, X, Briefcase, FileText, Calendar as CalendarIcon, Users, Sparkles } from "lucide-react";
+import { UserPlus, Award, CheckCircle, X, Briefcase, FileText, Calendar as CalendarIcon, Users, Sparkles, GraduationCap, XCircle } from "lucide-react";
 import { PageHeader } from "./ui/PageHeader";
 
 import cvData from "@/lib/data/cv_pool.json";
@@ -53,7 +53,7 @@ export function RhView() {
   });
 
   const [activeCV, setActiveCV] = useState<Candidat | null>(null);
-  const [tab, setTab] = useState<"sophie" | "cv" | "recrutements">("sophie");
+  const [tab, setTab] = useState<"sophie" | "cv" | "recrutements" | "formations">("sophie");
   const [reportValidated, setReportValidated] = useState(false);
 
   const sophie = store.agents.find((a) => a.role && a.role.toLowerCase().includes("rh"));
@@ -143,6 +143,7 @@ export function RhView() {
             { id: "sophie", label: "📊 Compte-rendu Sophie" },
             { id: "cv", label: `📄 CV pré-sélectionnés (${candidatsCoherents.length})` },
             { id: "recrutements", label: `💼 Postes ouverts (${recrutements.length})` },
+            { id: "formations", label: `🎓 Bilan formations (${store.formations_log.length})` },
           ].map((t) => (
             <button key={t.id} onClick={() => setTab(t.id as any)}
               className={`px-3 py-1.5 text-[12px] font-medium rounded-[8px] transition-all ${tab === t.id ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B]"}`}>
@@ -401,6 +402,125 @@ export function RhView() {
             )}
           </div>
         )}
+
+        {/* TAB FORMATIONS — bilan succès/échec + compétences actuelles */}
+        {tab === "formations" && (() => {
+          const formations = [...store.formations_log].sort((a, b) => b.game_day - a.game_day || b.game_hour - a.game_hour);
+          const succes = formations.filter((f) => f.succes).length;
+          const echecs = formations.filter((f) => !f.succes).length;
+          const tauxReussite = formations.length > 0 ? Math.round((succes / formations.length) * 100) : 0;
+
+          return (
+            <div className="space-y-4">
+              {/* Stats globales */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-gradient-to-br from-[#34C759]/10 to-[#007AFF]/10 border border-[#34C759]/20 rounded-[12px] p-4">
+                  <div className="text-[10px] uppercase tracking-wider text-[#86868B] mb-1">Compétences acquises</div>
+                  <div className="text-[26px] font-bold text-[#34C759] tabular-nums">{succes}</div>
+                </div>
+                <div className="bg-gradient-to-br from-[#FF3B30]/10 to-[#FF9500]/10 border border-[#FF3B30]/20 rounded-[12px] p-4">
+                  <div className="text-[10px] uppercase tracking-wider text-[#86868B] mb-1">Formations échouées</div>
+                  <div className="text-[26px] font-bold text-[#FF3B30] tabular-nums">{echecs}</div>
+                </div>
+                <div className="bg-gradient-to-br from-[#5B7CFA]/10 to-[#AF52DE]/10 border border-[#5B7CFA]/20 rounded-[12px] p-4">
+                  <div className="text-[10px] uppercase tracking-wider text-[#86868B] mb-1">Taux de réussite</div>
+                  <div className="text-[26px] font-bold text-[#5B7CFA] tabular-nums">{tauxReussite}%</div>
+                </div>
+              </div>
+
+              {/* Compétences actuelles par agent */}
+              <div className="bg-white dark:bg-[#1c1c1e] rounded-[18px] p-5 border border-[#E5E5EA]/40 dark:border-[#38383a]">
+                <div className="flex items-center gap-2 mb-3">
+                  <GraduationCap size={14} className="text-[#5B7CFA]" />
+                  <span className="font-semibold text-[13px] text-[#1D1D1F] dark:text-white">Compétences actuelles de l'équipe</span>
+                </div>
+                {store.agents.length === 0 ? (
+                  <p className="text-[12px] text-[#86868B]">Aucun collaborateur dans l'équipe.</p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {store.agents.map((a) => {
+                      const competences = a.competences_techniques || [];
+                      return (
+                        <div key={a.id} className="flex items-start gap-3 pb-2.5 border-b border-[#F5F5F7] dark:border-[#2c2c2e] last:border-0">
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: a.avatar_color }}>
+                            {a.initiales}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{a.nom}</span>
+                              <span className="text-[10px] text-[#86868B]">{a.filiere}</span>
+                              <span className="ml-auto text-[10px] font-bold text-[#5B7CFA]">{competences.length} compétence{competences.length > 1 ? "s" : ""}</span>
+                            </div>
+                            {competences.length === 0 ? (
+                              <p className="text-[11px] text-[#86868B] italic">Aucune formation suivie pour le moment.</p>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {competences.map((c) => (
+                                  <span key={c} className="px-1.5 py-0.5 rounded bg-[#5B7CFA]/10 text-[#5B7CFA] text-[10px] font-medium">{c}</span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Historique des formations */}
+              <div className="bg-white dark:bg-[#1c1c1e] rounded-[18px] p-5 border border-[#E5E5EA]/40 dark:border-[#38383a]">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText size={14} className="text-[#AF52DE]" />
+                  <span className="font-semibold text-[13px] text-[#1D1D1F] dark:text-white">Historique des formations</span>
+                </div>
+                {formations.length === 0 ? (
+                  <div className="text-center py-8 text-[#86868B]">
+                    <GraduationCap size={28} className="mx-auto mb-2 opacity-40" />
+                    <p className="text-[12px]">Aucune formation suivie pour l'instant.</p>
+                    <p className="text-[10px] mt-1 italic">Lance une formation depuis l'onglet Équipe (bouton 🎓 Former) pour faire monter tes collaborateurs en compétence.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {formations.map((f) => {
+                      const date = gameJourToRealDate(f.game_day);
+                      return (
+                        <div key={f.id} className={`p-3 rounded-[10px] border-l-4 ${f.succes ? "bg-[#34C759]/5 border-[#34C759]" : "bg-[#FF3B30]/5 border-[#FF3B30]"}`}>
+                          <div className="flex items-start gap-2.5">
+                            {f.succes
+                              ? <CheckCircle size={14} className="text-[#34C759] mt-0.5 shrink-0" />
+                              : <XCircle size={14} className="text-[#FF3B30] mt-0.5 shrink-0" />
+                            }
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-baseline gap-2 mb-0.5">
+                                <span className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{f.agent_nom}</span>
+                                <span className="text-[10px] text-[#86868B]">{f.agent_filiere}</span>
+                                <span className="ml-auto text-[10px] text-[#86868B]">{date.full}</span>
+                              </div>
+                              <div className="text-[12px] text-[#1D1D1F] dark:text-white mb-1">
+                                <strong>{f.competence_visee}</strong>
+                                <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded ${f.succes ? "bg-[#34C759]/15 text-[#34C759]" : "bg-[#FF3B30]/15 text-[#FF3B30]"}`}>
+                                  {f.succes ? "ACQUISE" : "ÉCHEC"}
+                                </span>
+                                <span className="ml-2 text-[10px] text-[#86868B]">
+                                  ({Math.round(f.probabilite_initiale * 100)}% prob. initiale)
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-[#3a3a3c] dark:text-[#d1d1d6] leading-snug">{f.details}</p>
+                              <div className="mt-1 text-[10px] text-[#86868B]">
+                                {f.duree_minutes}min · {(f.cout_euros / 1000).toFixed(1)}k€
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Modal CV */}

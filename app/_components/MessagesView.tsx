@@ -103,7 +103,8 @@ function detectAndExecuteIntent(text: string, agent: any, store: ReturnType<type
   if (trainPatterns.some((p) => p.test(lower))) {
     const res = store.trainAgent(agent.id);
     if (res.ok) {
-      alert(`🎓 Formation de ${agent.nom.split(" ")[0]} programmée (3h + 3k€).`);
+      // Le store retourne désormais le bilan succès/échec dans res.reason
+      alert(`🎓 Formation terminée pour ${agent.nom.split(" ")[0]}\n\n${res.reason || ""}\n\nBilan complet consultable dans l'onglet RH → Bilan formations.`);
     } else {
       alert(`Formation impossible : ${res.reason}`);
     }

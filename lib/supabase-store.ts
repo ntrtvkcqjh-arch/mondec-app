@@ -19,6 +19,27 @@ export interface Agent {
   respect: number;
   peur: number;
   loyaute: number;
+  /** Compétences techniques maîtrisées par l'agent. Acquises au démarrage
+   *  (selon profil) + via les formations réussies. Visible côté RH. */
+  competences_techniques?: string[];
+}
+
+/** Bilan d'une formation : succès ou échec, avec la compétence visée et le contexte */
+export interface Formation {
+  id: string;
+  agent_id: string;
+  agent_nom: string;
+  agent_filiere: string;
+  game_day: number;
+  game_hour: number;
+  date_iso: string;
+  competence_visee: string;
+  succes: boolean;
+  probabilite_initiale: number; // 0..1
+  raison_echec?: string;
+  details: string;
+  cout_euros: number;
+  duree_minutes: number;
 }
 
 export interface Message {
@@ -267,6 +288,9 @@ export interface GameState {
   // Sprint 9 : CVs reçus dynamiquement (par cascade démission/burn-out + saisons)
   dynamic_cvs: any[]; // candidats fictifs ajoutés après le démarrage
   last_seasonal_cv_day: number;
+
+  // Sprint 10 : Bilan des formations RH (historique succès/échec)
+  formations_log: Formation[];
 
   agents: Agent[];
   messages: Message[];
@@ -539,6 +563,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   start_mode_chosen: false,
   dynamic_cvs: [],
   last_seasonal_cv_day: 0,
+  formations_log: [],
 
   agents: [],
   messages: [],
@@ -1806,6 +1831,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       "start_mode",
       "dynamic_cvs",
       "pending_entretien",
+      "formations_log",
     ];
     // Aussi purger toutes les clés dynamiques de tracking (retard_X, drama_check_X, etc.)
     const allKeys = Object.keys(localStorage);
@@ -1855,6 +1881,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       agent_cooldowns: {},
       pending_obligation_id: null,
       pending_obligation_meta: null,
+      formations_log: [],
     });
 
     // 4. Reload de la page : tout repart from scratch + le modal de choix s'affiche
@@ -2309,6 +2336,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         conversation_history: {},
         pending_obligation_id: null,
         pending_obligation_meta: null,
+        formations_log: [],
         dynamic_cvs: [],             // remis à 0 puis re-rempli après par pushUrgentCVs
         tresorerie: 500000,
         legitimite: 30,
@@ -2323,7 +2351,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           "messages_state", "mails_state", "prospects_state", "dossiers_state",
           "agents_state", "agent_player_history", "agent_cooldowns",
           "chat_corrections", "former_agents", "hired_candidates", "filled_positions",
-          "fiscal_validations", "completed_tasks", "dynamic_cvs",
+          "fiscal_validations", "completed_tasks", "dynamic_cvs", "formations_log",
         ];
         keys.forEach((k) => { try { localStorage.removeItem(k); } catch {} });
       }
@@ -2911,6 +2939,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         const arr = JSON.parse(formers);
         if (Array.isArray(arr)) set({ former_agents: arr });
       }
+      // Restaure le bilan formations
+      const formationsStored = localStorage.getItem("formations_log");
+      if (formationsStored) {
+        const arr = JSON.parse(formationsStored);
+        if (Array.isArray(arr)) set({ formations_log: arr });
+      }
       // Restaure les recrutements RH (postes pourvus + candidats embauchés)
       const hired = localStorage.getItem("hired_candidates");
       if (hired) {
@@ -3128,26 +3162,127 @@ export const useGameStore = create<GameState>((set, get) => ({
     const t = get().spendTime(180, 3000);
     if (!t.ok) return { ok: false, reason: t.reason };
 
+    // ═══ POOL DE COMPÉTENCES par filière ═══
+    const COMPETENCES_POOL: Record<string, string[]> = {
+      "Comptable": [
+        "Révision approfondie", "Établissement bilan complexe", "Liasse 2065 / annexes",
+        "Consolidation comptable", "Comptabilité d'engagement avancée", "Provisions techniques",
+        "FNP / CCA / PCA", "Comptes consolidés IFRS", "Maîtrise outil Sage / Quadra",
+      ],
+      "Fiscal": [
+        "TVA intracommunautaire", "Optimisation IS PME", "Contrôle fiscal — défense",
+        "BOI fiscalité internationale", "Prix de transfert", "CIR / CII R&D",
+        "Régime mère-fille", "Intégration fiscale", "CFE / CVAE / IFER",
+        "TVS — assujettissement", "Plus-values long terme",
+      ],
+      "Audit & IFRS": [
+        "NEP 200 — risque général", "NEP 540 — estimations", "NEP 700 — opinion",
+        "IFRS 9 instruments financiers", "IFRS 15 reconnaissance produits", "IFRS 16 leasing",
+        "Audit groupe consolidé", "Test de dépréciation goodwill", "Procédure de confirmation tiers",
+        "Mémo de risques significatifs",
+      ],
+      "Social": [
+        "DSN événementielle", "Paie complexe — primes IFC", "Convention Syntec", "Convention 66",
+        "Convention restauration HCR", "Solde de tout compte expert", "Rupture conventionnelle",
+        "URSSAF — défense contrôle", "Plan d'épargne entreprise", "Mutuelle / prévoyance",
+      ],
+      "RH": [
+        "Entretien professionnel obligatoire", "Plan formation OPCO", "GPEC stratégique",
+        "Médiation conflit équipe", "Recrutement profil rare", "Onboarding 90 jours",
+        "Évaluation annuelle 360°", "Droit du travail — licenciement", "QVT — prévention burn-out",
+      ],
+    };
+    const pool = COMPETENCES_POOL[agent.filiere] || COMPETENCES_POOL["Comptable"];
+    const dejaMaitrisees = new Set((agent.competences_techniques || []).map((c) => c.toLowerCase()));
+    const disponibles = pool.filter((c) => !dejaMaitrisees.has(c.toLowerCase()));
+
+    let succes = false;
+    let competence_visee = "";
+    let raison_echec: string | undefined;
+    let probabilite = 0;
+
+    if (disponibles.length === 0) {
+      // Agent a déjà tout le pool : formation "perfectionnement" (toujours réussie)
+      competence_visee = `Perfectionnement ${agent.filiere}`;
+      succes = true;
+      probabilite = 1;
+    } else {
+      competence_visee = disponibles[Math.floor(Math.random() * disponibles.length)];
+      // Probabilité de succès :
+      //   base 60% + confiance/5 - stress/4 - fatigue/4 + (niveau senior bonus)
+      const niveauBonus = (agent.niveau || "").toLowerCase().includes("manager") ? 10
+        : (agent.niveau || "").toLowerCase().includes("stagiaire") ? -10 : 0;
+      probabilite = Math.max(0.15, Math.min(0.95,
+        0.6 + agent.confiance_joueur / 500 - agent.stress / 400 - agent.fatigue / 400 + niveauBonus / 100
+      ));
+      succes = Math.random() < probabilite;
+      if (!succes) {
+        // Raison d'échec contextuelle
+        if (agent.stress > 70) raison_echec = "Trop stressé pour assimiler — n'a pas pu se concentrer";
+        else if (agent.fatigue > 70) raison_echec = "Trop fatigué — somnolent en formation";
+        else if (agent.confiance_joueur < 30) raison_echec = "Désengagé, a fait acte de présence sans implication";
+        else raison_echec = "Sujet trop pointu pour son niveau actuel — à représenter plus tard";
+      }
+    }
+
+    const formation: Formation = {
+      id: `form_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      agent_id: agentId,
+      agent_nom: agent.nom,
+      agent_filiere: agent.filiere,
+      game_day: state.game_day,
+      game_hour: state.game_hour,
+      date_iso: new Date().toISOString(),
+      competence_visee,
+      succes,
+      probabilite_initiale: Math.round(probabilite * 100) / 100,
+      raison_echec,
+      details: succes
+        ? `${agent.nom.split(" ")[0]} a validé la compétence "${competence_visee}". Mobilisable sur les dossiers concernés.`
+        : `Formation suivie mais compétence non assimilée. ${raison_echec || ""} Cooldown 10 jours avant nouvelle tentative.`,
+      cout_euros: 3000,
+      duree_minutes: 180,
+    };
+
     set((s) => ({
       agents: s.agents.map((a) => a.id === agentId ? {
         ...a,
-        confiance_joueur: Math.min(100, a.confiance_joueur + 4),
+        confiance_joueur: Math.min(100, a.confiance_joueur + (succes ? 6 : 2)),
         loyaute: Math.min(100, a.loyaute + 3),
         fatigue: Math.max(0, a.fatigue - 15),
         stress: Math.max(0, a.stress - 10),
-        emotion: "Concentré",
+        emotion: succes ? "Euphorique" : "Concentré",
+        competences_techniques: succes
+          ? [...(a.competences_techniques || []), competence_visee]
+          : (a.competences_techniques || []),
       } : a),
       agent_cooldowns: { ...s.agent_cooldowns, [agentId]: { ...s.agent_cooldowns[agentId], train: s.game_day + 10 } },
       agent_player_history: {
         ...s.agent_player_history,
-        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Formation (3h)", impact: "−15 Fatigue · −10 Stress · +4 Confiance · −3k€" + (t.overtime ? " · ⚠ heures sup" : "") }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
+        [agentId]: [{
+          day: s.game_day,
+          hour: s.game_hour,
+          event: `Formation : ${competence_visee}`,
+          impact: succes
+            ? `✓ ACQUISE · +6 Confiance · −15 Fatigue · −3k€`
+            : `✗ Échec (${Math.round(probabilite * 100)}% prob.) · −15 Fatigue · −3k€`,
+        }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
       },
+      formations_log: [formation, ...s.formations_log].slice(0, 100),
     }));
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("formations_log", JSON.stringify(get().formations_log)); } catch {}
+    }
     get().recomputeTeamHealth();
     get().saveGameState();
     persistAgents(get());
     persistTime(get());
-    return { ok: true };
+    return {
+      ok: true,
+      reason: succes
+        ? `✅ ${agent.nom.split(" ")[0]} a acquis : ${competence_visee} (${Math.round(probabilite * 100)}% de chance)`
+        : `❌ Formation non assimilée : ${raison_echec}. Compétence visée : ${competence_visee}`,
+    };
   },
 
   recomputeTeamHealth: () => {

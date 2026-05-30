@@ -83,9 +83,11 @@ export function EquipeView() {
         reprimand: "Réprimande effectuée",
         train: "Formation lancée",
       };
-      setActionFeedback(labels[action]);
+      // Pour la formation : on affiche le bilan détaillé (succès ou échec)
+      setActionFeedback(action === "train" && result.reason ? result.reason : labels[action]);
     }
-    setTimeout(() => setActionFeedback(""), 3000);
+    // Formation = message long, on laisse 8s pour le lire
+    setTimeout(() => setActionFeedback(""), action === "train" ? 8000 : 3000);
   }
 
   let filtered = store.agents.filter((a: any) => {
