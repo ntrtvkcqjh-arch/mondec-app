@@ -33,19 +33,25 @@ export interface ToneInstructions {
 }
 
 /**
+ * Si "agent" : c'est un collaborateur du cabinet qui parle au patron.
+ * Si "examinateur" : c'est l'examinateur DEC qui corrige.
+ * Si "tuteur" : c'est Claude tuteur qui conseille.
+ * Si "client" : c'est un client qui écrit au cabinet.
+ */
+export type ToneRole = "agent" | "examinateur" | "tuteur" | "client";
+
+export interface ToneOpts {
+  role?: ToneRole;
+}
+
+/**
  * Retourne le bloc d'instructions de ton à injecter dans n'importe quel
  * prompt Claude. Ce bloc DOIT être inséré dans le system prompt avant
  * la mission métier.
  */
-export function getToneInstructions(playerLevel: number, opts?: {
-  /** Si "agent" : c'est un collaborateur du cabinet qui parle au patron.
-   *  Si "examinateur" : c'est l'examinateur DEC qui corrige.
-   *  Si "tuteur" : c'est Claude tuteur qui conseille.
-   *  Si "client" : c'est un client qui écrit au cabinet. */
-  role?: "agent" | "examinateur" | "tuteur" | "client";
-} = {}): ToneInstructions {
+export function getToneInstructions(playerLevel: number, opts: ToneOpts = {}): ToneInstructions {
   const level = getToneLevel(playerLevel);
-  const role = opts.role || "agent";
+  const role: ToneRole = opts.role || "agent";
 
   const baseHeader = `# 🎯 TON ADAPTATIF — NIVEAU DU PATRON : ${playerLevel}/10 (${level.toUpperCase()})
 
