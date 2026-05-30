@@ -2268,18 +2268,45 @@ export const useGameStore = create<GameState>((set, get) => ({
       try { localStorage.setItem("start_mode", mode); } catch {}
     }
     if (mode === "zero") {
-      // Vide l'équipe + dossiers, donne un fonds de roulement de 500 k€
-      // → permet de recruter 4-6 collaborateurs (3 mois de salaire d'avance)
+      // Vide TOUT l'état : équipe, dossiers, messages, mails, prospects,
+      // historique, corrections — pour éviter les notifications fantômes.
       set({
         agents: [],
         dossiers: [],
-        tresorerie: 500000,         // fonds de roulement de démarrage
-        legitimite: 30,             // jeune cabinet, faible légitimité
-        reputation: 25,             // peu connu
-        stress_global: 20,          // calme initial
+        messages: [],                // sinon badge Messagerie compte des messages sans agent
+        mails: [],                   // sinon badge Mail compte d'anciens mails
+        prospects_pending: [],       // sinon le modal prospects s'ouvre tout seul
+        last_prospect_day: 0,
+        prospects_dismissed_for_day: 0,
+        chat_corrections: [],
+        former_agents: [],
+        hired_candidates: [],
+        filled_positions: [],
+        fiscal_validations: {},
+        completed_tasks: [],
+        agent_player_history: {},
+        agent_cooldowns: {},
+        conversation_history: {},
+        pending_obligation_id: null,
+        pending_obligation_meta: null,
+        dynamic_cvs: [],             // remis à 0 puis re-rempli après par pushUrgentCVs
+        tresorerie: 500000,
+        legitimite: 30,
+        reputation: 25,
+        stress_global: 20,
         player_level: 1,
         team_health: 100,
       });
+      // Purge aussi le localStorage des items associés (sinon ils reviennent au reload)
+      if (typeof window !== "undefined") {
+        const keys = [
+          "messages_state", "mails_state", "prospects_state", "dossiers_state",
+          "agents_state", "agent_player_history", "agent_cooldowns",
+          "chat_corrections", "former_agents", "hired_candidates", "filled_positions",
+          "fiscal_validations", "completed_tasks", "dynamic_cvs",
+        ];
+        keys.forEach((k) => { try { localStorage.removeItem(k); } catch {} });
+      }
       persistAgents(get());
       persistDossiers(get());
       persistPlayerState(get());
@@ -2328,19 +2355,33 @@ export const useGameStore = create<GameState>((set, get) => ({
       { nom: "Bertrand Aubert", age: 38, poste_vise: "Responsable Formation & RH", experience_annees: 13, competence_pct: 84, specialites: ["Plan formation", "Droit du travail", "Médiation", "DSN"], salaire_demande: 56000, filiere: "RH", trait_dominant: "Loyal", notes_sophie: "Mix formation/RH/social — polyvalent.", score_match: 86 },
     ];
 
-    const existingIds = new Set(get().dynamic_cvs.map((c: any) => c.id));
+    // ANTI-DOUBLONS STRICTS : on exclut les noms déjà présents
+    //   - dans dynamic_cvs (CVs déjà spontanés non embauchés)
+    //   - dans les agents actifs
+    //   - dans les anciens collaborateurs (un EX-employé ne revient pas postuler)
+    //   - dans les CVs statiques du cv_pool.json (chargés via RhView)
+    const state = get();
+    const usedNames = new Set<string>();
+    state.dynamic_cvs.forEach((c: any) => { if (c?.nom) usedNames.add(c.nom.toLowerCase()); });
+    state.agents.forEach((a) => { if (a?.nom) usedNames.add(a.nom.toLowerCase()); });
+    state.former_agents.forEach((fa) => { if (fa?.nom) usedNames.add(fa.nom.toLowerCase()); });
+    // Noms du pool statique cv_pool.json — on les hardcode pour éviter une importation circulaire
+    const staticPoolNames = [
+      "charlotte dubois", "mehdi benkacem", "sophia renault", "yann le goff",
+    ];
+    staticPoolNames.forEach((n) => usedNames.add(n));
+
+    const availablePool = POOL.filter((p) => !usedNames.has(p.nom.toLowerCase()));
+    const shuffled = [...availablePool].sort(() => Math.random() - 0.5);
     const newCVs: any[] = [];
-    // Tire SANS DOUBLON dans le pool : on shuffle puis on prend n premiers
-    const shuffled = [...POOL].sort(() => Math.random() - 0.5);
     for (let i = 0; i < n && i < shuffled.length; i++) {
       const base = shuffled[i];
       const id = `dyn_cv_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 7)}`;
-      if (existingIds.has(id)) continue;
       newCVs.push({
         ...base,
         id,
         disponibilite: "Immédiate",
-        arrived_game_day: get().game_day,
+        arrived_game_day: state.game_day,
       });
     }
     set((s) => ({ dynamic_cvs: [...newCVs, ...s.dynamic_cvs].slice(0, 40) }));

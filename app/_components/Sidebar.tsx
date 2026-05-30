@@ -63,7 +63,19 @@ export function Sidebar(props: Props) {
   const store = useGameStore();
   const { theme, setTheme } = useTheme();
 
-  const mailUnread = store.mails.filter((m) => m.direction === "in" && !m.read).length;
+  // Compte uniquement les mails entrants dont l'expéditeur est valide :
+  //  - "client" : un dossier existe encore avec cet id
+  //  - "agent" : l'agent est toujours dans l'équipe
+  //  - "external" : toujours valide
+  // Évite les notifications fantômes après reset/changement de mode.
+  const agentIds = new Set(store.agents.map((a) => a.id));
+  const dossierIds = new Set(store.dossiers.map((d) => d.id));
+  const mailUnread = store.mails.filter((m) => {
+    if (m.direction !== "in" || m.read) return false;
+    if (m.from?.type === "agent") return agentIds.has(m.from.id || "");
+    if (m.from?.type === "client") return dossierIds.has(m.from.id || "");
+    return true; // external / self
+  }).length;
   const correctionsToday = store.chat_corrections.filter((c) => c.game_day === store.game_day).length;
 
   // Sidebar organisée par CATÉGORIES métier. Chaque catégorie a un titre puis

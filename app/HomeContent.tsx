@@ -208,7 +208,10 @@ export default function HomeContent() {
     );
   }
 
-  const unreadCount = store.messages.filter((m) => !m.lu).length;
+  // Ne compte QUE les messages d'agents qui existent encore (évite les
+  // notifications fantômes quand un agent a été viré OU au démarrage mode zéro).
+  const agentIdsSet = new Set(store.agents.map((a) => a.id));
+  const unreadCount = store.messages.filter((m) => !m.lu && agentIdsSet.has(m.agent_id)).length;
   const dossiersAlerte = store.dossiers.filter((d) => d.etat === "en_cours" || d.etat === "surveillance").length;
   const tasksDispos = 0;
 
