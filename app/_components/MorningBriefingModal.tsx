@@ -187,7 +187,7 @@ export function MorningBriefingModal({ onClose, onNavigate }: Props) {
           <p className="text-[11px] text-[#86868B] dark:text-[#98989D]">
             Tu as <span className="font-semibold text-[#1D1D1F] dark:text-white">{Math.floor((store.temps_disponible_min ?? 480) / 60)}h{String((store.temps_disponible_min ?? 480) % 60).padStart(2, "0")}</span> de temps disponible aujourd'hui.
           </p>
-          <button onClick={onClose} className="px-4 py-2 text-[12px] font-medium rounded-[10px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md hover:shadow-lg">
+          <button onClick={onClose} className="px-4 py-2 text-[12px] font-medium rounded-[10px] bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-md hover:shadow-lg">
             Commencer la journée
           </button>
         </div>

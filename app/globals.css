@@ -2,16 +2,162 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DESIGN TOKENS PHDDEC — palette + ombres + bordures
+   Repris fidèlement du CSS de phddec-app.vercel.app
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+:root {
+  --mdec-bg: #FAFAFB;
+  --mdec-surface: #FFFFFF;
+  --mdec-surface-elev: rgba(255, 255, 255, 0.6);
+  --mdec-surface-overlay: rgba(255, 255, 255, 0.7);
+  --mdec-text: #0B0B10;
+  --mdec-text-2: #4A4A55;
+  --mdec-text-3: #78788c;
+  --mdec-text-4: #B5B5BB;
+
+  --mdec-accent: #5B7CFA;
+  --mdec-accent-soft: #EEF1FE;
+
+  --mdec-rose: #E64A4A;
+  --mdec-rose-soft: #FCEAEA;
+  --mdec-violet: #7E5BFA;
+  --mdec-violet-soft: #ECE6FF;
+  --mdec-amber: #F0A53C;
+  --mdec-amber-soft: #FEF3E0;
+  --mdec-mint: #22C09F;
+  --mdec-mint-soft: #E6F8F1;
+
+  --mdec-border: rgba(0, 0, 0, 0.06);
+  --mdec-border-strong: rgba(0, 0, 0, 0.10);
+  --mdec-hover: rgba(0, 0, 0, 0.03);
+  --mdec-active: rgba(0, 0, 0, 0.05);
+  --mdec-selection: rgba(91, 124, 250, 0.18);
+
+  /* Double ombre PHDDEC — très légère, deux couches */
+  --mdec-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.04);
+  --mdec-shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.05), 0 16px 40px rgba(0, 0, 0, 0.08);
+}
+
+.dark {
+  --mdec-bg: #0B0B10;
+  --mdec-surface: #14141B;
+  --mdec-surface-elev: rgba(22, 22, 30, 0.7);
+  --mdec-surface-overlay: rgba(22, 22, 30, 0.6);
+  --mdec-text: #F4F4F7;
+  --mdec-text-2: #C9C9D1;
+  --mdec-text-3: #8A8A91;
+  --mdec-text-4: #4A4A55;
+
+  --mdec-accent: #8AA4FF;
+  --mdec-accent-soft: rgba(91, 124, 250, 0.16);
+
+  --mdec-rose: #FF7A7A;
+  --mdec-rose-soft: rgba(230, 74, 74, 0.15);
+  --mdec-violet: #9E7FFB;
+  --mdec-violet-soft: rgba(126, 91, 250, 0.15);
+  --mdec-amber: #F0A53C;
+  --mdec-amber-soft: rgba(240, 165, 60, 0.15);
+  --mdec-mint: #22C09F;
+  --mdec-mint-soft: rgba(34, 192, 159, 0.15);
+
+  --mdec-border: rgba(255, 255, 255, 0.08);
+  --mdec-border-strong: rgba(255, 255, 255, 0.16);
+  --mdec-hover: rgba(255, 255, 255, 0.04);
+  --mdec-active: rgba(255, 255, 255, 0.07);
+  --mdec-selection: rgba(138, 164, 255, 0.28);
+
+  --mdec-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --mdec-shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.4), 0 20px 48px rgba(0, 0, 0, 0.55);
+}
+
 @layer base {
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+      "Inter", "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: #f5f5f7;
+    background: var(--mdec-bg);
+    color: var(--mdec-text);
+  }
+  ::selection {
+    background: var(--mdec-selection);
   }
 }
 
 @layer utilities {
+  /* ───── Surfaces & shadows PHDDEC ───── */
+  .surface-card {
+    background: var(--mdec-surface);
+    border: 1px solid var(--mdec-border);
+    box-shadow: var(--mdec-shadow-card);
+  }
+  .surface-card-hover:hover {
+    box-shadow: var(--mdec-shadow-card-hover);
+    border-color: var(--mdec-border-strong);
+  }
+  .surface-elev {
+    background: var(--mdec-surface-elev);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  /* ───── Tints (cartes pastel par catégorie) ───── */
+  .tint-blue   { background: var(--mdec-accent-soft);  color: var(--mdec-accent); }
+  .tint-rose   { background: var(--mdec-rose-soft);    color: var(--mdec-rose); }
+  .tint-violet { background: var(--mdec-violet-soft);  color: var(--mdec-violet); }
+  .tint-amber  { background: var(--mdec-amber-soft);   color: var(--mdec-amber); }
+  .tint-mint   { background: var(--mdec-mint-soft);    color: var(--mdec-mint); }
+
+  /* ───── Micro-interactions PHDDEC ───── */
+  .press {
+    transition: transform 0.12s ease;
+  }
+  .press:active {
+    transform: scale(0.985);
+  }
+  .lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .lift:hover {
+    transform: translateY(-1px);
+  }
+
+  /* ───── Display num (chiffres XL style Apple) ───── */
+  .display-num {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+      "Helvetica Neue", sans-serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    line-height: 0.85;
+  }
+
+  /* ───── Segmented control PHDDEC ───── */
+  .theme-seg {
+    display: inline-flex;
+    background: var(--mdec-active);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 2px;
+  }
+  .theme-seg button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--mdec-text-3);
+    transition: all 0.15s ease;
+  }
+  .theme-seg button.active {
+    background: var(--mdec-surface);
+    color: var(--mdec-text);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  /* ───── Glass effect (existant, conservé) ───── */
   .glass {
     background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(20px) saturate(180%);
@@ -21,5 +167,31 @@
     background: rgba(28, 28, 30, 0.72);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+}
+
+/* ───── Animations PHDDEC ───── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up 0.4s ease both; }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fade-in { animation: fade-in 0.3s ease both; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.scale-in { animation: scale-in 0.25s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up, .fade-in, .scale-in, .lift, .press {
+    animation: none !important;
+    transition: none !important;
   }
 }

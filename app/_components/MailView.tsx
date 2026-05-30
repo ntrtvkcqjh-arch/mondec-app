@@ -118,7 +118,7 @@ export function MailView() {
         </div>
         <button
           onClick={startCompose}
-          className="mx-3 mb-3 px-3 py-2.5 rounded-[12px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white text-[12px] font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-1.5"
+          className="mx-3 mb-3 px-3 py-2.5 rounded-[12px] bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white text-[12px] font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-1.5"
         >
           <Pencil size={12} /> Composer
         </button>
@@ -458,7 +458,7 @@ function Compose({
             className={`px-4 py-1.5 text-[12px] font-semibold rounded-[10px] flex items-center gap-1.5 ${
               to.length === 0 || !subject.trim()
                 ? "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] cursor-not-allowed"
-                : "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md hover:shadow-lg"
+                : "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-md hover:shadow-lg"
             }`}>
             <Send size={11} /> Envoyer
           </button>

@@ -202,17 +202,11 @@ export default function HomeContent() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden relative">
-      {/* Background Apple Executive Dashboard : blanc cassé épuré, pas de pastel */}
-      <div className="absolute inset-0 -z-10 transition-colors duration-500 dark:hidden" style={{
-        background: "#fafafa"
-      }} />
-      <div className="absolute inset-0 -z-10 transition-colors duration-500 hidden dark:block" style={{
-        background: "#000000"
-      }} />
-      {/* Subtle radial highlight en haut (style Apple.com Dark) */}
+    <div className="flex h-screen overflow-hidden relative" style={{ background: "var(--mdec-bg)" }}>
+      {/* Background PHDDEC : #FAFAFB clair / #0B0B10 dark — géré via tokens CSS */}
+      {/* Subtle radial highlight en haut (style PHDDEC dark mode) */}
       <div className="absolute inset-0 -z-10 hidden dark:block pointer-events-none" style={{
-        background: "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120,120,255,0.08) 0%, transparent 70%)"
+        background: "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(138,164,255,0.08) 0%, transparent 70%)"
       }} />
       <Sidebar
         activeTab={activeTab} setActiveTab={setActiveTab}

@@ -168,7 +168,7 @@ export function DecPrepView() {
               </div>
             </div>
             <button onClick={startDeonto} disabled={deontoPool.length === 0}
-              className={`mt-3 w-full py-2.5 rounded-[12px] text-[13px] font-semibold transition-all flex items-center justify-center gap-1.5 ${deontoPool.length === 0 ? "bg-[#E5E5EA] text-[#86868B] cursor-not-allowed" : store.dec_today_deonto ? "bg-[#34C759]/15 text-[#34C759] hover:bg-[#34C759]/20" : "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md hover:shadow-lg"}`}>
+              className={`mt-3 w-full py-2.5 rounded-[12px] text-[13px] font-semibold transition-all flex items-center justify-center gap-1.5 ${deontoPool.length === 0 ? "bg-[#E5E5EA] text-[#86868B] cursor-not-allowed" : store.dec_today_deonto ? "bg-[#34C759]/15 text-[#34C759] hover:bg-[#34C759]/20" : "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-md hover:shadow-lg"}`}>
               {store.dec_today_deonto ? <><RefreshCw size={13} /> Refaire (entraînement)</> : <><Sparkles size={13} /> Commencer le QCM du jour</>}
             </button>
           </div>
@@ -252,7 +252,7 @@ function DeontoModal({ questions, reponses, index, setIndex, toggle, setText, re
       <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col">
         <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] flex items-center justify-center shadow-md">
               <Award size={18} className="text-white" />
             </div>
             <div>
@@ -344,7 +344,7 @@ function DeontoModal({ questions, reponses, index, setIndex, toggle, setText, re
                   ))}
                 </div>
               </div>
-              <button onClick={onClose} className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white font-medium text-[13px] shadow-md">Terminer</button>
+              <button onClick={onClose} className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white font-medium text-[13px] shadow-md">Terminer</button>
             </div>
           )}
         </div>

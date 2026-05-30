@@ -134,7 +134,7 @@ export function ClaudeFloating() {
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : ""}`}>
                 <div className={`max-w-[85%] px-3 py-2 rounded-[14px] text-[12px] leading-relaxed whitespace-pre-wrap ${
                   m.role === "user"
-                    ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white rounded-br-[4px]"
+                    ? "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white rounded-br-[4px]"
                     : "bg-[#F5F5F7] dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white rounded-tl-[4px]"
                 }`}>{m.content}</div>
               </div>
@@ -178,7 +178,7 @@ export function ClaudeFloating() {
                 disabled={sending} placeholder="Ou écris librement à Claude…"
                 className="flex-1 text-[12px] px-3 py-2 bg-[#F5F5F7] dark:bg-[#2c2c2e] dark:text-white rounded-full outline-none placeholder-[#86868B] disabled:opacity-60" />
               <button onClick={() => send()} disabled={!input.trim() || sending}
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${input.trim() && !sending ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-sm" : "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] cursor-not-allowed"}`}>
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${input.trim() && !sending ? "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-sm" : "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] cursor-not-allowed"}`}>
                 <Send size={12} />
               </button>
             </div>

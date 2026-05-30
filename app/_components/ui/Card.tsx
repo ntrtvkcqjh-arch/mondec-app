@@ -15,12 +15,12 @@ interface Props {
 }
 
 /**
- * Card standard Apple :
- *  - Fond blanc pur
- *  - AUCUN contour
- *  - Ombre 4px très subtile
- *  - Coins 24px (style iOS card)
- *  - Hover : lift + shadow plus marquée (si interactive)
+ * Card standard PHDDEC :
+ *  - background: var(--mdec-surface) — blanc en clair, #14141B en dark
+ *  - border 1px subtile : rgba(0,0,0,.06) ou rgba(255,255,255,.08)
+ *  - shadow double couche : 0 1px 2px + 0 8px 24px (très léger)
+ *  - rounded 24px
+ *  - hover : shadow renforcée + border-strong
  */
 export function Card({ children, onClick, className = "", interactive, ...drag }: Props) {
   const isClickable = !!onClick || interactive;
@@ -28,10 +28,8 @@ export function Card({ children, onClick, className = "", interactive, ...drag }
     <div
       onClick={onClick}
       {...drag}
-      className={`bg-white dark:bg-[#1c1c1e] rounded-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.4)] ${
-        isClickable
-          ? "cursor-pointer transition-all hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)] hover:-translate-y-[1px]"
-          : ""
+      className={`surface-card rounded-[24px] ${
+        isClickable ? "surface-card-hover lift press cursor-pointer" : ""
       } ${className}`}
     >
       {children}

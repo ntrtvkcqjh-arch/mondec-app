@@ -202,7 +202,7 @@ export function ClientFicheModal({ dossier: d, onClose }: Props) {
             className="px-4 py-2 text-[12px] font-medium rounded-[10px] bg-gradient-to-br from-[#AF52DE] to-[#5856D6] text-white shadow-md hover:shadow-lg flex items-center gap-1.5">
             <MessageCircle size={13} /> Discuter de ce dossier
           </button>
-          <button onClick={onClose} className="px-4 py-2 text-[12px] font-medium rounded-[10px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md">
+          <button onClick={onClose} className="px-4 py-2 text-[12px] font-medium rounded-[10px] bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-md">
             Fermer
           </button>
         </div>

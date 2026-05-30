@@ -46,7 +46,10 @@ export function TopBar({ apiStatus }: Props) {
     "#34C759";
 
   return (
-    <header className="sticky top-0 z-20 backdrop-blur-2xl bg-white/70 dark:bg-black/40 border-b border-[#E5E5EA]/40 dark:border-[#38383a]/40">
+    <header
+      className="sticky top-0 z-20 backdrop-blur-2xl border-b"
+      style={{ background: "var(--mdec-surface-overlay)", borderColor: "var(--mdec-border)" }}
+    >
       <div className="px-6 h-[52px] flex items-center gap-6">
         {/* Gauche : Période + Date */}
         <div className="flex items-center gap-2.5 min-w-0">

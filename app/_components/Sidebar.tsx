@@ -84,7 +84,7 @@ export function Sidebar(props: Props) {
   }
 
   return (
-    <aside className="w-[280px] bg-white/40 dark:bg-[#1c1c1e]/85 backdrop-blur-3xl border-r border-white/60 dark:border-[#38383a]/60 flex flex-col z-10 shadow-[1px_0_24px_rgba(0,0,0,0.04)]">
+    <aside className="w-[280px] surface-elev border-r flex flex-col z-10" style={{ borderColor: "var(--mdec-border)" }}>
       {/* Header logo */}
       <div className="px-5 pt-6 pb-4">
         <div className="flex items-center gap-3 mb-1">

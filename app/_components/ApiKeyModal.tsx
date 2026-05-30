@@ -50,7 +50,7 @@ export function ApiKeyModal({ open, onClose, onStatusChange, apiStatus, apiStatu
       <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-2xl dark:shadow-black/60 w-full max-w-md overflow-hidden border border-transparent dark:border-[#38383a]/60">
         <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a]/60 bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5 dark:from-[#007AFF]/10 dark:to-[#5856D6]/10">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] flex items-center justify-center shadow-md">
               <Key size={15} className="text-white" />
             </div>
             <div>
@@ -139,7 +139,7 @@ export function ApiKeyModal({ open, onClose, onStatusChange, apiStatus, apiStatu
           <button onClick={handleSave} disabled={!keyInput.trim() || saving}
             className={`px-4 py-2 text-[12px] font-medium rounded-[10px] transition-all flex items-center gap-1.5 ${
               keyInput.trim() && !saving
-                ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md hover:shadow-lg"
+                ? "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-md hover:shadow-lg"
                 : "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] dark:text-[#636366] cursor-not-allowed"
             }`}>
             {saving ? <><RefreshCw size={11} className="animate-spin" /> Test…</> : "Enregistrer"}

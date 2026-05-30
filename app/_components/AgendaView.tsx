@@ -344,7 +344,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] flex items-center justify-center shadow-md">
                   <GraduationCap size={18} className="text-white" />
                 </div>
                 <div>
@@ -394,7 +394,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-[10px] text-[#86868B]">Critères : {activeCase.criteres.join(" · ")}</span>
                       <button onClick={submit} disabled={!response.trim() || submitting}
-                        className={`px-4 py-2 rounded-[10px] text-[13px] font-medium transition-all ${response.trim() && !submitting ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md" : "bg-[#E5E5EA] text-[#86868B] cursor-not-allowed"}`}>
+                        className={`px-4 py-2 rounded-[10px] text-[13px] font-medium transition-all ${response.trim() && !submitting ? "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-md" : "bg-[#E5E5EA] text-[#86868B] cursor-not-allowed"}`}>
                         {submitting ? "Correction…" : "Soumettre"}
                       </button>
                     </div>
@@ -437,7 +437,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
                       ))}
                     </div>
                   </div>
-                  <button onClick={close} className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white font-medium text-[13px] shadow-md">
+                  <button onClick={close} className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white font-medium text-[13px] shadow-md">
                     Terminer
                   </button>
                 </div>

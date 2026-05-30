@@ -358,7 +358,7 @@ export function EntretiensView() {
                     onClick={() => setDuree(d)}
                     className={`py-2.5 rounded-[12px] text-[13px] font-semibold transition-all ${
                       duree === d
-                        ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md"
+                        ? "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-md"
                         : "bg-[#F5F5F7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#d1d1d6] hover:bg-[#E5E5EA] dark:hover:bg-[#38383a]"
                     }`}
                   >
@@ -448,7 +448,7 @@ export function EntretiensView() {
                 />
                 <button onClick={() => sendMessage()} disabled={!input.trim() || sending}
                   className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                    input.trim() && !sending ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-sm" : "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] cursor-not-allowed"
+                    input.trim() && !sending ? "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-sm" : "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] cursor-not-allowed"
                   }`}>
                   <Send size={13} />
                 </button>
@@ -560,7 +560,7 @@ export function EntretiensView() {
               </div>
             )}
 
-            <button onClick={reset} className="w-full py-3 rounded-[12px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white text-[13px] font-semibold shadow-md hover:shadow-lg">
+            <button onClick={reset} className="w-full py-3 rounded-[12px] bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white text-[13px] font-semibold shadow-md hover:shadow-lg">
               Terminer & retourner à la liste
             </button>
           </div>

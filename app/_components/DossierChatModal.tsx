@@ -211,7 +211,7 @@ Réponds en **3-5 phrases max**, ton coach expérimenté qui connaît ce dossier
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : ""}`}>
               <div className={`max-w-[80%] px-3 py-2 rounded-[14px] text-[12px] leading-relaxed whitespace-pre-wrap ${
                 m.role === "user"
-                  ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white rounded-br-[4px] shadow-sm"
+                  ? "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white rounded-br-[4px] shadow-sm"
                   : "bg-white dark:bg-[#1c1c1e] text-[#1D1D1F] dark:text-white rounded-tl-[4px] border border-[#E5E5EA]/40 dark:border-[#38383a]"
               }`}>
                 {m.content}
@@ -251,7 +251,7 @@ Réponds en **3-5 phrases max**, ton coach expérimenté qui connaît ce dossier
               disabled={!input.trim() || sending}
               className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
                 input.trim() && !sending
-                  ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-sm"
+                  ? "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-sm"
                   : "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] cursor-not-allowed"
               }`}
             >

@@ -266,7 +266,7 @@ export function TasksView() {
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
             <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center justify-between bg-gradient-to-r from-[#007AFF]/5 to-[#5856D6]/5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] flex items-center justify-center shadow-md">
                   <ClipboardCheck size={18} className="text-white" />
                 </div>
                 <div>
@@ -527,7 +527,7 @@ export function TasksView() {
                   )}
 
                   <button onClick={close}
-                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white font-medium text-[13px] shadow-md">
+                    className="w-full py-2.5 rounded-[10px] bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white font-medium text-[13px] shadow-md">
                     Terminer
                   </button>
                 </div>
@@ -577,7 +577,7 @@ export function TasksView() {
               <button onClick={() => setShowEcriture(false)}
                 className="px-3 py-2 text-[12px] rounded-[10px] bg-[#F5F5F7] text-[#1D1D1F] hover:bg-[#E5E5EA]">Annuler</button>
               <button onClick={() => submit("refuser")} disabled={!eDebit || !eCredit || !eMontant || submitting}
-                className={`ml-auto px-4 py-2 text-[12px] font-medium rounded-[10px] transition-all flex items-center gap-1.5 ${eDebit && eCredit && eMontant && !submitting ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md" : "bg-[#E5E5EA] text-[#86868B] cursor-not-allowed"}`}>
+                className={`ml-auto px-4 py-2 text-[12px] font-medium rounded-[10px] transition-all flex items-center gap-1.5 ${eDebit && eCredit && eMontant && !submitting ? "bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] text-white shadow-md" : "bg-[#E5E5EA] text-[#86868B] cursor-not-allowed"}`}>
                 {submitting ? <><RefreshCw size={11} className="animate-spin" /> Évaluation…</> : "Soumettre"}
               </button>
             </div>
