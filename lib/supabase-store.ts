@@ -490,8 +490,36 @@ export const useGameStore = create<GameState>((set, get) => ({
         return shuffled.slice(0, n);
       }
 
+      // Filtre défensif : exclut tout ce qui n'est PAS un dossier client (drama RH,
+      // recrutement interne, demandes de congé, médiation). Cet onglet est dédié
+      // aux VRAIS dossiers d'entreprises clientes.
+      function isClientDossier(label: string): boolean {
+        const lower = (label || "").toLowerCase();
+        const internalKeywords = [
+          "drama",
+          "conflit hugo",
+          "conflit amélie",
+          "conflit avec amélie",
+          "médiation",
+          "recrutement manager",
+          "recrutement collaborateur",
+          "entretien annuel",
+          "entretiens annuel",
+          "demande de congé",
+          "demande congé",
+          "réunion équipe",
+          "réunion interne",
+          "formation interne",
+        ];
+        return !internalKeywords.some((k) => lower.includes(k));
+      }
+
       agentsData.forEach((a: any) => {
         (a.dossiers_actifs || []).forEach((d: string, i: number) => {
+          if (!isClientDossier(d)) {
+            console.log("[Store] Item RH/interne ignoré dans Dossiers :", d);
+            return; // skip non-client items
+          }
           const [client, theme] = d.includes(" - ") ? d.split(" - ") : [d, "Dossier"];
           dossiers.push({
             id: `${a.agent_id}_d${i}`,
@@ -1799,12 +1827,22 @@ export const useGameStore = create<GameState>((set, get) => ({
           prospects_dismissed_for_day: typeof p.dismissed_for_day === "number" ? p.dismissed_for_day : s.prospects_dismissed_for_day,
         }));
       }
-      // Restaure la liste des dossiers (override le seed Supabase si modifié par le joueur)
+      // Restaure la liste des dossiers (override le seed Supabase si modifié par le joueur).
+      // Filtre défensif : nettoie les anciens états contenant des items RH/internes.
       const dossiers = localStorage.getItem("dossiers_state");
       if (dossiers) {
         const arr = JSON.parse(dossiers);
         if (Array.isArray(arr) && arr.length > 0) {
-          set({ dossiers: arr });
+          const cleaned = arr.filter((d: any) => {
+            const lower = (d?.client || "").toLowerCase();
+            const internalKeywords = ["drama", "conflit hugo", "conflit amélie", "conflit avec amélie", "médiation", "recrutement manager", "recrutement collaborateur", "entretien annuel", "demande de congé", "réunion interne", "formation interne"];
+            return !internalKeywords.some((k) => lower.includes(k));
+          });
+          set({ dossiers: cleaned });
+          if (cleaned.length !== arr.length) {
+            // Réécrit localStorage purgé
+            try { localStorage.setItem("dossiers_state", JSON.stringify(cleaned)); } catch {}
+          }
         }
       }
       // Restaure l'historique des validations fiscales
