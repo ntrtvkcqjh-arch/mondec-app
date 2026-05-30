@@ -15,6 +15,7 @@ import { CorrectionsView } from "./_components/CorrectionsView";
 import { AffectationsView } from "./_components/AffectationsView";
 import { MailView } from "./_components/MailView";
 import { EntretiensView } from "./_components/EntretiensView";
+import { AccueilView } from "./_components/AccueilView";
 import { EquipeView } from "./_components/EquipeView";
 import { AgendaView } from "./_components/AgendaView";
 import { DossiersView } from "./_components/DossiersView";
@@ -31,7 +32,7 @@ export default function HomeContent() {
   const router = useRouter();
   const store = useGameStore();
 
-  const [activeTab, setActiveTab] = useState<Tab>("messages");
+  const [activeTab, setActiveTab] = useState<Tab>("accueil");
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [generatingEvents, setGeneratingEvents] = useState(false);
   const [showProspects, setShowProspects] = useState(false);
@@ -234,6 +235,7 @@ export default function HomeContent() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar apiStatus={apiStatus} />
         <div className="flex-1 flex overflow-hidden">
+        {activeTab === "accueil" && <AccueilView onNavigate={(t) => setActiveTab(t as Tab)} />}
         {activeTab === "messages" && <MessagesView onOpenKeyModal={() => setShowKeyModal(true)} />}
         {activeTab === "mail" && <MailView />}
         {activeTab === "equipe" && <EquipeView />}

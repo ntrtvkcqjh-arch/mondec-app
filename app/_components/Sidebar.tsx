@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { signOut } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Mail, MessageCircle, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key, BarChart3, UserPlus, Sun, Moon, Monitor, RotateCcw, BookOpen, Grid3x3, Briefcase } from "lucide-react";
+import { Home, Mail, MessageCircle, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key, BarChart3, UserPlus, Sun, Moon, Monitor, RotateCcw, BookOpen, Grid3x3, Briefcase } from "lucide-react";
 import { ClaudeTuteur } from "./ClaudeTuteur";
 import { useTheme } from "./ThemeProvider";
 
-export type Tab = "messages" | "mail" | "equipe" | "entretiens" | "agenda" | "tasks" | "dossiers" | "affectations" | "fiscal" | "rh" | "dec" | "corrections";
+export type Tab = "accueil" | "messages" | "mail" | "equipe" | "entretiens" | "agenda" | "tasks" | "dossiers" | "affectations" | "fiscal" | "rh" | "dec" | "corrections";
 
 interface Props {
   activeTab: Tab;
@@ -43,6 +43,7 @@ export function CabinetLogo({ size = 32 }: { size?: number }) {
 
 // Couleurs pastel pour les bulles de nav (style PHDDEC)
 const navColors: Record<Tab, { bg: string; ring: string; text: string }> = {
+  accueil: { bg: "bg-[#EEF1FE]", ring: "ring-[#5B7CFA]", text: "text-[#3F5BCE]" },
   messages: { bg: "bg-[#FFE5DC]", ring: "ring-[#FFB59B]", text: "text-[#D2691E]" },
   mail: { bg: "bg-[#D6E9FF]", ring: "ring-[#7FB4F4]", text: "text-[#005FB3]" },
   equipe: { bg: "bg-[#E0F2E9]", ring: "ring-[#7BC9A0]", text: "text-[#1B7A4B]" },
@@ -64,6 +65,7 @@ export function Sidebar(props: Props) {
 
   const mailUnread = store.mails.filter((m) => m.direction === "in" && !m.read).length;
   const navItems: { id: Tab; icon: any; label: string; badge?: number }[] = [
+    { id: "accueil", icon: Home, label: "Accueil" },
     { id: "messages", icon: MessageCircle, label: "Messagerie", badge: props.unreadCount },
     { id: "mail", icon: Mail, label: "Mail", badge: mailUnread },
     { id: "equipe", icon: Users, label: "Équipe" },

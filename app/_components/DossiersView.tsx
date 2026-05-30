@@ -9,6 +9,7 @@ import { DossierChatModal } from "./DossierChatModal";
 import { PageHeader } from "./ui/PageHeader";
 import { Card } from "./ui/Card";
 import { Section } from "./ui/Section";
+import { AgentAvatar, ClientLogo } from "./ui/AgentAvatar";
 
 export function DossiersView() {
   const store = useGameStore();
@@ -105,8 +106,9 @@ export function DossiersView() {
               const phaseCol = phaseColor(d.phase);
               return (
                 <Card key={d.id} onClick={() => setFicheId(d.id)} className="p-5 flex flex-col gap-3">
-                  {/* Header : client + VIP */}
-                  <div className="flex items-start justify-between gap-2 min-h-[40px]">
+                  {/* Header : logo client + nom + VIP */}
+                  <div className="flex items-start gap-3 min-h-[40px]">
+                    <ClientLogo client={d.client} secteur_categorie={d.secteur_categorie} size="md" />
                     <div className="min-w-0 flex-1">
                       <h3 className="text-[15px] font-semibold text-[#111111] dark:text-white tracking-[-0.01em] leading-tight">
                         {d.client}
@@ -143,9 +145,7 @@ export function DossiersView() {
                     <div className="flex items-center gap-1.5 min-w-0">
                       {a ? (
                         <>
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8.5px] font-semibold shrink-0" style={{ backgroundColor: a.avatar_color }}>
-                            {a.initiales}
-                          </div>
+                          <AgentAvatar initials={a.initiales} color={a.avatar_color} agentId={a.id} agentName={a.nom} size="xs" online={a.statut === "En ligne"} />
                           <span className="text-[#3a3a3c] dark:text-[#d1d1d6] truncate">{a.nom.split(" ")[0]}</span>
                         </>
                       ) : (

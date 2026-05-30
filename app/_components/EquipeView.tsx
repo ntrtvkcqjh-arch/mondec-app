@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "./ui/PageHeader";
 import { Card } from "./ui/Card";
+import { AgentAvatar } from "./ui/AgentAvatar";
 
 function EmotionChip({ emotion, small }: { emotion: string; small?: boolean }) {
   const map: Record<string, string> = {
@@ -180,12 +181,7 @@ export function EquipeView() {
                 <Card key={a.id} onClick={() => setDetailId(a.id)} className="p-5">
                   {/* Header : avatar + nom + statut résumé */}
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="relative shrink-0">
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-[12px] font-semibold shadow-sm" style={{ backgroundColor: a.avatar_color }}>
-                        {a.initiales}
-                      </div>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-[#1c1c1e]" style={{ backgroundColor: statusColor }} />
-                    </div>
+                    <AgentAvatar initials={a.initiales} color={a.avatar_color} agentId={a.id} agentName={a.nom} size="lg" online={a.statut === "En ligne"} />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[15px] font-semibold text-[#111111] dark:text-white tracking-[-0.01em] truncate">{a.nom}</h3>
                       <p className="text-[11.5px] text-[#6b7280] dark:text-[#98989D] truncate">{a.role}</p>

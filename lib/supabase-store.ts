@@ -61,6 +61,7 @@ export interface Dossier {
   recoverable_until: string | null;
   cause_perte: string | null;
   cas_traites: number;
+  created_game_day?: number; // pour période de grâce + calculs progression
 
   // === FICHE CLIENT (Sprint 2) ===
   // Caractéristiques générales
@@ -703,20 +704,18 @@ export const useGameStore = create<GameState>((set, get) => ({
         return companyKeywords.some((k) => lower.includes(k));
       }
 
+      // 1) D'abord on seed les dossiers explicitement nommés dans agents_config
       agentsData.forEach((a: any) => {
         (a.dossiers_actifs || []).forEach((d: string, i: number) => {
           if (!isClientDossier(d)) {
             console.log("[Store] Item RH/interne ignoré dans Dossiers :", d);
-            return; // skip non-client items
+            return;
           }
           let [client, theme] = d.includes(" - ") ? d.split(" - ") : [d, "Dossier"];
-          // Si le format est inversé (theme avant client), on swap pour avoir le vrai client
-          // Ex: 'Prépa RDV signature bilan - SAS Vidal Industries' → swap
           if (theme && looksLikeCompanyName(theme) && !looksLikeCompanyName(client)) {
-            const swap = client;
-            client = theme;
-            theme = swap;
+            const swap = client; client = theme; theme = swap;
           }
+          const sec = SECTEURS_DETAILS[Math.floor(Math.random() * SECTEURS_DETAILS.length)];
           dossiers.push({
             id: `${a.agent_id}_d${i}`,
             client: client.trim(),
@@ -739,11 +738,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             recoverable_until: null,
             cause_perte: null,
             cas_traites: 0,
-            // Fiche client riche — secteur + catégorie liés
-            ...((() => {
-              const sec = SECTEURS_DETAILS[Math.floor(Math.random() * SECTEURS_DETAILS.length)];
-              return { secteur: sec.nom, secteur_categorie: sec.categorie as any };
-            })()),
+            secteur: sec.nom,
+            secteur_categorie: sec.categorie as any,
             ca: 200000 + Math.floor(Math.random() * 4800000),
             effectif: 3 + Math.floor(Math.random() * 80),
             regime_tva: REGIMES[Math.floor(Math.random() * REGIMES.length)],
@@ -757,12 +753,116 @@ export const useGameStore = create<GameState>((set, get) => ({
             specialites_requises: pickRandom(SPECIALITES_POOL, 3 + Math.floor(Math.random() * 3)),
             honoraires_annuels: 15000 + Math.floor(Math.random() * 60000),
             satisfaction: 70 + Math.floor(Math.random() * 25),
-          });
+            created_game_day: 1, // dossiers d'origine, créés avant le démarrage
+          } as any);
         });
       });
-      // Marquer 2 dossiers en VIP (impact x3) — les premiers ou les dossiers importants
-      if (dossiers.length > 0) dossiers[0].is_vip = true;
-      if (dossiers.length > 3) dossiers[3].is_vip = true;
+
+      // 2) SEED RICHE : si on a moins de 5 dossiers par agent, on complète
+      // avec des clients du pool ENTREPRISES_POOL (max 8 par agent)
+      const ENTREPRISES_POOL = [
+        { client: "Établissements Moreau & Fils", secteur: "Mécanique de précision", categorie: "Industrie", forme: "SARL" },
+        { client: "Atelier Lumière", secteur: "Fabrication de luminaires", categorie: "Industrie", forme: "SAS" },
+        { client: "Nordic Pêche", secteur: "Importation articles de pêche", categorie: "Industrie", forme: "SARL" },
+        { client: "Boulangerie Maison Lefèvre", secteur: "Boulangerie artisanale", categorie: "Commerce", forme: "EURL" },
+        { client: "Cave à vins Les Tonneliers", secteur: "Cave à vins", categorie: "Commerce", forme: "SARL" },
+        { client: "Fleuriste Vert Tige", secteur: "Fleuriste", categorie: "Commerce", forme: "EURL" },
+        { client: "Brasserie Le Commerce", secteur: "Brasserie traditionnelle", categorie: "Restauration", forme: "SARL" },
+        { client: "Restaurant Délice", secteur: "Restaurant gastronomique", categorie: "Restauration", forme: "SAS" },
+        { client: "Traiteur Saveurs d'Antan", secteur: "Traiteur événementiel", categorie: "Restauration", forme: "SARL" },
+        { client: "Agence Web Pixel", secteur: "Agence web / SaaS", categorie: "Services", forme: "SAS" },
+        { client: "SAS ImmoConseil", secteur: "Agence immobilière", categorie: "Services", forme: "SAS" },
+        { client: "Cabinet d'architecture Ligne Pure", secteur: "Cabinet d'architecture", categorie: "Services", forme: "SARL" },
+        { client: "SARL Dupont Plomberie", secteur: "Plomberie chauffage", categorie: "Artisanat", forme: "SARL" },
+        { client: "Électricité Générale Petit", secteur: "Électricité bâtiment", categorie: "Artisanat", forme: "EURL" },
+        { client: "Menuiserie Bernard", secteur: "Menuiserie", categorie: "Artisanat", forme: "SARL" },
+        { client: "Association Les Petits Pas", secteur: "Association médico-sociale", categorie: "Association", forme: "Association" },
+        { client: "Club Sportif Athlé 93", secteur: "Club sportif amateur", categorie: "Association", forme: "Association" },
+        { client: "SAS Vidal Industries", secteur: "Métallurgie", categorie: "Industrie", forme: "SAS" },
+        { client: "Groupe Dubois Industries", secteur: "Industrie pharmaceutique", categorie: "Industrie", forme: "SA" },
+        { client: "SARL Petit Plomberie", secteur: "Plomberie chauffage", categorie: "Artisanat", forme: "SARL" },
+        { client: "EURL Dupont Conseil", secteur: "Conseil aux entreprises", categorie: "Services", forme: "EURL" },
+        { client: "Café des Sports", secteur: "Bar restaurant", categorie: "Restauration", forme: "SARL" },
+        { client: "Pharmacie du Marché", secteur: "Pharmacie", categorie: "Commerce", forme: "SARL" },
+        { client: "Auto-École Liberté", secteur: "Auto-école", categorie: "Services", forme: "EURL" },
+        { client: "Garage Mécanique Plus", secteur: "Garage automobile", categorie: "Artisanat", forme: "SARL" },
+        { client: "SCI Immobilière du Parc", secteur: "Société civile immobilière", categorie: "Services", forme: "SCI" },
+      ];
+      const usedClients = new Set(dossiers.map((d) => d.client));
+      const availableEntreprises = ENTREPRISES_POOL.filter((e) => !usedClients.has(e.client));
+
+      agentsData.forEach((a: any, agentIdx: number) => {
+        const currentCharge = dossiers.filter((d) => d.agent_id === a.agent_id).length;
+        const target = a.niveau === "Manager" || a.niveau === "Directeur" ? 7 : a.niveau?.includes("Stagiaire") ? 3 : 5;
+        const toAdd = Math.max(0, target - currentCharge);
+        for (let i = 0; i < toAdd; i++) {
+          if (availableEntreprises.length === 0) break;
+          // Pick par index pseudo-déterministe pour répartir les types
+          const idx = (agentIdx * 7 + i * 3) % availableEntreprises.length;
+          const ent = availableEntreprises.splice(idx, 1)[0];
+          const themes = [
+            "Tenue comptable mensuelle",
+            "Préparation bilan",
+            "Déclaration TVA",
+            "Acompte IS",
+            "Liasse fiscale",
+            "Paie & DSN mensuelle",
+            "Conseil fiscal optimisation",
+            "Audit légal annuel",
+            "Établissement comptes annuels",
+            "Suivi trésorerie & prévisionnel",
+          ];
+          const theme = themes[(agentIdx + i) % themes.length];
+          const phasesPossibles: ("P2" | "P3" | "P4" | "P5")[] = ["P2", "P3", "P4", "P5"];
+          const phase = phasesPossibles[Math.floor(Math.random() * phasesPossibles.length)];
+          // Progression cohérente avec la phase
+          const baseProgress = phase === "P2" ? 25 : phase === "P3" ? 50 : phase === "P4" ? 75 : 90;
+          dossiers.push({
+            id: `seed_${a.agent_id}_${i}_${Date.now()}`,
+            client: ent.client,
+            theme,
+            agent_id: a.agent_id,
+            etat: "en_cours",
+            progression: baseProgress + Math.floor(Math.random() * 10),
+            phase,
+            echeance_heure: `${10 + Math.floor(Math.random() * 7)}:00`,
+            impact: {
+              legitimite: 2 + Math.floor(Math.random() * 5),
+              reputation: 1 + Math.floor(Math.random() * 4),
+              tresorerie: 3000 + Math.floor(Math.random() * 12000),
+              stress: 2 + Math.floor(Math.random() * 5),
+            },
+            qualite: 65 + Math.floor(Math.random() * 25),
+            client_satisfait: true,
+            signaux_alerte: [],
+            is_vip: Math.random() < 0.15, // 15% VIP
+            recoverable_until: null,
+            cause_perte: null,
+            cas_traites: 0,
+            secteur: ent.secteur,
+            secteur_categorie: ent.categorie as any,
+            ca: 200000 + Math.floor(Math.random() * 4800000),
+            effectif: 3 + Math.floor(Math.random() * 80),
+            regime_tva: REGIMES[Math.floor(Math.random() * REGIMES.length)],
+            forme_juridique: ent.forme as any,
+            anciennete_annees: 1 + Math.floor(Math.random() * 15),
+            profil_relationnel: 30 + Math.floor(Math.random() * 70),
+            complexite_comptable: 20 + Math.floor(Math.random() * 80),
+            rentabilite: 40 + Math.floor(Math.random() * 50),
+            reactivite_demandee: 20 + Math.floor(Math.random() * 60),
+            tolerance_erreurs: 30 + Math.floor(Math.random() * 60),
+            specialites_requises: pickRandom(SPECIALITES_POOL, 2 + Math.floor(Math.random() * 3)),
+            honoraires_annuels: 12000 + Math.floor(Math.random() * 50000),
+            satisfaction: 70 + Math.floor(Math.random() * 25),
+            created_game_day: 1,
+          } as any);
+        }
+      });
+
+      // Marquer quelques dossiers VIP supplémentaires
+      const eligibles = dossiers.filter((d) => !d.is_vip && d.honoraires_annuels && d.honoraires_annuels > 40000);
+      eligibles.slice(0, 3).forEach((d) => { d.is_vip = true; });
+
       set({ dossiers });
     }
 
@@ -1430,6 +1530,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         // Dossiers déjà terminés : on ne touche plus
         if (d.etat === "avance" || d.etat === "cloture" || d.etat === "perdu") return d;
 
+        // 🛡️ PÉRIODE DE GRÂCE pour les dossiers récents (créés depuis < 3 game_days)
+        // On ne déclenche aucune cascade négative pour leur laisser le temps de démarrer
+        const dossierAge = s.game_day - ((d as any).created_game_day || 1);
+        const isFresh = dossierAge < 3;
+        if (isFresh) {
+          // Juste un statut clean, sans signaux
+          return { ...d, signaux_alerte: [], etat: "en_cours" as const, client_satisfait: true };
+        }
+
         const agent = s.agents.find((a) => a.id === d.agent_id);
         const signaux: string[] = [];
 
@@ -1439,8 +1548,9 @@ export const useGameStore = create<GameState>((set, get) => ({
           if ((agent as any).arc_actuel === "Rupture") signaux.push("agent_rupture");
         }
 
-        const expectedProgress = Math.min(95, 30 + s.game_day * 5);
-        if (d.progression < expectedProgress - 20) signaux.push("retard_critique");
+        // Progression attendue : démarre à 20% après la signature, +5%/jour à partir de J+3
+        const expectedProgress = Math.min(95, 20 + Math.max(0, dossierAge - 3) * 5);
+        if (d.progression < expectedProgress - 25) signaux.push("retard_critique");
         if (s.mood_global === "En Crise") signaux.push("cabinet_crise");
 
         const client_satisfait = d.qualite >= 50 && signaux.length < 2;
@@ -1451,22 +1561,29 @@ export const useGameStore = create<GameState>((set, get) => ({
           return d;
         }
 
-        // Auto-finalisation #2 : perte probabiliste si plusieurs signaux non gérés
-        // (3% par tick avec 2 signaux, 8% avec 3+)
-        if (signaux.length >= 3 && Math.random() < 0.08) {
-          toFinalize.push({ id: d.id, outcome: "lose" });
-          return d;
-        }
-        if (signaux.length >= 2 && Math.random() < 0.03) {
-          toFinalize.push({ id: d.id, outcome: "lose" });
-          return d;
+        // Auto-finalisation #2 : perte probabiliste (drastiquement réduite pour ne plus
+        // perdre les dossiers fraîchement créés ou en début de phase)
+        // Seuil minimum : dossier doit être en P3+ (Contrôle ou plus avancé)
+        const phaseNum = parseInt(d.phase?.replace("P", "") || "1");
+        if (phaseNum >= 3) {
+          if (signaux.length >= 3 && Math.random() < 0.04) {
+            toFinalize.push({ id: d.id, outcome: "lose" });
+            return d;
+          }
+          if (signaux.length >= 2 && Math.random() < 0.015) {
+            toFinalize.push({ id: d.id, outcome: "lose" });
+            return d;
+          }
         }
 
-        // Statut dynamique sinon
+        // 📈 PROGRESSION NATURELLE : +1% par tick si tout va bien (au moins 1 fois par jour de jeu)
+        const naturalProgress = signaux.length === 0 && d.qualite >= 60 ? Math.min(100, d.progression + 1) : d.progression;
+
+        // Statut dynamique
         let etat: Dossier["etat"] = "en_cours";
-        if (signaux.length >= 2 || (signaux.length >= 1 && d.progression < 50)) etat = "surveillance";
+        if (signaux.length >= 2 || (signaux.length >= 1 && d.progression < 40)) etat = "surveillance";
 
-        return { ...d, signaux_alerte: signaux, client_satisfait, etat };
+        return { ...d, signaux_alerte: signaux, client_satisfait, etat, progression: naturalProgress };
       }),
     }));
 
@@ -1475,6 +1592,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (f.outcome === "win") get().winDossier(f.id);
       else get().loseDossier(f.id);
     });
+    // Persiste après chaque tick si modifs
+    persistDossiers(get());
   },
 
   attemptRecoverDossier: (id) => {
@@ -2051,19 +2170,21 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     const prospect = state.prospects_pending.find((p) => p.id === id);
     if (!prospect) return;
+    // Acompte signature : 25% des honoraires annuels versés à la signature de la lettre de mission
+    const acompte = Math.floor(prospect.honoraires_annuels * 0.25);
     const newDossier: Dossier = {
       id: `dos_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       client: prospect.client,
       theme: `Mission complète — ${prospect.secteur}`,
       agent_id: agentId,
       etat: "en_cours",
-      progression: 5,
+      progression: 20, // démarre à 20% (lettre de mission signée, dossier permanent ouvert)
       phase: "P1",
       echeance_heure: "12:00",
       impact: {
         legitimite: 3 + Math.floor(prospect.rentabilite / 25),
         reputation: 2 + Math.floor(prospect.rentabilite / 30),
-        tresorerie: prospect.honoraires_annuels,
+        tresorerie: prospect.honoraires_annuels - acompte, // reste à toucher à la clôture
         stress: 3 + Math.floor(prospect.complexite_comptable / 20),
       },
       qualite: 70,
@@ -2088,15 +2209,21 @@ export const useGameStore = create<GameState>((set, get) => ({
       specialites_requises: prospect.specialites_requises,
       honoraires_annuels: prospect.honoraires_annuels,
       satisfaction: 75,
-    };
+      created_game_day: state.game_day, // pour période de grâce dans recomputeAllDossierStatus
+    } as any;
 
+    // CASCADE FINANCIÈRE IMMÉDIATE : trésorerie + réputation + légitimité
     set((s) => ({
       dossiers: [...s.dossiers, newDossier],
       prospects_pending: s.prospects_pending.filter((p) => p.id !== id),
       reputation: Math.min(100, s.reputation + 3),
+      legitimite: Math.min(100, s.legitimite + 2),
+      tresorerie: s.tresorerie + acompte, // 💰 ACOMPTE IMMÉDIAT
     }));
     persistProspects(get());
     persistDossiers(get());
+    persistPlayerState(get());
+    get().saveGameState();
 
     // Message N1 du collaborateur pour confirmer la prise en charge
     const newAgent = get().agents.find((a) => a.id === agentId);
@@ -2106,10 +2233,13 @@ export const useGameStore = create<GameState>((set, get) => ({
         niveau: "N1",
         type: "Information",
         sujet: `🆕 Nouveau dossier — ${prospect.client}`,
-        contenu: `${newAgent.nom.split(" ")[0]} : OK chef, je récupère ${prospect.client} (${prospect.secteur}). J'envoie la lettre de mission demain matin et je commence le dossier permanent.`,
+        contenu: `${newAgent.nom.split(" ")[0]} : OK chef, je récupère ${prospect.client} (${prospect.secteur}). Lettre de mission signée, acompte de ${(acompte / 1000).toFixed(1)}k€ encaissé. J'ouvre le dossier permanent et je commence dès demain. Solde honoraires (${((prospect.honoraires_annuels - acompte) / 1000).toFixed(1)}k€) à la clôture.`,
         delai_reponse_heures: 48,
       });
     }
+
+    // Recompute stress agent (charge dossiers a augmenté)
+    setTimeout(() => get().recomputeAgentStress(), 100);
   },
 
   refuseProspect: (id) => {

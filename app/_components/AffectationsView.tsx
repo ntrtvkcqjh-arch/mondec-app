@@ -6,6 +6,7 @@ import type { Dossier } from "@/lib/supabase-store";
 import { AlertTriangle, GripVertical } from "lucide-react";
 import { SectorTag } from "./SectorTag";
 import { PageHeader } from "./ui/PageHeader";
+import { AgentAvatar, ClientLogo } from "./ui/AgentAvatar";
 
 /**
  * Vue Affectations — kanban carré PHDDEC :
@@ -106,9 +107,7 @@ export function AffectationsView() {
                 {/* Header colonne agent */}
                 <div className="px-4 py-3 border-b" style={{ borderColor: "var(--mdec-border)" }}>
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[12px] font-semibold shrink-0 shadow-sm" style={{ backgroundColor: a.avatar_color }}>
-                      {a.initiales}
-                    </div>
+                    <AgentAvatar initials={a.initiales} color={a.avatar_color} agentId={a.id} agentName={a.nom} size="md" online={a.statut === "En ligne"} />
                     <div className="flex-1 min-w-0">
                       <div className="text-[13px] font-semibold truncate" style={{ color: "var(--mdec-text)" }}>{a.nom.split(" ")[0]} {a.nom.split(" ")[1]?.[0] || ""}.</div>
                       <div className="text-[10px] truncate" style={{ color: "var(--mdec-text-3)" }}>{a.filiere}</div>
