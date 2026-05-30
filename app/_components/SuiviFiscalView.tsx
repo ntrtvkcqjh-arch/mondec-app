@@ -4,26 +4,63 @@ import { useState, useMemo, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { BarChart3, Calendar, AlertTriangle, X, ChevronRight, CheckCircle, Sparkles } from "lucide-react";
 
+type DetailedStatut = "Brouillon" | "En cours" | "À valider" | "Déposée" | "En retard" | "Relance client";
+
 interface Obligation {
   id: string;
   client: string;
-  type: "TVA" | "IS" | "Liasse" | "CVAE" | "CFE" | "Plaquette";
-  echeance_jour: number; // jour réel à partir du début (Jour 1)
-  echeance_label: string;
+  type: "TVA" | "IS" | "Liasse" | "CVAE" | "CFE";
+  echeance_jour: number; // game_day cible
+  echeance_label: string; // ex "TVA mai 2026 → 20 juin 2026"
+  echeance_date_label: string; // ex "20 juin 2026"
   collaborateur_id: string;
   progression: number;
   competence_requise: string;
   statut: "ok" | "j7" | "j3" | "j1" | "retard";
+  statut_detaille: DetailedStatut;
 }
 
-const TYPES_OBLIGATIONS: { type: Obligation["type"]; competence: string; couleur: string }[] = [
-  { type: "TVA", competence: "Comptable/Social", couleur: "#007AFF" },
-  { type: "IS", competence: "Fiscal", couleur: "#FF9500" },
-  { type: "Liasse", competence: "Comptable", couleur: "#34C759" },
-  { type: "CVAE", competence: "Comptable/Fiscal", couleur: "#AF52DE" },
-  { type: "CFE", competence: "Fiscal", couleur: "#5856D6" },
-  { type: "Plaquette", competence: "Toi", couleur: "#FF3B30" },
+const TYPES_OBLIGATIONS: { type: Obligation["type"]; competence: string; couleur: string; label_suffix: string }[] = [
+  { type: "TVA", competence: "Comptable/Social", couleur: "#007AFF", label_suffix: "TVA mensuelle" },
+  { type: "IS", competence: "Fiscal", couleur: "#FF9500", label_suffix: "Acompte IS" },
+  { type: "Liasse", competence: "Comptable", couleur: "#34C759", label_suffix: "Liasse fiscale" },
+  { type: "CVAE", competence: "Comptable/Fiscal", couleur: "#AF52DE", label_suffix: "CVAE" },
+  { type: "CFE", competence: "Fiscal", couleur: "#5856D6", label_suffix: "CFE" },
 ];
+
+// Convertit un game_day en date réelle (départ : 14 mai 2026 = game_day 1).
+function gameJourToDate(gameDay: number): Date {
+  const start = new Date(2026, 4, 14); // mois 0-indexé : 4 = mai
+  start.setDate(start.getDate() + gameDay - 1);
+  return start;
+}
+function formatRealDate(d: Date): string {
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+function formatRealDateShort(d: Date): string {
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+function dayOfWeekFr(d: Date): string {
+  return d.toLocaleDateString("fr-FR", { weekday: "long" });
+}
+
+// Détermine le statut détaillé "métier" à partir de la progression + urgence
+function computeDetailedStatut(progression: number, statut: Obligation["statut"]): DetailedStatut {
+  if (statut === "retard") return "En retard";
+  if (progression >= 100) return "Déposée";
+  if (progression >= 80) return "À valider";
+  if (progression >= 40) return "En cours";
+  return "Brouillon";
+}
+
+const STATUT_DETAILLE_STYLE: Record<DetailedStatut, { bg: string; text: string; emoji: string }> = {
+  "Brouillon":      { bg: "bg-[#86868B]/10 dark:bg-white/10",   text: "text-[#3a3a3c] dark:text-[#98989D]", emoji: "📝" },
+  "En cours":       { bg: "bg-[#007AFF]/12 dark:bg-[#0A84FF]/20", text: "text-[#007AFF] dark:text-[#0A84FF]", emoji: "⚙️" },
+  "À valider":      { bg: "bg-[#FF9500]/15 dark:bg-[#FF9F0A]/22", text: "text-[#C76A00] dark:text-[#FF9F0A]", emoji: "✋" },
+  "Déposée":        { bg: "bg-[#34C759]/15 dark:bg-[#30D158]/22", text: "text-[#248A3D] dark:text-[#30D158]", emoji: "✓" },
+  "En retard":      { bg: "bg-[#FF3B30]/15 dark:bg-[#FF453A]/22", text: "text-[#FF3B30] dark:text-[#FF453A]", emoji: "⚠️" },
+  "Relance client": { bg: "bg-[#AF52DE]/12 dark:bg-[#BF5AF2]/20", text: "text-[#8334B8] dark:text-[#BF5AF2]", emoji: "📞" },
+};
 
 export function SuiviFiscalView() {
   const store = useGameStore();
@@ -41,24 +78,34 @@ export function SuiviFiscalView() {
       TYPES_OBLIGATIONS.forEach((t, ti) => {
         // Variation des échéances pour rendre l'affichage intéressant
         const offset = (ci * 7 + ti * 3) % 30;
-        const echJour = store.game_day + offset - 5;
+        const echJourRelative = offset - 5; // jours restants par rapport à game_day
+        const deadlineGameDay = store.game_day + echJourRelative;
+        const realDate = gameJourToDate(deadlineGameDay);
         let statut: Obligation["statut"];
-        if (echJour < 0) statut = "retard";
-        else if (echJour <= 1) statut = "j1";
-        else if (echJour <= 3) statut = "j3";
-        else if (echJour <= 7) statut = "j7";
+        if (echJourRelative < 0) statut = "retard";
+        else if (echJourRelative <= 1) statut = "j1";
+        else if (echJourRelative <= 3) statut = "j3";
+        else if (echJourRelative <= 7) statut = "j7";
         else statut = "ok";
+
+        const progression = statut === "ok"
+          ? 30 + Math.floor(Math.random() * 50)
+          : statut === "retard"
+          ? 50
+          : 60 + Math.floor(Math.random() * 30);
 
         list.push({
           id: `${client}_${t.type}`,
           client,
           type: t.type,
-          echeance_jour: echJour,
-          echeance_label: echJour < 0 ? "RETARD" : echJour === 0 ? "AUJOURD'HUI" : `J+${echJour}`,
+          echeance_jour: deadlineGameDay,
+          echeance_label: `${t.label_suffix} → ${formatRealDate(realDate)}`,
+          echeance_date_label: formatRealDate(realDate),
           collaborateur_id: baseAgent,
-          progression: statut === "ok" ? 30 + Math.floor(Math.random() * 50) : statut === "retard" ? 50 : 60 + Math.floor(Math.random() * 30),
+          progression,
           competence_requise: t.competence,
           statut,
+          statut_detaille: computeDetailedStatut(progression, statut),
         });
       });
     });
@@ -199,12 +246,12 @@ export function SuiviFiscalView() {
                     </button>
                   </div>
                   <table className="w-full">
-                    <thead className="bg-[#F5F5F7]/50">
-                      <tr className="text-[10px] text-[#86868B] uppercase tracking-wider">
+                    <thead className="bg-[#F5F5F7]/50 dark:bg-[#2c2c2e]/50">
+                      <tr className="text-[10px] text-[#86868B] dark:text-[#98989D] uppercase tracking-wider">
                         <th className="text-left px-4 py-2">Obligation</th>
-                        <th className="text-left px-2 py-2">Échéance</th>
+                        <th className="text-left px-2 py-2">Échéance réelle</th>
                         <th className="text-left px-2 py-2">Statut</th>
-                        <th className="text-left px-2 py-2 w-32">Progression</th>
+                        <th className="text-left px-2 py-2">Urgence</th>
                         <th className="text-left px-2 py-2">Collaborateur</th>
                       </tr>
                     </thead>
@@ -212,25 +259,23 @@ export function SuiviFiscalView() {
                       {obs.map((o) => {
                         const colla = store.agents.find((x) => x.id === o.collaborateur_id);
                         const c = getStatutColor(o.statut);
+                        const sd = STATUT_DETAILLE_STYLE[o.statut_detaille];
                         return (
                           <tr key={o.id} onClick={() => setActiveObligation(o)}
-                            className="border-t border-[#E5E5EA]/30 dark:border-[#38383a] hover:bg-[#F5F5F7]/40 cursor-pointer">
+                            className="border-t border-[#E5E5EA]/30 dark:border-[#38383a] hover:bg-[#F5F5F7]/40 dark:hover:bg-[#2c2c2e]/40 cursor-pointer">
                             <td className="px-4 py-2.5 text-[12px] font-medium text-[#1D1D1F] dark:text-white">{o.type}</td>
-                            <td className="px-2 py-2.5 text-[11px] text-[#86868B] tabular-nums">{o.echeance_label}</td>
+                            <td className="px-2 py-2.5 text-[11px] text-[#3a3a3c] dark:text-[#d1d1d6] tabular-nums">{o.echeance_date_label}</td>
+                            <td className="px-2 py-2.5">
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${sd.bg} ${sd.text}`}>
+                                <span>{sd.emoji}</span> {o.statut_detaille}
+                              </span>
+                            </td>
                             <td className="px-2 py-2.5">
                               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${c.bg} ${c.text}`}>
                                 {getStatutLabel(o.statut)}
                               </span>
                             </td>
-                            <td className="px-2 py-2.5">
-                              <div className="flex items-center gap-1.5">
-                                <div className="flex-1 h-[3px] bg-[#E5E5EA] rounded-full overflow-hidden">
-                                  <div className="h-full rounded-full transition-all" style={{ width: `${o.progression}%`, backgroundColor: o.statut === "retard" ? "#FF3B30" : o.statut === "j1" ? "#FF9500" : "#007AFF" }} />
-                                </div>
-                                <span className="text-[9px] text-[#86868B] tabular-nums">{o.progression}%</span>
-                              </div>
-                            </td>
-                            <td className="px-2 py-2.5 text-[11px] text-[#86868B]">
+                            <td className="px-2 py-2.5 text-[11px] text-[#86868B] dark:text-[#98989D]">
                               {colla ? colla.nom.split(" ")[0] : "—"}
                             </td>
                           </tr>
@@ -320,7 +365,7 @@ export function SuiviFiscalView() {
                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${c.bg} ${c.text}`}>{getStatutLabel(o.statut)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{o.type} — {o.client}</div>
-                    <div className="text-[11px] text-[#86868B]">Échéance {o.echeance_label} · {colla ? colla.nom : "Non affecté"}</div>
+                    <div className="text-[11px] text-[#86868B] dark:text-[#98989D]">Échéance {o.echeance_date_label} · {colla ? colla.nom : "Non affecté"}</div>
                   </div>
                   <button onClick={() => setShowAffectation(o.client)}
                     className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#007AFF]/10 text-[#007AFF] hover:bg-[#007AFF]/15 font-medium">
@@ -397,7 +442,7 @@ function AffectationModal({ client, obligations, onClose }: { client: string; ob
                   <span className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{o.type}</span>
                   <span className="text-[10px] text-[#86868B]">Compétence : {t?.competence || "—"}</span>
                   <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ml-auto ${o.statut === "retard" ? "bg-[#FF3B30]/15 text-[#FF3B30]" : o.statut === "j1" ? "bg-[#FF3B30]/10 text-[#FF3B30]" : "bg-[#34C759]/10 text-[#34C759]"}`}>
-                    {o.echeance_label}
+                    {o.echeance_date_label}
                   </span>
                 </div>
                 <select value={affectations[o.id]} onChange={(e) => setAffectations({ ...affectations, [o.id]: e.target.value })}

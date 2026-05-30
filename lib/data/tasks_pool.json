@@ -4,8 +4,8 @@
       "id": "task_liasse_martin",
       "type": "liasse_2033",
       "branche": "Comptable",
-      "titre": "Liasse 2033 — Martin SARL",
-      "client": "Martin SARL",
+      "titre": "Liasse 2033 — Établissements Moreau & Fils",
+      "client": "Établissements Moreau & Fils",
       "niveau_min": 2,
       "contexte": "PME industrielle. Tu dois valider la liasse 2033 avant dépôt. Vérifie les retraitements fiscaux.",
       "lignes": [
@@ -43,8 +43,8 @@
       "id": "task_tva_delice",
       "type": "tva_ca3",
       "branche": "Fiscal",
-      "titre": "Déclaration TVA CA3 — Restaurant Délice",
-      "client": "Restaurant Délice SARL",
+      "titre": "Déclaration TVA CA3 — Brasserie Le Commerce",
+      "client": "Brasserie Le Commerce SARL",
       "niveau_min": 1,
       "contexte": "Restaurant traditionnel. La CA3 du mois est préparée par le stagiaire. Période : mai 2026.",
       "lignes": [
@@ -76,7 +76,7 @@
       "type": "attestation_tva",
       "branche": "Comptable",
       "titre": "Attestation TVA travaux — Petit",
-      "client": "M. Jean Petit",
+      "client": "SARL Petit Plomberie",
       "niveau_min": 1,
       "contexte": "Attestation à délivrer pour des travaux dans la résidence principale (logement > 2 ans). Taux réduit 10%.",
       "lignes": [
@@ -109,8 +109,8 @@
       "id": "task_dsn_dupont",
       "type": "dsn_paie",
       "branche": "Social",
-      "titre": "Bulletin de paie — Mme Dupont",
-      "client": "PME Services / Mme Dupont",
+      "titre": "Bulletin de paie — EURL Dupont Conseil",
+      "client": "EURL Dupont Conseil",
       "niveau_min": 1,
       "contexte": "Bulletin de paie préparé pour validation. Salariée à temps plein, embauchée depuis 4 ans, soldée pour fin de contrat (rupture conventionnelle).",
       "lignes": [
@@ -143,8 +143,8 @@
       "id": "task_bilan_vidal",
       "type": "bilan_notes",
       "branche": "Audit & IFRS",
-      "titre": "Bilan + Notes — Vidal Industrie",
-      "client": "Vidal Industrie SAS",
+      "titre": "Bilan + Notes — SAS Vidal Industries",
+      "client": "SAS Vidal Industries SAS",
       "niveau_min": 3,
       "contexte": "Bilan préparé par Naïma. Tu dois faire la revue finale avant signature. Le client Bertrand SAS (créance 45 000€ TTC) est en procédure de sauvegarde depuis 2 mois.",
       "lignes": [
@@ -183,8 +183,8 @@
       "id": "task_ecriture_pme",
       "type": "ecriture_cloture",
       "branche": "Comptable",
-      "titre": "Écritures de clôture — PME Services",
-      "client": "PME Services",
+      "titre": "Écritures de clôture — Agence Web Pixel",
+      "client": "Agence Web Pixel",
       "niveau_min": 2,
       "contexte": "Écritures de clôture passées par le stagiaire. Vérifie qu'il n'y a pas d'oubli avant validation.",
       "lignes": [

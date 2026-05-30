@@ -18,6 +18,7 @@ interface Props {
   tasksDispos: number;
   onOpenKeyModal: () => void;
   onOpenClaudeChat?: () => void;
+  onTuteurAction?: (action: { type: "talk_agent" | "open_tab"; agentId?: string; tab?: string }) => void;
   apiStatus: "checking" | "ok" | "error";
   apiStatusReason: string;
   generatingEvents: boolean;
@@ -137,6 +138,34 @@ export function Sidebar(props: Props) {
           </div>
         </div>
 
+        {/* Bar Temps disponible (remplace les PA) */}
+        <div className="bg-white/60 dark:bg-[#1c1c1e] backdrop-blur rounded-[16px] p-3 border border-white/80 dark:border-[#38383a]">
+          {(() => {
+            const min = store.temps_disponible_min ?? 480;
+            const max = store.temps_disponible_max ?? 480;
+            const ratio = Math.max(0, min / max);
+            const h = Math.floor(min / 60);
+            const m = min % 60;
+            const hmax = Math.floor(max / 60);
+            const overtime = (store.heures_sup_cumul ?? 0) > 0;
+            const color = overtime || ratio < 0.15 ? "from-[#FF3B30] to-[#FF9500]" : ratio < 0.4 ? "from-[#FF9500] to-[#FFCC00]" : "from-[#34C759] to-[#007AFF]";
+            return (
+              <>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-medium text-[#86868B] dark:text-[#a0a0a5] uppercase tracking-wide">⏱ Temps</span>
+                  {overtime && <span className="text-[9px] font-bold text-[#FF3B30] bg-[#FF3B30]/10 px-1.5 py-0.5 rounded">HEURES SUP</span>}
+                </div>
+                <div className="font-mono text-[16px] font-bold text-[#1D1D1F] dark:text-white tabular-nums leading-none">
+                  {h}h{String(m).padStart(2, "0")} <span className="text-[10px] text-[#86868B] dark:text-[#98989D] font-normal">/ {hmax}h00</span>
+                </div>
+                <div className="mt-2 h-[4px] bg-[#E5E5EA] dark:bg-[#2c2c2e] rounded-full overflow-hidden">
+                  <div className={`h-full bg-gradient-to-r ${color} rounded-full transition-all duration-500`} style={{ width: `${ratio * 100}%` }} />
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
         {/* Statut API */}
         <button onClick={props.onOpenKeyModal}
           className={`w-full flex items-center gap-2 px-3 py-2 rounded-[12px] text-[11px] transition-all ${
@@ -157,7 +186,7 @@ export function Sidebar(props: Props) {
       </div>
 
       {/* Claude Tuteur — bulle contextuelle */}
-      <ClaudeTuteur onOpenChat={props.onOpenClaudeChat || (() => {})} />
+      <ClaudeTuteur onOpenChat={props.onOpenClaudeChat || (() => {})} onQuickAction={props.onTuteurAction} />
 
       {/* Section APPARENCE (style PHDDEC) */}
       <div className="px-4 py-3 border-t border-white/60 dark:border-[#38383a]">

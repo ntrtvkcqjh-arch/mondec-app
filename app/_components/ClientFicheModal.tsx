@@ -3,6 +3,7 @@
 import { useGameStore } from "@/lib/supabase-store";
 import type { Dossier } from "@/lib/supabase-store";
 import { X, AlertTriangle, CheckCircle, Star } from "lucide-react";
+import { SectorTag } from "./SectorTag";
 
 interface Props {
   dossier: Dossier;
@@ -57,8 +58,9 @@ export function ClientFicheModal({ dossier: d, onClose }: Props) {
             <div className="flex items-center gap-3">
               <div className="text-[36px]">🏢</div>
               <div>
-                <h3 className="font-bold text-[18px] text-[#1D1D1F] dark:text-white tracking-tight flex items-center gap-2">
+                <h3 className="font-bold text-[18px] text-[#1D1D1F] dark:text-white tracking-tight flex items-center gap-2 flex-wrap">
                   {d.client}
+                  {d.secteur_categorie && <SectorTag categorie={d.secteur_categorie} />}
                   {d.is_vip && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-[#AF52DE] to-[#5856D6] text-white">⭐ VIP</span>}
                 </h3>
                 <p className="text-[12px] text-[#86868B] dark:text-[#98989D]">{d.secteur || "Secteur N/A"} · CA {((d.ca || 0) / 1000000).toFixed(1)}M€ · {d.effectif || 0} salariés</p>

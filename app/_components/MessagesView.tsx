@@ -118,6 +118,20 @@ export function MessagesView({ onOpenKeyModal }: Props) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [store.conversation_history, selectedAgent]);
 
+  // Écoute les événements du tuteur (clic "Parler à X →")
+  useEffect(() => {
+    function handler(e: any) {
+      const id = e?.detail?.agentId;
+      if (id && store.agents.some((a) => a.id === id)) {
+        handleSelectAgent(id);
+      }
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("select-agent", handler as any);
+      return () => window.removeEventListener("select-agent", handler as any);
+    }
+  }, [store.agents.length]);
+
   function handleSelectAgent(agentId: string) {
     setSelectedAgent(agentId);
     setInputText("");

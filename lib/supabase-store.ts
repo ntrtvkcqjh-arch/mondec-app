@@ -65,6 +65,7 @@ export interface Dossier {
   // === FICHE CLIENT (Sprint 2) ===
   // Caractéristiques générales
   secteur?: string;
+  secteur_categorie?: "Industrie" | "Commerce" | "Restauration" | "Services" | "Artisanat" | "Association";
   ca?: number; // chiffre d'affaires en €
   effectif?: number;
   regime_tva?: "Mensuel" | "Trimestriel" | "Annuel" | "Franchise";
@@ -90,6 +91,7 @@ export interface NouveauProspect {
   id: string;
   client: string;
   secteur: string;
+  secteur_categorie?: "Industrie" | "Commerce" | "Restauration" | "Services" | "Artisanat" | "Association";
   ca: number;
   effectif: number;
   regime_tva: "Mensuel" | "Trimestriel" | "Annuel" | "Franchise";
@@ -127,8 +129,12 @@ export interface GameState {
   tresorerie: number;
   reputation: number;
   stress_global: number;
-  points_action: number;
+  points_action: number; // @legacy : conservé pour compat, plus utilisé pour bloquer le chat
   points_action_max: number;
+  // Système Temps : 8h/jour = 480 minutes. Reset à minuit (game_day rollover)
+  temps_disponible_min: number;
+  temps_disponible_max: number;
+  heures_sup_cumul: number; // si on dépasse, on accumule le retard
   date_simulation: string;
   mood_global: string;
 
@@ -181,6 +187,9 @@ export interface GameState {
   markMessageRead: (id: string) => Promise<void>;
   replyToMessage: (id: string, reply: string) => Promise<void>;
   spendPA: (amount: number) => boolean;
+  /** Dépense X minutes du temps disponible + (optionnel) X€ de trésorerie.
+   *  Si pas assez de temps → heures supplémentaires (stress équipe +20). */
+  spendTime: (minutes: number, cashCost?: number) => { ok: boolean; reason?: string; overtime?: boolean };
   addConversation: (agentId: string, role: "user" | "assistant", content: string) => Promise<void>;
   loadConversations: (agentId: string) => Promise<void>;
   addNewMessage: (event: { agent_id: string; niveau: string; type: string; sujet: string; contenu: string; delai_reponse_heures: number }) => Promise<void>;
@@ -287,6 +296,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   stress_global: 61,
   points_action: 3,
   points_action_max: 3,
+  temps_disponible_min: 480, // 8h
+  temps_disponible_max: 480,
+  heures_sup_cumul: 0,
   date_simulation: "14 mai 2026",
   mood_global: "Sous Pression",
 
@@ -431,7 +443,26 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       // Seed dossiers enrichis avec caractéristiques aléatoires
       const dossiers: Dossier[] = [];
-      const SECTEURS = ["Industrie métallurgique", "Restaurant", "BTP", "Boulangerie", "Tech / SaaS", "E-commerce", "Conseil", "Distribution", "Immobilier", "Cabinet médical"];
+      // Pool de secteurs réalistes — chaque secteur a une catégorie (utilisée pour les tags)
+      const SECTEURS_DETAILS = [
+        { nom: "Mécanique de précision", categorie: "Industrie" },
+        { nom: "Fabrication de luminaires", categorie: "Industrie" },
+        { nom: "Importation articles de pêche", categorie: "Industrie" },
+        { nom: "Boulangerie artisanale", categorie: "Commerce" },
+        { nom: "Cave à vins", categorie: "Commerce" },
+        { nom: "Fleuriste", categorie: "Commerce" },
+        { nom: "Brasserie traditionnelle", categorie: "Restauration" },
+        { nom: "Restaurant gastronomique", categorie: "Restauration" },
+        { nom: "Traiteur événementiel", categorie: "Restauration" },
+        { nom: "Agence web / SaaS", categorie: "Services" },
+        { nom: "Agence immobilière", categorie: "Services" },
+        { nom: "Cabinet d'architecture", categorie: "Services" },
+        { nom: "Plomberie chauffage", categorie: "Artisanat" },
+        { nom: "Électricité bâtiment", categorie: "Artisanat" },
+        { nom: "Menuiserie", categorie: "Artisanat" },
+        { nom: "Association médico-sociale", categorie: "Association" },
+        { nom: "Club sportif amateur", categorie: "Association" },
+      ];
       const SPECIALITES_POOL = ["TVA intracommunautaire", "Fiscalité internationale", "IFRS / Consolidation", "Provisions techniques", "Paie complexe (DSN)", "CIR R&D", "TVA restauration", "Immobilier / SCPI", "Comptabilité simple", "Association / Mécénat"];
       const FORMES: any[] = ["SARL", "SAS", "SA", "EURL", "SCI", "Association"];
       const REGIMES: any[] = ["Mensuel", "Trimestriel", "Annuel", "Franchise"];
@@ -466,8 +497,11 @@ export const useGameStore = create<GameState>((set, get) => ({
             recoverable_until: null,
             cause_perte: null,
             cas_traites: 0,
-            // Fiche client riche
-            secteur: SECTEURS[Math.floor(Math.random() * SECTEURS.length)],
+            // Fiche client riche — secteur + catégorie liés
+            ...((() => {
+              const sec = SECTEURS_DETAILS[Math.floor(Math.random() * SECTEURS_DETAILS.length)];
+              return { secteur: sec.nom, secteur_categorie: sec.categorie as any };
+            })()),
             ca: 200000 + Math.floor(Math.random() * 4800000),
             effectif: 3 + Math.floor(Math.random() * 80),
             regime_tva: REGIMES[Math.floor(Math.random() * REGIMES.length)],
@@ -565,6 +599,35 @@ export const useGameStore = create<GameState>((set, get) => ({
       return true;
     }
     return false;
+  },
+
+  /** Système Temps : ressource principale du cabinet.
+   *  - Si assez de temps : on déduit, on touche éventuellement la trésorerie.
+   *  - Si pas assez de temps : on accepte mais en mode "heures sup" → stress équipe +20.
+   *  - Si pas assez d'argent : refus net.
+   */
+  spendTime: (minutes, cashCost = 0) => {
+    const state = get();
+    if (cashCost > state.tresorerie) {
+      return { ok: false, reason: `Trésorerie insuffisante (besoin de ${cashCost / 1000}k€, dispo ${(state.tresorerie / 1000).toFixed(1)}k€)` };
+    }
+
+    const overtime = minutes > state.temps_disponible_min;
+    const newTime = Math.max(0, state.temps_disponible_min - minutes);
+    const overflowMinutes = overtime ? minutes - state.temps_disponible_min : 0;
+
+    set((s) => ({
+      temps_disponible_min: newTime,
+      tresorerie: s.tresorerie - cashCost,
+      heures_sup_cumul: s.heures_sup_cumul + overflowMinutes,
+      // Si heures sup : +20 stress global et propagation à chaque agent (+5)
+      stress_global: overtime ? Math.min(100, s.stress_global + 20) : s.stress_global,
+      agents: overtime
+        ? s.agents.map((a) => ({ ...a, stress: Math.min(100, a.stress + 5) }))
+        : s.agents,
+    }));
+    get().saveGameState();
+    return { ok: true, overtime };
   },
 
   addConversation: async (agentId, role, content) => {
@@ -737,14 +800,18 @@ export const useGameStore = create<GameState>((set, get) => ({
     const minute = (startOfDay + minutesInThisDay) % 60;
 
     set((state) => {
-      // Si on change de jour → reset PA
+      // Si on change de jour → reset PA + reset Temps disponible + reset heures sup
       const isNewDay = day > state.game_day;
       return {
         game_hour: hour,
         game_minute: minute,
         game_day: day,
         game_start_timestamp: startTs,
-        ...(isNewDay ? { points_action: state.points_action_max } : {}),
+        ...(isNewDay ? {
+          points_action: state.points_action_max,
+          temps_disponible_min: state.temps_disponible_max,
+          heures_sup_cumul: 0,
+        } : {}),
       };
     });
   },
@@ -1080,13 +1147,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const d = state.dossiers.find((x) => x.id === id);
     if (!d || d.etat !== "perdu" || !d.recoverable_until) return false;
     if (new Date(d.recoverable_until) < new Date()) return false; // Trop tard
-    if (state.points_action < 2) return false;
+
+    // Coût : 1h (60 min) pour rappeler, négocier, reprendre le dossier
+    const t = get().spendTime(60, 0);
+    if (!t.ok) return false;
 
     // Récupération : 60% chance, modulée par niveau joueur et confiance moyenne agents
     const baseChance = 0.4 + state.player_level * 0.05;
     const success = Math.random() < baseChance;
-
-    set((s) => ({ points_action: s.points_action - 2 }));
 
     if (success) {
       set((s) => ({
@@ -1137,29 +1205,46 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (state.last_prospect_day === state.game_day) return;
     if (state.prospects_pending.length > 0) return;
 
-    const SECTEURS = ["BioTech Lyon", "Boulangerie Dupont", "Tech Composants", "Conseil Stratégie", "Restaurant Mer", "BTP Sud", "SaaS Pro", "Distribution Plus", "Cabinet Médical", "Immobilier Centre"];
-    const SUFFIX = ["SAS", "SARL", "EURL", "SA"];
+    // Pool d'entreprises crédibles avec secteur + catégorie + forme suggérée
+    const ENTREPRISES_POOL = [
+      { client: "Établissements Moreau & Fils", secteur: "Mécanique de précision", categorie: "Industrie", forme: "SARL" },
+      { client: "Atelier Lumière", secteur: "Fabrication de luminaires", categorie: "Industrie", forme: "SAS" },
+      { client: "Nordic Pêche", secteur: "Importation articles de pêche", categorie: "Industrie", forme: "SARL" },
+      { client: "Boulangerie Maison Lefèvre", secteur: "Boulangerie artisanale", categorie: "Commerce", forme: "EURL" },
+      { client: "Cave à vins Les Tonneliers", secteur: "Cave à vins", categorie: "Commerce", forme: "SARL" },
+      { client: "Fleuriste Vert Tige", secteur: "Fleuriste", categorie: "Commerce", forme: "EURL" },
+      { client: "Brasserie Le Commerce", secteur: "Brasserie traditionnelle", categorie: "Restauration", forme: "SARL" },
+      { client: "Restaurant Délice", secteur: "Restaurant gastronomique", categorie: "Restauration", forme: "SAS" },
+      { client: "Traiteur Saveurs d'Antan", secteur: "Traiteur événementiel", categorie: "Restauration", forme: "SARL" },
+      { client: "Agence Web Pixel", secteur: "Agence web / SaaS", categorie: "Services", forme: "SAS" },
+      { client: "SAS ImmoConseil", secteur: "Agence immobilière", categorie: "Services", forme: "SAS" },
+      { client: "Cabinet d'architecture Ligne Pure", secteur: "Cabinet d'architecture", categorie: "Services", forme: "SARL" },
+      { client: "SARL Dupont Plomberie", secteur: "Plomberie chauffage", categorie: "Artisanat", forme: "SARL" },
+      { client: "Électricité Générale Petit", secteur: "Électricité bâtiment", categorie: "Artisanat", forme: "EURL" },
+      { client: "Menuiserie Bernard", secteur: "Menuiserie", categorie: "Artisanat", forme: "SARL" },
+      { client: "Association Les Petits Pas", secteur: "Association médico-sociale", categorie: "Association", forme: "Association" },
+      { client: "Club Sportif Athlé 93", secteur: "Club sportif amateur", categorie: "Association", forme: "Association" },
+    ];
     const SPECIALITES = ["TVA intracommunautaire", "Fiscalité internationale", "IFRS / Consolidation", "Provisions techniques", "Paie complexe (DSN)", "CIR R&D", "TVA restauration", "Immobilier / SCPI", "Comptabilité simple"];
-    const FORMES: any[] = ["SARL", "SAS", "SA", "EURL"];
     const REGIMES: any[] = ["Mensuel", "Trimestriel", "Annuel"];
 
     function pickRandom<T>(arr: T[], n: number): T[] {
       return arr.slice().sort(() => Math.random() - 0.5).slice(0, n);
     }
 
-    // 1, 2 ou 3 prospects au hasard chaque jour
+    // 1, 2 ou 3 prospects au hasard chaque jour, sans doublon dans le batch
     const count = 1 + Math.floor(Math.random() * 3);
-    const newProspects: NouveauProspect[] = Array.from({ length: count }).map((_, i) => {
-      const nameBase = SECTEURS[Math.floor(Math.random() * SECTEURS.length)];
-      const suffix = SUFFIX[Math.floor(Math.random() * SUFFIX.length)];
+    const choisis = pickRandom(ENTREPRISES_POOL, count);
+    const newProspects: NouveauProspect[] = choisis.map((ent, i) => {
       return {
         id: `prospect_${state.game_day}_${i}_${Date.now()}`,
-        client: `${nameBase} ${suffix}`,
-        secteur: nameBase.split(" ").slice(0, 2).join(" "),
+        client: ent.client,
+        secteur: ent.secteur,
+        secteur_categorie: ent.categorie as any,
         ca: 200000 + Math.floor(Math.random() * 4800000),
         effectif: 3 + Math.floor(Math.random() * 80),
         regime_tva: REGIMES[Math.floor(Math.random() * REGIMES.length)],
-        forme_juridique: FORMES[Math.floor(Math.random() * FORMES.length)],
+        forme_juridique: ent.forme as any,
         profil_relationnel: 30 + Math.floor(Math.random() * 70),
         complexite_comptable: 20 + Math.floor(Math.random() * 80),
         rentabilite: 30 + Math.floor(Math.random() * 60),
@@ -1207,6 +1292,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       cause_perte: null,
       cas_traites: 0,
       secteur: prospect.secteur,
+      secteur_categorie: prospect.secteur_categorie,
       ca: prospect.ca,
       effectif: prospect.effectif,
       regime_tva: prospect.regime_tva,
@@ -1578,6 +1664,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     const cd = state.agent_cooldowns[agentId]?.talk;
     if (cd && state.game_day < cd) return { ok: false, reason: `Disponible au jour ${cd}` };
 
+    // Coût : 5 minutes de ton temps, pas d'argent
+    const t = get().spendTime(5, 0);
+    if (!t.ok) return { ok: false, reason: t.reason };
+
     set((s) => ({
       agents: s.agents.map((a) => a.id === agentId ? {
         ...a,
@@ -1588,7 +1678,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       agent_cooldowns: { ...s.agent_cooldowns, [agentId]: { ...s.agent_cooldowns[agentId], talk: s.game_day + 1 } },
       agent_player_history: {
         ...s.agent_player_history,
-        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Échange informel", impact: "+3 Confiance · −2 Stress" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
+        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Échange informel (5min)", impact: "+3 Confiance · −2 Stress" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
       },
     }));
     get().recomputeTeamHealth();
@@ -1602,6 +1692,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     const cd = state.agent_cooldowns[agentId]?.reward;
     if (cd && state.game_day < cd) return { ok: false, reason: `Récompense déjà donnée — re-disponible jour ${cd}` };
 
+    // Coût : 10 min (signer le chèque-cadeau, l'annoncer) + 500€ chèque cadeau
+    const t = get().spendTime(10, 500);
+    if (!t.ok) return { ok: false, reason: t.reason };
+
     set((s) => ({
       agents: s.agents.map((a) => a.id === agentId ? {
         ...a,
@@ -1614,7 +1708,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       agent_cooldowns: { ...s.agent_cooldowns, [agentId]: { ...s.agent_cooldowns[agentId], reward: s.game_day + 7 } },
       agent_player_history: {
         ...s.agent_player_history,
-        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Récompense (prime/reconnaissance)", impact: "+7 Confiance · +5 Loyauté · +2 Légitimité" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
+        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Récompense (chèque-cadeau)", impact: "+7 Confiance · +5 Loyauté · +2 Légitimité · −500€" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
       },
     }));
     get().recomputeTeamHealth();
@@ -1631,6 +1725,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Si déjà bas confiance + Trait fier → risque démission
     const risqueDemission = agent.confiance_joueur < 30 && (agent as any).trait_dominant === "Ambitieux";
 
+    // Coût : 10 min (entretien sec), pas d'argent — conséquences purement relationnelles
+    const t = get().spendTime(10, 0);
+    if (!t.ok) return { ok: false, reason: t.reason };
+
     set((s) => ({
       agents: s.agents.map((a) => a.id === agentId ? {
         ...a,
@@ -1643,7 +1741,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       agent_cooldowns: { ...s.agent_cooldowns, [agentId]: { ...s.agent_cooldowns[agentId], reprimand: s.game_day + 3 } },
       agent_player_history: {
         ...s.agent_player_history,
-        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Réprimande", impact: risqueDemission ? "⚠ RISQUE DÉMISSION · −6 Confiance · +10 Peur" : "−6 Confiance · +10 Peur · +5 Stress" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
+        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Réprimande (10min)", impact: risqueDemission ? "⚠ RISQUE DÉMISSION · −6 Confiance · +10 Peur" : "−6 Confiance · +10 Peur · +5 Stress" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
       },
     }));
     get().recomputeTeamHealth();
@@ -1654,14 +1752,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     const agent = state.agents.find((a) => a.id === agentId);
     if (!agent) return { ok: false, reason: "Agent introuvable" };
-    if (state.points_action < 1) return { ok: false, reason: "1 PA requis" };
-    if (state.tresorerie < 3000) return { ok: false, reason: "3 000 € requis" };
     const cd = state.agent_cooldowns[agentId]?.train;
     if (cd && state.game_day < cd) return { ok: false, reason: `Formation suivante au jour ${cd}` };
 
+    // Coût : 3h (180 min) pour libérer un créneau + 3k€ frais formation
+    const t = get().spendTime(180, 3000);
+    if (!t.ok) return { ok: false, reason: t.reason };
+
     set((s) => ({
-      points_action: s.points_action - 1,
-      tresorerie: s.tresorerie - 3000,
       agents: s.agents.map((a) => a.id === agentId ? {
         ...a,
         confiance_joueur: Math.min(100, a.confiance_joueur + 4),
@@ -1673,7 +1771,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       agent_cooldowns: { ...s.agent_cooldowns, [agentId]: { ...s.agent_cooldowns[agentId], train: s.game_day + 10 } },
       agent_player_history: {
         ...s.agent_player_history,
-        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Formation 1 journée", impact: "−15 Fatigue · −10 Stress · +4 Confiance · −3k€" }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
+        [agentId]: [{ day: s.game_day, hour: s.game_hour, event: "Formation (3h)", impact: "−15 Fatigue · −10 Stress · +4 Confiance · −3k€" + (t.overtime ? " · ⚠ heures sup" : "") }, ...(s.agent_player_history[agentId] || [])].slice(0, 20),
       },
     }));
     get().recomputeTeamHealth();

@@ -14,7 +14,7 @@
     {
       "heure": "09:30",
       "type": "cas_pratique",
-      "titre": "Calcul acompte IS — Martin SARL",
+      "titre": "Calcul acompte IS — Établissements Moreau & Fils",
       "theme": "Acompte IS — calcul base de l'IS N-1, application taux réduit PME, quotité 1/4",
       "agent_id": "thomas_lefevre",
       "duree_min": 45,
@@ -25,7 +25,7 @@
     {
       "heure": "10:30",
       "type": "rdv_client",
-      "titre": "RDV client Vidal Industrie",
+      "titre": "RDV client SAS Vidal Industries",
       "theme": "Provision créance client en sauvegarde judiciaire — calcul provision adéquate, déductibilité fiscale",
       "agent_id": "naima_bensaid",
       "duree_min": 60,
@@ -89,7 +89,7 @@
     {
       "heure": "17:00",
       "type": "validation",
-      "titre": "Validation bilan Petit",
+      "titre": "Validation bilan SARL Petit Plomberie",
       "theme": "Revue de cohérence d'un bilan PME : analyse créances clients vs CA, cohérence stocks/charges, signaux d'alerte trésorerie",
       "agent_id": "amelie_durand",
       "duree_min": 30,

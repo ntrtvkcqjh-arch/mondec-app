@@ -8,6 +8,7 @@ import { apiFetch, hasUserApiKey } from "@/lib/api-client";
 
 import { Sidebar, type Tab, CabinetLogo } from "./_components/Sidebar";
 import { MessagesView } from "./_components/MessagesView";
+import { MorningBriefingModal } from "./_components/MorningBriefingModal";
 import { EquipeView } from "./_components/EquipeView";
 import { AgendaView } from "./_components/AgendaView";
 import { DossiersView } from "./_components/DossiersView";
@@ -32,6 +33,18 @@ export default function HomeContent() {
   const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "error">("checking");
   const [apiStatusReason, setApiStatusReason] = useState("");
   const [apiStatusDetails, setApiStatusDetails] = useState<any>(null);
+  const [showBriefing, setShowBriefing] = useState(false);
+
+  // Briefing matinal : 1x par game_day (au démarrage / à la rotation)
+  useEffect(() => {
+    if (!store.isAuthenticated || store.isLoading) return;
+    if (typeof window === "undefined") return;
+    const lastBriefingDay = parseInt(localStorage.getItem("last_briefing_day") || "0");
+    if (lastBriefingDay !== store.game_day && store.agents.length > 0) {
+      setShowBriefing(true);
+      localStorage.setItem("last_briefing_day", String(store.game_day));
+    }
+  }, [store.game_day, store.isAuthenticated, store.isLoading, store.agents.length]);
 
   useEffect(() => {
     store.loadGameState();
@@ -169,6 +182,17 @@ export default function HomeContent() {
           // Le panel Claude se trouve dans ClaudeFloating ; on dispatch un event custom
           if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("open-claude-chat"));
         }}
+        onTuteurAction={(action) => {
+          if (action.type === "talk_agent" && action.agentId) {
+            setActiveTab("messages");
+            // Pré-sélectionne l'agent dans MessagesView via custom event
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("select-agent", { detail: { agentId: action.agentId } }));
+            }
+          } else if (action.type === "open_tab" && action.tab) {
+            setActiveTab(action.tab as Tab);
+          }
+        }}
         apiStatus={apiStatus} apiStatusReason={apiStatusReason}
         generatingEvents={generatingEvents}
       />
@@ -195,6 +219,17 @@ export default function HomeContent() {
       <CascadeNotifications />
 
       {showProspects && <ProspectsModal onClose={() => { setShowProspects(false); store.dismissProspectsForDay(); }} />}
+      {showBriefing && (
+        <MorningBriefingModal
+          onClose={() => setShowBriefing(false)}
+          onNavigate={(tab, payload) => {
+            setActiveTab(tab as Tab);
+            if (payload?.agentId && typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("select-agent", { detail: { agentId: payload.agentId } }));
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -179,9 +179,20 @@ export function TasksView() {
                   <p className="text-[11px] text-[#86868B] truncate mb-1">{task.client} · {task.contexte}</p>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md" style={{ backgroundColor: `${branchColor}15`, color: branchColor }}>{task.branche}</span>
-                    <span className="text-[9px] text-[#86868B]">{task.erreurs.length} erreur{task.erreurs.length > 1 ? "s" : ""}</span>
+                    <span className="text-[9px] text-[#86868B]">{task.erreurs.length} anomalie{task.erreurs.length > 1 ? "s" : ""} à détecter</span>
                     {task.ecriture_correction && <span className="text-[9px] text-[#007AFF] flex items-center gap-0.5"><Calculator size={9} /> Mini-jeu écriture</span>}
                   </div>
+                  {/* Aperçu anomalies (intitulés) — sans révéler la correction */}
+                  {!isDone && task.erreurs.length > 0 && (
+                    <ul className="mt-1.5 space-y-0.5">
+                      {task.erreurs.map((e: any, i: number) => (
+                        <li key={i} className="text-[10px] text-[#86868B] dark:text-[#98989D] flex items-start gap-1">
+                          <span className="text-[#FF9500]">⚠</span>
+                          <span className="line-clamp-1">{e.description}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </button>
             );

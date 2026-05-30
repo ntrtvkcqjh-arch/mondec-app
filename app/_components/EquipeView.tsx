@@ -228,10 +228,10 @@ export function EquipeView() {
                     <span className={`text-[10px] font-medium ${a.statut === "En ligne" ? "text-[#34C759]" : a.statut === "Occupé" ? "text-[#FF9500]" : "text-[#86868B]"}`}>{a.statut}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-1 mt-2.5" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => handleAction(a.id, "talk")} title="Parler · +3 Confiance" className="px-1 py-1.5 text-[10px] bg-[#007AFF]/8 text-[#007AFF] hover:bg-[#007AFF]/15 rounded-[6px] flex items-center justify-center"><MessageSquare size={10} /></button>
-                    <button onClick={() => handleAction(a.id, "reward")} title="Récompenser" className="px-1 py-1.5 text-[10px] bg-[#34C759]/8 text-[#34C759] hover:bg-[#34C759]/15 rounded-[6px] flex items-center justify-center"><Award size={10} /></button>
-                    <button onClick={() => handleAction(a.id, "train")} title="Former · 1 PA + 3k€" className="px-1 py-1.5 text-[10px] bg-[#AF52DE]/8 text-[#AF52DE] hover:bg-[#AF52DE]/15 rounded-[6px] flex items-center justify-center"><BookOpen size={10} /></button>
-                    <button onClick={() => handleAction(a.id, "reprimand")} title="Réprimander" className="px-1 py-1.5 text-[10px] bg-[#FF3B30]/8 text-[#FF3B30] hover:bg-[#FF3B30]/15 rounded-[6px] flex items-center justify-center"><Megaphone size={10} /></button>
+                    <button onClick={() => handleAction(a.id, "talk")} title="Parler · 5 min · +3 Confiance" className="px-1 py-1.5 text-[10px] bg-[#007AFF]/8 text-[#007AFF] hover:bg-[#007AFF]/15 rounded-[6px] flex items-center justify-center"><MessageSquare size={10} /></button>
+                    <button onClick={() => handleAction(a.id, "reward")} title="Récompenser · 10 min + 500€ chèque-cadeau" className="px-1 py-1.5 text-[10px] bg-[#34C759]/8 text-[#34C759] hover:bg-[#34C759]/15 rounded-[6px] flex items-center justify-center"><Award size={10} /></button>
+                    <button onClick={() => handleAction(a.id, "train")} title="Former · 3h + 3k€" className="px-1 py-1.5 text-[10px] bg-[#AF52DE]/8 text-[#AF52DE] hover:bg-[#AF52DE]/15 rounded-[6px] flex items-center justify-center"><BookOpen size={10} /></button>
+                    <button onClick={() => handleAction(a.id, "reprimand")} title="Réprimander · 10 min · risque conflit" className="px-1 py-1.5 text-[10px] bg-[#FF3B30]/8 text-[#FF3B30] hover:bg-[#FF3B30]/15 rounded-[6px] flex items-center justify-center"><Megaphone size={10} /></button>
                   </div>
                 </div>
               );
@@ -493,10 +493,10 @@ function AgentDetailModal({ agent: a, onClose, onAction, actionFeedback }: { age
         <div className="px-6 py-3 bg-[#fafafa] border-t border-[#E5E5EA]/40 dark:border-[#38383a]">
           <div className="grid grid-cols-4 gap-2">
             {[
-              { id: "talk", label: "Parler", desc: "+3 Conf", icon: MessageSquare, color: "#007AFF", cd: cooldowns.talk },
-              { id: "reward", label: "Récompenser", desc: "+7 +5 L", icon: Award, color: "#34C759", cd: cooldowns.reward },
-              { id: "train", label: "Former", desc: "1PA 3k€", icon: BookOpen, color: "#AF52DE", cd: cooldowns.train },
-              { id: "reprimand", label: "Réprimander", desc: "−6 +Peur", icon: Megaphone, color: "#FF3B30", cd: cooldowns.reprimand },
+              { id: "talk", label: "Parler", desc: "5min · +3", icon: MessageSquare, color: "#007AFF", cd: cooldowns.talk },
+              { id: "reward", label: "Récompenser", desc: "10min · 500€", icon: Award, color: "#34C759", cd: cooldowns.reward },
+              { id: "train", label: "Former", desc: "3h · 3k€", icon: BookOpen, color: "#AF52DE", cd: cooldowns.train },
+              { id: "reprimand", label: "Réprimander", desc: "10min · risque", icon: Megaphone, color: "#FF3B30", cd: cooldowns.reprimand },
             ].map((act) => {
               const locked = !!(act.cd && store.game_day < act.cd);
               const Icon = act.icon;

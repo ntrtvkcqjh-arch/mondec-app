@@ -47,14 +47,14 @@
         "Contentieux fiscal"
       ],
       "dossiers_actifs": [
-        "Martin SARL - TVA intracommunautaire"
+        "Établissements Moreau & Fils - TVA intracommunautaire"
       ],
       "derniere_interaction": "1h",
       "memoires": [
         {
           "date": "2026-05-10",
           "type": "promesse",
-          "contenu": "Joueur a validé sa stratégie sur le dossier Martin"
+          "contenu": "Joueur a validé sa stratégie sur le dossier Moreau"
         }
       ]
     },
@@ -251,7 +251,7 @@
         "Signature bilan"
       ],
       "dossiers_actifs": [
-        "Prépa RDV signature bilan - Vidal Industrie"
+        "Prépa RDV signature bilan - SAS Vidal Industries"
       ],
       "derniere_interaction": "1h",
       "memoires": [
@@ -339,7 +339,7 @@
         "Charges déductibles/non déductibles"
       ],
       "dossiers_actifs": [
-        "Bilan Petit - Phase 3 (doute sur provision)"
+        "Bilan SARL Petit Plomberie - Phase 3 (doute sur provision)"
       ],
       "derniere_interaction": "1j",
       "memoires": [
@@ -390,8 +390,8 @@
       "niveau": "N2",
       "type": "Question",
       "phase": "P3",
-      "sujet": "TVA intracommunautaire — Martin SARL",
-      "contenu": "J'ai finalisé la liasse fiscale du client Martin & Fils. Tout est déposé sauf l'acompte IS — j'ai un doute sur le taux applicable après la réforme de janvier. J'ai mis en attente, dépôt demain matin si tu confirmes. Sinon je passe au taux habituel mais on risque un redressement si j'ai tort.",
+      "sujet": "TVA intracommunautaire — Établissements Moreau & Fils",
+      "contenu": "J'ai finalisé la liasse fiscale du client Moreau & Fils. Tout est déposé sauf l'acompte IS — j'ai un doute sur le taux applicable après la réforme de janvier. J'ai mis en attente, dépôt demain matin si tu confirmes. Sinon je passe au taux habituel mais on risque un redressement si j'ai tort.",
       "delai_reponse_heures": 12,
       "timestamp": "2026-05-14T09:00:00Z"
     },
@@ -413,7 +413,7 @@
       "type": "Drama",
       "phase": null,
       "sujet": "Drama : conflit Hugo / Amélie",
-      "contenu": "Chef, Hugo a refusé de transmettre les pièces du dossier Petit à Amélie. Il dit que c'est 'son' client depuis 2 ans. Amélie pleure dans la salle de pause. Le client Petit a appelé ce matin, il veut son bilan avant lundi. Je ne sais pas quoi faire.",
+      "contenu": "Chef, Hugo a refusé de transmettre les pièces du dossier Petit Plomberie à Amélie. Il dit que c'est 'son' client depuis 2 ans. Amélie pleure dans la salle de pause. Le client Petit Plomberie a appelé ce matin, il veut son bilan avant lundi. Je ne sais pas quoi faire.",
       "delai_reponse_heures": 24,
       "timestamp": "2026-05-14T08:15:00Z"
     },
@@ -445,8 +445,8 @@
       "niveau": "N4",
       "type": "Audit",
       "phase": "P4",
-      "sujet": "Prépa RDV signature bilan — Vidal Industrie",
-      "contenu": "RDV signature bilan Vidal Industrie prévu demain 10h. J'ai terminé la revue analytique. Un point d'attention majeur : la provision pour risque client est sous-évaluée de 18k€ selon mon analyse. Le client conteste. Ma recommandation : on ajuste avant signature. Si tu signes sans ajustement, je ne peux pas cautionner le rapport de gestion. J'attends ton arbitrage.",
+      "sujet": "Prépa RDV signature bilan — SAS Vidal Industries",
+      "contenu": "RDV signature bilan SAS Vidal Industries prévu demain 10h. J'ai terminé la revue analytique. Un point d'attention majeur : la provision pour risque client est sous-évaluée de 18k€ selon mon analyse. Le client conteste. Ma recommandation : on ajuste avant signature. Si tu signes sans ajustement, je ne peux pas cautionner le rapport de gestion. J'attends ton arbitrage.",
       "delai_reponse_heures": 6,
       "timestamp": "2026-05-14T16:00:00Z"
     }

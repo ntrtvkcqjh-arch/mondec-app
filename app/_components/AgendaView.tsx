@@ -245,7 +245,7 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
             <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">Boss Fight — Clôture bilan 30/06</span>
             <span className="ml-auto text-[13px] font-bold text-[#FF3B30]">J-16</span>
           </div>
-          <p className="text-[12px] text-[#86868B]">Signature bilan Vidal Industrie · Provision risque client en suspens</p>
+          <p className="text-[12px] text-[#86868B]">Signature bilan SAS Vidal Industries · Provision risque client en suspens</p>
         </div>
 
         <div className="relative">

@@ -6,6 +6,16 @@ import { UserPlus, Award, CheckCircle, X, Briefcase, FileText, Calendar as Calen
 
 import cvData from "@/lib/data/cv_pool.json";
 
+// Date réelle à partir d'un jeu (Jour 1 = 14 mai 2026)
+function gameJourToRealDate(gameDay: number): { full: string; dayOfWeek: string } {
+  const start = new Date(2026, 4, 14);
+  start.setDate(start.getDate() + gameDay - 1);
+  return {
+    full: start.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
+    dayOfWeek: start.toLocaleDateString("fr-FR", { weekday: "long" }),
+  };
+}
+
 interface Candidat {
   id: string; nom: string; age: number; poste_vise: string; experience_annees: number;
   competence_pct: number; specialites: string[]; salaire_demande: number;
@@ -46,20 +56,29 @@ export function RhView() {
   }
 
   function handleEntretien(c: Candidat) {
-    if (store.points_action < 1) {
-      alert("1 Point d'Action requis pour l'entretien.");
+    // Coût : 1h de ton temps pour préparer + mener l'entretien
+    const t = store.spendTime(60, 0);
+    if (!t.ok) {
+      alert(t.reason || "Pas assez de temps pour l'entretien aujourd'hui.");
       return;
     }
-    store.spendPA(1);
-    alert(`Entretien avec ${c.nom} planifié. Sophie te fera un retour demain.`);
+    if (t.overtime) {
+      alert(`Entretien avec ${c.nom} planifié — ⚠ heures supplémentaires (stress équipe +20).`);
+    } else {
+      alert(`Entretien avec ${c.nom} planifié. Sophie te fera un retour demain.`);
+    }
   }
 
   function handleValiderReport() {
     if (reportValidated) return;
-    store.setResources({ legitimite: Math.min(100, store.legitimite + 5) });
     setReportValidated(true);
-    alert("Compte-rendu validé · +5 Légitimité");
+    // Pas de bonus de score arbitraire — valider un compte-rendu RH est juste une
+    // tâche normale de manager. La conséquence d'ignorer est que Sophie relance.
   }
+
+  // Budget recrutement engagé (somme des budgets des postes ouverts)
+  const budgetEngage = recrutements.reduce((s, r) => s + r.budget, 0);
+  const soldeLibre = store.tresorerie - budgetEngage;
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-10">
@@ -72,12 +91,30 @@ export function RhView() {
           <p className="text-[14px] text-[#86868B] mt-2">Compte-rendu Sophie · CV · Gestion des talents</p>
         </div>
 
+        {/* Bandeau budget RH */}
+        {recrutements.length > 0 && (
+          <div className="mb-4 bg-white dark:bg-[#1c1c1e] border border-[#E5E5EA]/40 dark:border-[#38383a] rounded-[14px] px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px]">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#86868B] dark:text-[#98989D]">Trésorerie disponible :</span>
+              <span className="font-semibold text-[#1D1D1F] dark:text-white tabular-nums">{(store.tresorerie / 1000).toFixed(0)}k€</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#86868B] dark:text-[#98989D]">Budget recrutement engagé :</span>
+              <span className="font-semibold text-[#FF9500] tabular-nums">{(budgetEngage / 1000).toFixed(0)}k€</span>
+            </div>
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span className="text-[#86868B] dark:text-[#98989D]">Solde libre :</span>
+              <span className={`font-semibold tabular-nums ${soldeLibre < 0 ? "text-[#FF3B30]" : "text-[#34C759]"}`}>{(soldeLibre / 1000).toFixed(0)}k€</span>
+            </div>
+          </div>
+        )}
+
         {/* Tabs internes */}
         <div className="flex gap-1.5 mb-4 bg-[#F5F5F7] dark:bg-[#2c2c2e] p-1 rounded-[10px] inline-flex">
           {[
             { id: "sophie", label: "📊 Compte-rendu Sophie" },
-            { id: "cv", label: `📄 CV à l'étude (${candidats.length})` },
-            { id: "recrutements", label: `💼 Recrutements (${recrutements.length})` },
+            { id: "cv", label: `📄 CV pré-sélectionnés (${candidats.length})` },
+            { id: "recrutements", label: `💼 Postes ouverts (${recrutements.length})` },
           ].map((t) => (
             <button key={t.id} onClick={() => setTab(t.id as any)}
               className={`px-3 py-1.5 text-[12px] font-medium rounded-[8px] transition-all ${tab === t.id ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B]"}`}>
@@ -175,7 +212,7 @@ export function RhView() {
 
               <button onClick={handleValiderReport} disabled={reportValidated}
                 className={`mt-4 w-full py-2.5 rounded-[10px] text-[13px] font-semibold transition-all flex items-center justify-center gap-1.5 ${reportValidated ? "bg-[#34C759]/15 text-[#34C759] cursor-default" : "bg-gradient-to-br from-[#AF52DE] to-[#5856D6] text-white shadow-md hover:shadow-lg"}`}>
-                {reportValidated ? <><CheckCircle size={13} /> Compte-rendu validé · +5 Légitimité</> : "Valider le compte-rendu · +5 Légitimité"}
+                {reportValidated ? <><CheckCircle size={13} /> Compte-rendu validé</> : "Valider le compte-rendu"}
               </button>
             </div>
           </div>
@@ -262,9 +299,13 @@ export function RhView() {
                     <div className="text-[#86868B] text-[9px]">Entretiens</div>
                     <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white">{r.entretiens_planifies}</div>
                   </div>
-                  <div className="bg-[#F5F5F7] rounded-[8px] p-2">
-                    <div className="text-[#86868B] text-[9px]">Deadline</div>
+                  <div className="bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[8px] p-2">
+                    <div className="text-[#86868B] dark:text-[#98989D] text-[9px]">Deadline</div>
                     <div className="text-[12px] font-semibold text-[#FF9500]">J+{r.deadline_jour}</div>
+                    <div className="text-[9px] text-[#86868B] dark:text-[#98989D] mt-0.5">{(() => {
+                      const d = gameJourToRealDate(store.game_day + r.deadline_jour);
+                      return `${d.dayOfWeek} ${d.full.replace(/ 2026$/, "")}`;
+                    })()}</div>
                   </div>
                 </div>
               </div>

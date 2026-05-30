@@ -26,16 +26,28 @@ export function ClaudeFloating() {
     }
   }, []);
 
-  async function send() {
-    const text = input.trim();
+  async function send(overrideText?: string) {
+    const text = (overrideText ?? input).trim();
     console.log("[CLAUDE] send() déclenché", { text, sending });
     if (!text || sending) return;
-    setInput("");
+    if (!overrideText) setInput("");
     setError("");
     store.addClaudeMessage({ role: "user", content: text });
     setSending(true);
     try {
       const history = store.claude_history;
+      // Contexte cabinet enrichi pour Claude tuteur — agrège ce qu'un manager voit
+      const unreadCount = store.messages.filter((m) => !m.lu).length;
+      const stressedAgents = store.agents.filter((a) => a.stress > 70).map((a) => ({ nom: a.nom, stress: a.stress, role: a.role }));
+      const burnoutAgents = store.agents.filter((a) => a.stress > 80 || a.fatigue > 80).map((a) => ({ nom: a.nom, stress: a.stress, fatigue: a.fatigue }));
+      const ruptureAgents = store.agents.filter((a: any) => a.arc_actuel === "Rupture").map((a) => a.nom);
+      const dossierStats = {
+        total: store.dossiers.length,
+        en_cours: store.dossiers.filter((d) => d.etat === "en_cours").length,
+        avance: store.dossiers.filter((d) => d.etat === "avance").length,
+        perdu: store.dossiers.filter((d) => d.etat === "perdu").length,
+        vip: store.dossiers.filter((d) => d.is_vip).length,
+      };
       console.log("[CLAUDE] Envoi à /api/claude…");
       const res = await apiFetch("/api/claude", {
         method: "POST",
@@ -47,6 +59,13 @@ export function ClaudeFloating() {
             tresorerie: store.tresorerie, stress_global: store.stress_global,
             points_action: store.points_action, points_action_max: store.points_action_max,
             mood_global: store.mood_global,
+            unread_messages: unreadCount,
+            stressed_agents: stressedAgents,
+            burnout_agents: burnoutAgents,
+            rupture_agents: ruptureAgents,
+            dossier_stats: dossierStats,
+            prospects_pending: store.prospects_pending.length,
+            dec_streak: store.dec_streak,
           },
           agents: store.agents,
           dossiers: store.dossiers,
@@ -138,14 +157,28 @@ export function ClaudeFloating() {
             </div>
           )}
 
-          <div className="px-3 py-2 border-t border-[#E5E5EA]/40 dark:border-[#38383a]">
+          {/* Raccourcis rapides — actions structurantes (hybride boutons + écriture libre) */}
+          <div className="px-3 pt-2 pb-1 border-t border-[#E5E5EA]/40 dark:border-[#38383a] flex gap-1 overflow-x-auto">
+            {[
+              { label: "📊 État des lieux", prompt: "Fais-moi un récap synthétique : dossiers en retard, stress équipe, trésorerie et 3 priorités à traiter aujourd'hui." },
+              { label: "⚠️ Risques fiscaux", prompt: "Liste les 3 principaux risques fiscaux actuels sur les dossiers actifs avec recommandation." },
+              { label: "👥 Qui va mal ?", prompt: "Qui dans l'équipe va mal aujourd'hui (stress / fatigue / loyauté) et que dois-je faire ?" },
+              { label: "💰 Trésorerie", prompt: "Quelle est ma trésorerie disponible, mes engagements RH et le solde libre ?" },
+            ].map((s) => (
+              <button key={s.label} onClick={() => send(s.prompt)} disabled={sending}
+                className="text-[10px] whitespace-nowrap text-[#007AFF] dark:text-[#0A84FF] bg-[#007AFF]/8 dark:bg-[#0A84FF]/15 hover:bg-[#007AFF]/15 dark:hover:bg-[#0A84FF]/25 px-2 py-1 rounded-full transition-colors disabled:opacity-50">
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="px-3 pb-2">
             <div className="flex gap-2">
               <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }}}
-                disabled={sending} placeholder="Demande à Claude…"
+                disabled={sending} placeholder="Ou écris librement à Claude…"
                 className="flex-1 text-[12px] px-3 py-2 bg-[#F5F5F7] dark:bg-[#2c2c2e] dark:text-white rounded-full outline-none placeholder-[#86868B] disabled:opacity-60" />
-              <button onClick={send} disabled={!input.trim() || sending}
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${input.trim() && !sending ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-sm" : "bg-[#E5E5EA] text-[#86868B] cursor-not-allowed"}`}>
+              <button onClick={() => send()} disabled={!input.trim() || sending}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${input.trim() && !sending ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-sm" : "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] cursor-not-allowed"}`}>
                 <Send size={12} />
               </button>
             </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { Sparkles, X, CheckCircle, AlertTriangle, TrendingUp } from "lucide-react";
+import { SectorTag } from "./SectorTag";
 
 export function ProspectsModal({ onClose }: { onClose: () => void }) {
   const store = useGameStore();
@@ -57,7 +58,10 @@ export function ProspectsModal({ onClose }: { onClose: () => void }) {
               <div className="flex items-start gap-3 mb-3">
                 <div className="text-[24px]">🏢</div>
                 <div className="flex-1">
-                  <h4 className="font-bold text-[15px] text-[#1D1D1F] dark:text-white">{p.client}</h4>
+                  <h4 className="font-bold text-[15px] text-[#1D1D1F] dark:text-white flex items-center gap-2 flex-wrap">
+                    {p.client}
+                    {p.secteur_categorie && <SectorTag categorie={p.secteur_categorie} size="sm" />}
+                  </h4>
                   <p className="text-[11px] text-[#86868B] dark:text-[#98989D]">
                     {p.secteur} · CA {(p.ca / 1000000).toFixed(1)}M€ · {p.effectif} salariés · {p.forme_juridique}
                   </p>

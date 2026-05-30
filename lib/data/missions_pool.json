@@ -5,7 +5,7 @@
       "theme": "Cadre mission",
       "difficulte": 2,
       "titre": "Acceptation — Conflit d'intérêts familial",
-      "client": "SAS Boulangerie Petit",
+      "client": "SAS Boulangerie Maison Lefèvre",
       "contexte": "Une SAS de 12 salariés (CA 2,1 M€) te sollicite pour devenir son commissaire aux comptes. Son président est ton beau-frère. Tu as déjà tenu la comptabilité de sa précédente société individuelle pendant 2 ans (mission terminée il y a 8 mois).",
       "etapes": [
         {
@@ -140,7 +140,7 @@
       "theme": "Mission audit — Provisions",
       "difficulte": 4,
       "titre": "Provision risque insuffisante — Client en sauvegarde",
-      "client": "SA Vidal Industrie",
+      "client": "SA SAS Vidal Industries",
       "contexte": "SA industrielle, CA 12 M€. Créance sur Bertrand SAS de 45 000 € TTC, échue depuis 5 mois, Bertrand est en procédure de sauvegarde judiciaire depuis 2 mois. La provision comptabilisée est de 8 500 € seulement. Tu signes le bilan dans 8 jours.",
       "etapes": [
         {

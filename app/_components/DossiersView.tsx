@@ -187,11 +187,10 @@ export function DossiersView() {
                         <button onClick={(e) => {
                             e.stopPropagation();
                             const ok = store.attemptRecoverDossier(d.id);
-                            if (!ok && store.points_action < 2) alert("Il te faut 2 PA pour tenter une récupération.");
-                            else if (!ok) alert("Tentative ratée. Le client refuse de revenir.");
+                            if (!ok) alert("Tentative ratée. Le client refuse de revenir.");
                           }}
                           className="text-[11px] px-2.5 py-1 rounded-[8px] bg-gradient-to-r from-[#AF52DE]/15 to-[#007AFF]/15 text-[#AF52DE] hover:from-[#AF52DE]/25 hover:to-[#007AFF]/25 font-semibold transition-all flex items-center gap-1">
-                          <Sparkles size={11} /> Tentative récupération (2 PA · honoraires ×1,5)
+                          <Sparkles size={11} /> Tentative récupération (1h · honoraires ×1,5)
                         </button>
                       </div>
                     )}

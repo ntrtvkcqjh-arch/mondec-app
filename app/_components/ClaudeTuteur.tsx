@@ -6,15 +6,17 @@ import { Sparkles, X } from "lucide-react";
 
 interface Props {
   onOpenChat: () => void;
+  onQuickAction?: (action: { type: "talk_agent" | "open_tab"; agentId?: string; tab?: string }) => void;
 }
 
 interface Conseil {
   text: string;
   priority: "haute" | "moyenne" | "basse";
   emoji: string;
+  quickAction?: { label: string; type: "talk_agent" | "open_tab"; agentId?: string; tab?: string };
 }
 
-export function ClaudeTuteur({ onOpenChat }: Props) {
+export function ClaudeTuteur({ onOpenChat, onQuickAction }: Props) {
   const store = useGameStore();
   const [conseil, setConseil] = useState<Conseil | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -45,14 +47,21 @@ export function ClaudeTuteur({ onOpenChat }: Props) {
       });
     }
 
-    // Détecte arc Rupture
+    // Détecte arc Rupture — countdown réel basé sur dernière action positive
     const ruptures = store.agents.filter((a: any) => a.arc_actuel === "Rupture");
     if (ruptures.length > 0) {
       const a = ruptures[0];
+      const history = store.agent_player_history[a.id] || [];
+      const lastPositiveDay = history
+        .filter((h) => h.impact && h.impact.includes("+"))
+        .reduce((max, h) => Math.max(max, h.day), 0);
+      const daysSinceCare = lastPositiveDay > 0 ? store.game_day - lastPositiveDay : 5;
+      const countdown = Math.max(1, 5 - daysSinceCare);
       conseils.push({
-        text: `${a.nom.split(" ")[0]} envisage de partir. Tu devrais lui montrer de la considération avant qu'il ne soit trop tard.`,
+        text: `${a.nom.split(" ")[0]} donnera sa préavis dans ${countdown} jour${countdown > 1 ? "s" : ""} si tu n'agis pas. Un entretien rapide peut tout changer.`,
         priority: "haute",
         emoji: "💼",
+        quickAction: { label: `Parler à ${a.nom.split(" ")[0]} →`, type: "talk_agent", agentId: a.id },
       });
     }
 
@@ -83,21 +92,13 @@ export function ClaudeTuteur({ onOpenChat }: Props) {
       });
     }
 
-    // PA épuisés
-    if (store.points_action === 0) {
-      conseils.push({
-        text: `Tu as épuisé tes PA pour aujourd'hui. Repos jusqu'à demain.`,
-        priority: "basse",
-        emoji: "😴",
-      });
-    }
-
     // DEC du jour pas fait
     if (!store.dec_today_deonto && !store.dec_today_mission && store.game_hour < 17) {
       conseils.push({
         text: `Tu n'as pas encore fait ton module DEC du jour. Streak en danger !`,
         priority: "basse",
         emoji: "🎓",
+        quickAction: { label: "Ouvrir DEC Prep →", type: "open_tab", tab: "dec" },
       });
     }
 
@@ -136,9 +137,19 @@ export function ClaudeTuteur({ onOpenChat }: Props) {
           <p className="text-[10px] text-[#3a3a3c] dark:text-[#98989D] leading-snug">
             <span className="mr-1">{conseil.emoji}</span>{conseil.text}
           </p>
-          <button onClick={onOpenChat} className="mt-1 text-[10px] text-[#007AFF] dark:text-[#0A84FF] hover:underline font-medium">
-            Demander conseil →
-          </button>
+          <div className="mt-1 flex items-center gap-3 flex-wrap">
+            {conseil.quickAction && onQuickAction && (
+              <button
+                onClick={() => onQuickAction(conseil.quickAction!)}
+                className="text-[10px] text-white bg-[#007AFF] dark:bg-[#0A84FF] hover:bg-[#0066d4] dark:hover:bg-[#0070e0] px-2 py-0.5 rounded-md font-semibold transition-all"
+              >
+                {conseil.quickAction.label}
+              </button>
+            )}
+            <button onClick={onOpenChat} className="text-[10px] text-[#007AFF] dark:text-[#0A84FF] hover:underline font-medium">
+              Demander conseil →
+            </button>
+          </div>
         </div>
       </div>
     </div>
