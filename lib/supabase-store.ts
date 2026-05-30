@@ -346,7 +346,7 @@ export interface GameState {
   recomputeAgentStress: () => void;
 
   // Sprint 2 : Prospects + Dossiers enrichis
-  generateProspects: () => void;
+  generateProspects: (forceCount?: number) => void;
   acceptProspect: (id: string, agentId: string) => void;
   refuseProspect: (id: string) => void;
   dismissProspectsForDay: () => void;
@@ -1706,11 +1706,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   // ── SPRINT 2 : Prospects + Incompatibilités ─────────────────────────────
-  generateProspects: () => {
+  generateProspects: (forceCount?: number) => {
     const state = get();
-    // Max 1 batch par jour. Pas de re-génération si déjà en attente ou déjà vu aujourd'hui.
-    if (state.last_prospect_day === state.game_day) return;
-    if (state.prospects_pending.length > 0) return;
+    const isForced = typeof forceCount === "number" && forceCount > 0;
+    // Garde quotidienne uniquement si pas forcé (ex : appel au démarrage zéro)
+    if (!isForced && state.last_prospect_day === state.game_day) return;
+    if (!isForced && state.prospects_pending.length > 0) return;
 
     // Pool d'entreprises crédibles avec secteur + catégorie + forme suggérée
     const ENTREPRISES_POOL = [
@@ -1739,12 +1740,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       return arr.slice().sort(() => Math.random() - 0.5).slice(0, n);
     }
 
-    // 1, 2 ou 3 prospects au hasard chaque jour, sans doublon dans le batch
-    const count = 1 + Math.floor(Math.random() * 3);
-    const choisis = pickRandom(ENTREPRISES_POOL, count);
+    // forceCount ou 1-3 prospects au hasard. Exclut les clients déjà dans dossiers.
+    const usedClients = new Set(state.dossiers.map((d) => d.client.toLowerCase()));
+    const availablePool = ENTREPRISES_POOL.filter((e) => !usedClients.has(e.client.toLowerCase()));
+    const count = isForced ? Math.min(forceCount!, availablePool.length) : 1 + Math.floor(Math.random() * 3);
+    const choisis = pickRandom(availablePool, count);
     const newProspects: NouveauProspect[] = choisis.map((ent, i) => {
       return {
-        id: `prospect_${state.game_day}_${i}_${Date.now()}`,
+        id: `prospect_${state.game_day}_${i}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         client: ent.client,
         secteur: ent.secteur,
         secteur_categorie: ent.categorie as any,
@@ -2313,6 +2316,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       // Génère 20 CVs initiaux (tout le pool) pour pouvoir recruter sereinement
       // → couvre toutes les filières + 4 profils RH
       get().pushUrgentCVsAfterDeparture(20);
+      // Génère 5 prospects en attente pour démarrer (la joueuse pourra les
+      // étudier et les accepter dès qu'elle a recruté au moins 1 collaborateur)
+      get().generateProspects(5);
     }
     // mode "ready" : on garde l'état seedé par défaut
   },

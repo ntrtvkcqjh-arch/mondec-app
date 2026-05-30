@@ -208,25 +208,6 @@ export function Sidebar(props: Props) {
       {/* Claude Tuteur — bulle contextuelle */}
       <ClaudeTuteur onOpenChat={props.onOpenClaudeChat || (() => {})} onQuickAction={props.onTuteurAction} />
 
-      {/* ▶ NOUVELLE PARTIE — visible, déclenche le modal de choix de scénario */}
-      <div className="px-4 pt-3 pb-1">
-        <button
-          onClick={() => {
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new CustomEvent("open-start-mode-modal"));
-            }
-          }}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-[12px] bg-gradient-to-br from-[#FF9500] to-[#FF3B30] text-white text-[12px] font-semibold shadow-md hover:shadow-lg transition-all"
-        >
-          <RotateCcw size={13} />
-          <span className="flex-1 text-left">Nouvelle partie</span>
-          <span className="text-[9px] bg-white/25 px-1.5 py-0.5 rounded-md">Zéro / Prêt</span>
-        </button>
-        <p className="text-[9px] text-[#86868B] dark:text-[#98989D] mt-1.5 text-center leading-snug">
-          Re-choisis ton scénario : cabinet vide ou équipe seedée
-        </p>
-      </div>
-
       {/* Section APPARENCE (style PHDDEC) */}
       <div className="px-4 py-3 border-t border-white/60 dark:border-[#38383a]">
         <div className="text-[10px] font-bold text-[#86868B] dark:text-[#a0a0a5] uppercase tracking-[0.1em] mb-2">Apparence</div>

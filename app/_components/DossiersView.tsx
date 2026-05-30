@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
-import { UserCog, X, MessageCircle, Sparkles, Star, AlertTriangle } from "lucide-react";
+import { UserCog, X, MessageCircle, Sparkles, Star, AlertTriangle, UserPlus, Briefcase, Building2, TrendingUp } from "lucide-react";
 import { ClientFicheModal } from "./ClientFicheModal";
 import { SectorTag } from "./SectorTag";
 import { DossierChatModal } from "./DossierChatModal";
@@ -11,12 +11,22 @@ import { Card } from "./ui/Card";
 import { Section } from "./ui/Section";
 import { AgentAvatar, ClientLogo } from "./ui/AgentAvatar";
 
+type DossierFilter = "prospects" | "en_cours" | "surveillance" | "avance" | "cloture" | "perdu" | "tous";
+
 export function DossiersView() {
   const store = useGameStore();
-  const [filter, setFilter] = useState<"en_cours" | "surveillance" | "avance" | "cloture" | "perdu" | "tous">("en_cours");
+  const [filter, setFilter] = useState<DossierFilter>("en_cours");
   const [ficheId, setFicheId] = useState<string | null>(null);
   const [reassignDossierId, setReassignDossierId] = useState<string | null>(null);
   const [chatDossierId, setChatDossierId] = useState<string | null>(null);
+  const [acceptProspectId, setAcceptProspectId] = useState<string | null>(null);
+  // Quand on n'a pas de dossier mais des prospects, on switch automatiquement
+  // sur l'onglet Prospects pour que la joueuse les voie
+  useEffect(() => {
+    if (store.dossiers.length === 0 && store.prospects_pending.length > 0 && filter === "en_cours") {
+      setFilter("prospects");
+    }
+  }, [store.dossiers.length, store.prospects_pending.length]);
 
   useEffect(() => {
     const t = setInterval(() => store.recomputeAllDossierStatus(), 8000);
@@ -43,7 +53,9 @@ export function DossiersView() {
   const perdus = store.dossiers.filter((d) => d.etat === "perdu").length;
   const filtered = filter === "tous" ? store.dossiers : store.dossiers.filter((d) => d.etat === filter);
 
-  const filters: { id: typeof filter; label: string; count: number }[] = [
+  const prospectsCount = store.prospects_pending.length;
+  const filters: { id: DossierFilter; label: string; count: number; highlight?: boolean }[] = [
+    { id: "prospects", label: "📨 Prospects", count: prospectsCount, highlight: prospectsCount > 0 },
     { id: "en_cours", label: "Actifs", count: enCours },
     { id: "surveillance", label: "Surveillance", count: surveillance },
     { id: "avance", label: "Avancés", count: avances },
@@ -82,18 +94,122 @@ export function DossiersView() {
               onClick={() => setFilter(f.id)}
               className={`px-3.5 py-2 rounded-full text-[12.5px] font-medium transition-all ${
                 filter === f.id
-                  ? "bg-[#111111] dark:bg-white text-white dark:text-[#111111]"
-                  : "bg-white dark:bg-[#1c1c1e] text-[#3a3a3c] dark:text-[#d1d1d6] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.06)]"
+                  ? f.highlight
+                    ? "bg-gradient-to-br from-[#FF9500] to-[#FF3B30] text-white shadow-md"
+                    : "bg-[#111111] dark:bg-white text-white dark:text-[#111111]"
+                  : f.highlight
+                    ? "bg-[#FF9500]/15 text-[#C76A00] dark:text-[#FF9F0A] ring-1 ring-[#FF9500]/30 hover:bg-[#FF9500]/25"
+                    : "bg-white dark:bg-[#1c1c1e] text-[#3a3a3c] dark:text-[#d1d1d6] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.06)]"
               }`}
             >
               {f.label}
-              <span className={`ml-1.5 tabular-nums ${filter === f.id ? "opacity-60" : "text-[#9ca3af]"}`}>{f.count}</span>
+              <span className={`ml-1.5 tabular-nums ${filter === f.id ? "opacity-60" : f.highlight ? "" : "text-[#9ca3af]"}`}>{f.count}</span>
             </button>
           ))}
         </div>
 
+        {/* === MODE PROSPECTS : grille de prospects en attente avec bouton Accepter === */}
+        {filter === "prospects" && (
+          <>
+            {store.prospects_pending.length === 0 ? (
+              <Card className="px-10 py-16 text-center">
+                <div className="text-[36px] mb-2">📨</div>
+                <p className="text-[14px] font-medium text-[#1D1D1F] dark:text-white mb-1">Aucun prospect en attente</p>
+                <p className="text-[12px] text-[#6b7280] dark:text-[#98989D]">De nouveaux prospects arrivent chaque jour selon la saisonnalité.</p>
+              </Card>
+            ) : (
+              <>
+                <div className="bg-gradient-to-r from-[#FF9500]/8 to-[#FF3B30]/8 border border-[#FF9500]/20 rounded-[14px] p-3.5 mb-5 flex items-center gap-3">
+                  <div className="text-[22px]">📨</div>
+                  <div className="flex-1">
+                    <div className="text-[12px] font-semibold text-[#C76A00] dark:text-[#FF9F0A] uppercase tracking-wider mb-0.5">
+                      {store.prospects_pending.length} prospect{store.prospects_pending.length > 1 ? "s" : ""} en attente
+                    </div>
+                    <div className="text-[12px] text-[#3a3a3c] dark:text-[#d1d1d6]">
+                      Étudie chaque profil et accepte ceux qui correspondent à ton équipe.
+                      {store.agents.length === 0 && <span className="ml-1 text-[#FF3B30] font-medium">⚠ Recrute au moins 1 collaborateur avant d'accepter.</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {store.prospects_pending.map((p) => {
+                    const profilColor = p.profil_relationnel >= 70 ? "#FF3B30" : p.profil_relationnel >= 40 ? "#FF9500" : "#34C759";
+                    const profilLabel = p.profil_relationnel >= 70 ? "Exigeant" : p.profil_relationnel >= 40 ? "Standard" : "Patient";
+                    const rentaColor = p.rentabilite >= 70 ? "#34C759" : p.rentabilite >= 40 ? "#FF9500" : "#FF3B30";
+                    return (
+                      <Card key={p.id} className="p-5 flex flex-col gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-11 h-11 rounded-[12px] bg-gradient-to-br from-[#5B7CFA] to-[#3F5BCE] flex items-center justify-center text-white shadow-sm shrink-0">
+                            <Building2 size={20} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-[14px] font-semibold text-[#111111] dark:text-white tracking-[-0.01em] leading-tight">{p.client}</h3>
+                            <p className="text-[11px] text-[#6b7280] dark:text-[#98989D] mt-0.5 line-clamp-1">{p.secteur} · {p.forme_juridique}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div className="bg-[#f5f5f7] dark:bg-[#2c2c2e] rounded-[8px] px-2 py-1.5">
+                            <div className="text-[9px] text-[#86868B] uppercase tracking-wider">CA</div>
+                            <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white">{(p.ca / 1000).toFixed(0)} k€</div>
+                          </div>
+                          <div className="bg-[#f5f5f7] dark:bg-[#2c2c2e] rounded-[8px] px-2 py-1.5">
+                            <div className="text-[9px] text-[#86868B] uppercase tracking-wider">Effectif</div>
+                            <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white">{p.effectif}</div>
+                          </div>
+                          <div className="bg-[#f5f5f7] dark:bg-[#2c2c2e] rounded-[8px] px-2 py-1.5">
+                            <div className="text-[9px] text-[#86868B] uppercase tracking-wider">Profil</div>
+                            <div className="text-[12px] font-semibold" style={{ color: profilColor }}>{profilLabel}</div>
+                          </div>
+                          <div className="bg-[#f5f5f7] dark:bg-[#2c2c2e] rounded-[8px] px-2 py-1.5">
+                            <div className="text-[9px] text-[#86868B] uppercase tracking-wider">Rentabilité</div>
+                            <div className="text-[12px] font-semibold flex items-center gap-1" style={{ color: rentaColor }}>
+                              <TrendingUp size={11} /> {p.rentabilite}/100
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-[#6b7280] dark:text-[#98989D] leading-relaxed">
+                          <strong>Honoraires :</strong> {(p.honoraires_annuels / 1000).toFixed(1)} k€/an · 25 % d'acompte = {((p.honoraires_annuels * 0.25) / 1000).toFixed(1)} k€ à la signature
+                        </div>
+                        {p.specialites_requises.length > 0 && (
+                          <div className="text-[10px]">
+                            <span className="text-[#86868B]">Spécialités attendues :</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {p.specialites_requises.slice(0, 3).map((s) => (
+                                <span key={s} className="px-1.5 py-0.5 rounded bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF] text-[9.5px]">{s}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex gap-1.5 mt-auto pt-1">
+                          <button
+                            onClick={() => store.refuseProspect(p.id)}
+                            className="px-3 py-1.5 rounded-[10px] bg-[#f5f5f7] dark:bg-[#2c2c2e] text-[11px] text-[#86868B] hover:text-[#FF3B30] dark:hover:text-[#FF453A] font-medium"
+                          >
+                            Refuser
+                          </button>
+                          <button
+                            onClick={() => setAcceptProspectId(p.id)}
+                            disabled={store.agents.length === 0}
+                            className={`flex-1 px-3 py-1.5 rounded-[10px] text-[11px] font-semibold flex items-center justify-center gap-1.5 ${
+                              store.agents.length === 0
+                                ? "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] cursor-not-allowed"
+                                : "bg-gradient-to-br from-[#34C759] to-[#007AFF] text-white shadow-sm hover:shadow"
+                            }`}
+                          >
+                            <UserPlus size={11} /> {store.agents.length === 0 ? "Recrute d'abord" : "Accepter & affecter"}
+                          </button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
         {/* Grille compacte : 4 colonnes desktop, 2 tablet, 1 mobile */}
-        {filtered.length === 0 ? (
+        {filter !== "prospects" && (filtered.length === 0 ? (
           <Card className="px-10 py-16 text-center">
             <p className="text-[14px] text-[#6b7280] dark:text-[#98989D]">Aucun dossier dans cette catégorie.</p>
           </Card>
@@ -189,8 +305,56 @@ export function DossiersView() {
               );
             })}
           </div>
-        )}
+        ))}
       </div>
+
+      {/* Modal d'affectation prospect → choisir un agent */}
+      {acceptProspectId && (() => {
+        const prospect = store.prospects_pending.find((p) => p.id === acceptProspectId);
+        if (!prospect) return null;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)" }}>
+            <div className="bg-white dark:bg-[#1c1c1e] rounded-[18px] p-6 max-w-[480px] w-full shadow-2xl">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[16px] font-semibold text-[#1D1D1F] dark:text-white">Affecter {prospect.client}</h3>
+                <button onClick={() => setAcceptProspectId(null)} className="text-[#86868B] hover:text-[#FF3B30]">
+                  <X size={16} />
+                </button>
+              </div>
+              <p className="text-[12px] text-[#86868B] dark:text-[#98989D] mb-4">
+                Choisis le collaborateur qui va prendre en charge ce dossier.
+              </p>
+              <div className="space-y-2 max-h-[320px] overflow-y-auto">
+                {store.agents.map((a) => {
+                  const charge = store.dossiers.filter((d) => d.agent_id === a.id && d.etat === "en_cours").length;
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => {
+                        store.acceptProspect(prospect.id, a.id);
+                        setAcceptProspectId(null);
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-[12px] bg-[#FAFAFB] dark:bg-[#2c2c2e] hover:bg-[#5B7CFA]/10 dark:hover:bg-[#5B7CFA]/20 transition-all text-left"
+                    >
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shadow-sm" style={{ backgroundColor: a.avatar_color }}>
+                        {a.initiales}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{a.nom}</div>
+                        <div className="text-[10px] text-[#86868B] dark:text-[#98989D]">{a.role} · {a.filiere}</div>
+                      </div>
+                      <div className="text-right text-[10px] text-[#86868B] dark:text-[#98989D]">
+                        <div>{charge} dossier{charge > 1 ? "s" : ""}</div>
+                        <div className={a.stress > 70 ? "text-[#FF3B30]" : a.stress > 50 ? "text-[#FF9500]" : "text-[#34C759]"}>Stress {a.stress}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal fiche client */}
       {ficheId && (() => {
