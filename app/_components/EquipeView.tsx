@@ -223,9 +223,21 @@ export function EquipeView() {
                     <AgentBar label="Fatigue" value={a.fatigue} warn={70} />
                     <AgentBar label="Confiance" value={a.confiance_joueur} invert />
                   </div>
-                  <div className="mt-2 pt-2 border-t border-[#F5F5F7] flex items-center justify-between">
-                    <span className="text-[10px] text-[#86868B] bg-[#F5F5F7] px-2 py-0.5 rounded-full">{a.filiere}</span>
-                    <span className={`text-[10px] font-medium ${a.statut === "En ligne" ? "text-[#34C759]" : a.statut === "Occupé" ? "text-[#FF9500]" : "text-[#86868B]"}`}>{a.statut}</span>
+                  <div className="mt-2 pt-2 border-t border-[#F5F5F7] dark:border-[#38383a] flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[10px] text-[#86868B] bg-[#F5F5F7] dark:bg-[#2c2c2e] dark:text-[#98989D] px-2 py-0.5 rounded-full">{a.filiere}</span>
+                    {(() => {
+                      const charge = store.dossiers.filter((d) => d.agent_id === a.id && d.etat === "en_cours").length;
+                      const overload = charge >= 4;
+                      const medium = charge === 3;
+                      return (
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                          overload ? "bg-[#FF3B30]/12 text-[#FF3B30]" : medium ? "bg-[#FF9500]/12 text-[#FF9500]" : "bg-[#34C759]/12 text-[#34C759]"
+                        }`}>
+                          📁 {charge} dossier{charge > 1 ? "s" : ""}
+                        </span>
+                      );
+                    })()}
+                    <span className={`text-[10px] font-medium ml-auto ${a.statut === "En ligne" ? "text-[#34C759]" : a.statut === "Occupé" ? "text-[#FF9500]" : "text-[#86868B]"}`}>{a.statut}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-1 mt-2.5" onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => handleAction(a.id, "talk")} title="Parler · 5 min · +3 Confiance" className="px-1 py-1.5 text-[10px] bg-[#007AFF]/8 text-[#007AFF] hover:bg-[#007AFF]/15 rounded-[6px] flex items-center justify-center"><MessageSquare size={10} /></button>
@@ -312,52 +324,70 @@ export function EquipeView() {
           </>
         )}
 
-        {/* Vue Organigramme */}
+        {/* Vue Organigramme — schéma hiérarchique avec lignes de liaison */}
         {view === "org" && (
-          <div className="space-y-4">
-            {[
-              { label: "Direction", agents: directeurs, color: "#AF52DE" },
-              { label: "Managers", agents: managers, color: "#007AFF" },
-              { label: "Collaborateurs", agents: collabs, color: "#34C759" },
-              { label: "Stagiaires", agents: stagiaires, color: "#FF9500" },
-            ].map((row) => row.agents.length === 0 ? null : (
-              <div key={row.label}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-1 h-4 rounded-full" style={{ backgroundColor: row.color }} />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B]">{row.label}</span>
-                  <span className="text-[10px] text-[#86868B]">({row.agents.length})</span>
-                  <div className="flex-1 h-[1px] bg-[#E5E5EA]/40" />
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2">
-                  {row.agents.map((a: any) => {
-                    const alerts = getAlerts(a);
-                    return (
-                      <button key={a.id} onClick={() => setDetailId(a.id)}
-                        className="bg-white dark:bg-[#1c1c1e] rounded-[14px] p-3 border border-[#E5E5EA]/40 dark:border-[#38383a] hover:border-[#007AFF]/40 hover:shadow transition-all text-left">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0" style={{ backgroundColor: a.avatar_color }}>
-                            {a.initiales}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[12px] font-semibold text-[#1D1D1F] truncate">{a.nom.split(" ")[0]}</div>
-                            <div className="text-[10px] text-[#86868B] truncate">{a.filiere}</div>
-                          </div>
-                          {alerts.length > 0 && (
-                            <div className="flex gap-0.5">
-                              {alerts.slice(0, 2).map((al, i) => <span key={i} className="text-[10px]">{al.icon}</span>)}
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[18px] border border-[#E5E5EA]/40 dark:border-[#38383a] p-6 overflow-x-auto">
+            <div className="min-w-[680px] flex flex-col items-center gap-0">
+              {[
+                { label: "Direction", agents: directeurs, color: "#AF52DE", emoji: "👑" },
+                { label: "Managers", agents: managers, color: "#007AFF", emoji: "🎩" },
+                { label: "Collaborateurs", agents: collabs, color: "#34C759", emoji: "🧑‍💼" },
+                { label: "Stagiaires", agents: stagiaires, color: "#FF9500", emoji: "🎓" },
+              ].map((row, rowIdx, allRows) => {
+                if (row.agents.length === 0) return null;
+                const hasNext = allRows.slice(rowIdx + 1).some((r) => r.agents.length > 0);
+                return (
+                  <div key={row.label} className="w-full flex flex-col items-center">
+                    {/* Label de niveau */}
+                    <div className="flex items-center gap-1.5 mb-2.5">
+                      <span className="text-[14px]">{row.emoji}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.1em]" style={{ color: row.color }}>{row.label}</span>
+                      <span className="text-[9px] text-[#86868B] dark:text-[#98989D]">({row.agents.length})</span>
+                    </div>
+                    {/* Cartes */}
+                    <div className="flex items-center justify-center gap-3 flex-wrap mb-1">
+                      {row.agents.map((a: any) => {
+                        const alerts = getAlerts(a);
+                        const charge = store.dossiers.filter((d) => d.agent_id === a.id && d.etat === "en_cours").length;
+                        const chargeColor = charge >= 4 ? "#FF3B30" : charge >= 3 ? "#FF9500" : "#34C759";
+                        return (
+                          <button key={a.id} onClick={() => setDetailId(a.id)}
+                            className="bg-white dark:bg-[#2c2c2e] rounded-[14px] p-2.5 border-2 hover:shadow-md transition-all text-left min-w-[150px]"
+                            style={{ borderColor: `${row.color}40` }}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 shadow-sm" style={{ backgroundColor: a.avatar_color }}>
+                                {a.initiales}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white truncate">{a.nom.split(" ")[0]} {a.nom.split(" ")[1]?.[0] || ""}.</div>
+                                <div className="text-[9px] text-[#86868B] dark:text-[#98989D] truncate">{a.filiere}</div>
+                              </div>
+                              {alerts.length > 0 && (
+                                <div className="flex gap-0.5">
+                                  {alerts.slice(0, 2).map((al, i) => <span key={i} className="text-[10px]" title={al.label}>{al.icon}</span>)}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className={a.stress > 70 ? "text-[#FF3B30]" : "text-[#86868B]"}>S {a.stress}</span>
-                          <span className={a.confiance_joueur < 40 ? "text-[#FF3B30]" : "text-[#34C759]"}>C {a.confiance_joueur}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+                            <div className="flex items-center justify-between text-[9px] gap-1">
+                              <span className={`px-1.5 py-0.5 rounded font-semibold ${a.stress > 70 ? "bg-[#FF3B30]/15 text-[#FF3B30]" : "bg-[#86868B]/15 text-[#86868B] dark:text-[#98989D]"}`}>S{a.stress}</span>
+                              <span className={`px-1.5 py-0.5 rounded font-semibold ${a.confiance_joueur < 40 ? "bg-[#FF3B30]/15 text-[#FF3B30]" : "bg-[#34C759]/15 text-[#34C759]"}`}>C{a.confiance_joueur}</span>
+                              <span className="px-1.5 py-0.5 rounded font-semibold text-white" style={{ backgroundColor: chargeColor }}>📁 {charge}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Ligne verticale de liaison vers le niveau suivant */}
+                    {hasNext && (
+                      <div className="h-8 w-[2px]" style={{ backgroundColor: `${row.color}40` }} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-[#86868B] dark:text-[#98989D] mt-4 text-center">
+              Légende : <span className="text-[#34C759] font-medium">📁 ≤2</span> sain · <span className="text-[#FF9500] font-medium">📁 3</span> chargé · <span className="text-[#FF3B30] font-medium">📁 ≥4</span> surchargé
+            </p>
           </div>
         )}
       </div>

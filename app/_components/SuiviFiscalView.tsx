@@ -81,21 +81,27 @@ export function SuiviFiscalView() {
         const echJourRelative = offset - 5; // jours restants par rapport à game_day
         const deadlineGameDay = store.game_day + echJourRelative;
         const realDate = gameJourToDate(deadlineGameDay);
+        const obligationId = `${client}_${t.type}`;
+        const isDeposee = !!store.fiscal_validations?.[obligationId];
+
         let statut: Obligation["statut"];
-        if (echJourRelative < 0) statut = "retard";
+        if (isDeposee) statut = "ok"; // déposée = pas d'urgence
+        else if (echJourRelative < 0) statut = "retard";
         else if (echJourRelative <= 1) statut = "j1";
         else if (echJourRelative <= 3) statut = "j3";
         else if (echJourRelative <= 7) statut = "j7";
         else statut = "ok";
 
-        const progression = statut === "ok"
+        const progression = isDeposee
+          ? 100
+          : statut === "ok"
           ? 30 + Math.floor(Math.random() * 50)
           : statut === "retard"
           ? 50
           : 60 + Math.floor(Math.random() * 30);
 
         list.push({
-          id: `${client}_${t.type}`,
+          id: obligationId,
           client,
           type: t.type,
           echeance_jour: deadlineGameDay,
@@ -105,12 +111,12 @@ export function SuiviFiscalView() {
           progression,
           competence_requise: t.competence,
           statut,
-          statut_detaille: computeDetailedStatut(progression, statut),
+          statut_detaille: isDeposee ? "Déposée" : computeDetailedStatut(progression, statut),
         });
       });
     });
     return list;
-  }, [store.dossiers, store.agents, store.game_day]);
+  }, [store.dossiers, store.agents, store.game_day, store.fiscal_validations]);
 
   // Group by client
   const parClient: Record<string, Obligation[]> = {};
@@ -253,6 +259,7 @@ export function SuiviFiscalView() {
                         <th className="text-left px-2 py-2">Statut</th>
                         <th className="text-left px-2 py-2">Urgence</th>
                         <th className="text-left px-2 py-2">Collaborateur</th>
+                        <th className="text-right px-2 py-2">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -277,6 +284,21 @@ export function SuiviFiscalView() {
                             </td>
                             <td className="px-2 py-2.5 text-[11px] text-[#86868B] dark:text-[#98989D]">
                               {colla ? colla.nom.split(" ")[0] : "—"}
+                            </td>
+                            <td className="px-2 py-2.5 text-right">
+                              {o.statut_detaille !== "Déposée" ? (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); store.markObligationDeposee(o.id, o.type, o.client); }}
+                                  className="text-[10px] font-semibold px-2 py-1 rounded-[8px] bg-[#34C759]/10 dark:bg-[#30D158]/15 text-[#248A3D] dark:text-[#30D158] hover:bg-[#34C759]/20 dark:hover:bg-[#30D158]/25"
+                                  title="Marquer comme déposée"
+                                >
+                                  ✓ Déposer
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-[#34C759]">
+                                  Validée J{store.fiscal_validations?.[o.id]?.game_day || "?"}
+                                </span>
+                              )}
                             </td>
                           </tr>
                         );
@@ -343,13 +365,28 @@ export function SuiviFiscalView() {
                 ))}
               </tbody>
             </table>
-            <div className="px-4 py-2 border-t border-[#E5E5EA]/30 dark:border-[#38383a] flex items-center gap-3 text-[10px] text-[#86868B]">
-              <span>Légende :</span>
-              <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#34C759]/15" /> OK</span>
-              <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#FFCC00]/15" /> J-7</span>
-              <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#FF9500]/15" /> J-3</span>
-              <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#FF3B30]/15" /> J-1</span>
-              <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#FF3B30]/25" /> RETARD</span>
+            <div className="px-4 py-3 border-t border-[#E5E5EA]/30 dark:border-[#38383a] space-y-2 text-[10px] text-[#86868B] dark:text-[#98989D]">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="font-semibold">Légende statut :</span>
+                <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#34C759]/15" /> OK / Déposée</span>
+                <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#FFCC00]/15" /> J-7 (à anticiper)</span>
+                <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#FF9500]/15" /> J-3 (boucler)</span>
+                <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#FF3B30]/15" /> J-1 (déposer aujourd'hui)</span>
+                <span className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-[#FF3B30]/25" /> RETARD (pénalités)</span>
+              </div>
+              <div className="border-t border-[#E5E5EA]/40 dark:border-[#38383a] pt-2">
+                <div className="font-semibold mb-1">Calendrier fiscal réel français — cadences à connaître :</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5">
+                  <span>• <strong>TVA mensuelle</strong> : déposer le <strong>20 du mois suivant</strong> (régime réel normal)</span>
+                  <span>• <strong>TVA trimestrielle</strong> : 20 avril, 20 juillet, 20 octobre, 20 janvier</span>
+                  <span>• <strong>IS — acomptes</strong> : 15 mars, 15 juin, 15 septembre, 15 décembre</span>
+                  <span>• <strong>IS — solde</strong> : 15 mai (clôture 31/12) ou 4 mois après clôture</span>
+                  <span>• <strong>Liasse fiscale 2065</strong> : 2ème jour ouvré suivant le 1er mai (clôture 31/12)</span>
+                  <span>• <strong>CVAE</strong> : déclaration 1330-CVAE-SD le 2ème jour ouvré après le 1er mai</span>
+                  <span>• <strong>CFE</strong> : solde au 15 décembre · acompte au 15 juin si > 3 000 €</span>
+                  <span>• <strong>DSN mensuelle</strong> : 5 du mois pour les +50 salariés, 15 sinon</span>
+                </div>
+              </div>
             </div>
           </div>
         )}

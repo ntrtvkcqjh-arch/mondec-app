@@ -14,6 +14,13 @@ interface TaskDoc {
   contexte: string; lignes: TaskLine[]; erreurs: TaskErreur[];
   ecriture_correction: { debit_compte: string; credit_compte: string; montant: number; libelle: string } | null;
 }
+interface CorrigeAnomalie {
+  titre: string;
+  statut: "trouvée" | "manquée" | "fausse alerte";
+  source: string;
+  correction_expert: string;
+  commentaire_perso: string;
+}
 interface TaskResult {
   score: number;
   erreurs_trouvees: TaskErreur[];
@@ -22,6 +29,7 @@ interface TaskResult {
   note_score: number;
   note_score_claude: number | null;
   analyse_note: string | null;
+  corrige_par_anomalie?: CorrigeAnomalie[];
   ecriture_eval: { ok: boolean; feedback: string } | null;
   feedback_general: string;
   impact_legitimite: number;
@@ -299,15 +307,54 @@ export function TasksView() {
                   </div>
 
                   {result.analyse_note && (
-                    <div className="bg-gradient-to-br from-[#007AFF]/5 to-[#5856D6]/5 border border-[#007AFF]/20 rounded-[12px] p-3">
+                    <div className="bg-gradient-to-br from-[#007AFF]/5 to-[#5856D6]/5 dark:from-[#0A84FF]/10 dark:to-[#5E5CE6]/10 border border-[#007AFF]/20 dark:border-[#0A84FF]/30 rounded-[12px] p-3">
                       <div className="flex items-start gap-2">
-                        <Sparkles size={13} className="text-[#007AFF] mt-0.5 shrink-0" />
+                        <Sparkles size={13} className="text-[#007AFF] dark:text-[#0A84FF] mt-0.5 shrink-0" />
                         <div>
-                          <div className="text-[10px] font-semibold text-[#007AFF] uppercase tracking-wider mb-1">
-                            Analyse critique {result.note_score_claude !== null && <span className="text-[#1D1D1F] dark:text-white">({result.note_score_claude}/20)</span>}
+                          <div className="text-[10px] font-semibold text-[#007AFF] dark:text-[#0A84FF] uppercase tracking-wider mb-1">
+                            Analyse de l'examinateur DEC {result.note_score_claude !== null && <span className="text-[#1D1D1F] dark:text-white">({result.note_score_claude}/20)</span>}
                           </div>
-                          <p className="text-[12px] text-[#1D1D1F] leading-relaxed whitespace-pre-wrap">{result.analyse_note}</p>
+                          <p className="text-[12px] text-[#1D1D1F] dark:text-[#d1d1d6] leading-relaxed whitespace-pre-wrap">{result.analyse_note}</p>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Corrigé détaillé par anomalie — comme un examinateur EC 50 ans d'expérience */}
+                  {result.corrige_par_anomalie && result.corrige_par_anomalie.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#1D1D1F] dark:text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Sparkles size={11} className="text-[#AF52DE]" /> Corrigé détaillé par anomalie (examinateur DEC senior)
+                      </div>
+                      <div className="space-y-2">
+                        {result.corrige_par_anomalie.map((c, i) => {
+                          const statutStyle = c.statut === "trouvée"
+                            ? { bg: "bg-[#34C759]/8 dark:bg-[#30D158]/12", border: "border-[#34C759]/30", text: "text-[#248A3D] dark:text-[#30D158]", emoji: "✓" }
+                            : c.statut === "manquée"
+                              ? { bg: "bg-[#FF3B30]/8 dark:bg-[#FF453A]/12", border: "border-[#FF3B30]/30", text: "text-[#FF3B30] dark:text-[#FF453A]", emoji: "✗" }
+                              : { bg: "bg-[#FF9500]/8 dark:bg-[#FF9F0A]/12", border: "border-[#FF9500]/30", text: "text-[#C76A00] dark:text-[#FF9F0A]", emoji: "⚠" };
+                          return (
+                            <div key={i} className={`${statutStyle.bg} border ${statutStyle.border} rounded-[12px] p-3`}>
+                              <div className="flex items-start justify-between gap-2 mb-1.5">
+                                <h5 className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white flex-1">{c.titre}</h5>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${statutStyle.text} bg-white/60 dark:bg-black/30 shrink-0`}>
+                                  {statutStyle.emoji} {c.statut.toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-[#86868B] dark:text-[#98989D] mb-1.5 italic">
+                                📖 Source : <span className="font-medium text-[#3a3a3c] dark:text-[#d1d1d6] not-italic">{c.source}</span>
+                              </div>
+                              <div className="mb-1.5">
+                                <div className="text-[9px] font-bold text-[#86868B] dark:text-[#98989D] uppercase tracking-wider mb-0.5">Corrigé expert</div>
+                                <p className="text-[11px] text-[#1D1D1F] dark:text-[#d1d1d6] leading-relaxed">{c.correction_expert}</p>
+                              </div>
+                              <div className="bg-white/50 dark:bg-black/20 rounded-md px-2 py-1.5">
+                                <div className="text-[9px] font-bold text-[#86868B] dark:text-[#98989D] uppercase tracking-wider mb-0.5">Commentaire sur ta réponse</div>
+                                <p className="text-[11px] text-[#3a3a3c] dark:text-[#d1d1d6] leading-relaxed italic">{c.commentaire_perso}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
-import { FolderOpen, Sparkles, RefreshCw } from "lucide-react";
+import { FolderOpen, Sparkles, RefreshCw, UserCog, X } from "lucide-react";
 import { ClientFicheModal } from "./ClientFicheModal";
+import { SectorTag } from "./SectorTag";
 
 function getPhaseColor(phase: string | null) {
   switch (phase) {
@@ -28,6 +29,7 @@ export function DossiersView() {
   const store = useGameStore();
   const [filter, setFilter] = useState<"en_cours" | "surveillance" | "avance" | "cloture" | "perdu" | "tous">("en_cours");
   const [ficheId, setFicheId] = useState<string | null>(null);
+  const [reassignDossierId, setReassignDossierId] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => store.recomputeAllDossierStatus(), 8000);
@@ -194,6 +196,16 @@ export function DossiersView() {
                         </button>
                       </div>
                     )}
+
+                    {/* Bouton Réaffecter (disponible pour les dossiers actifs) */}
+                    {(d.etat === "en_cours" || d.etat === "surveillance" || d.etat === "avance") && (
+                      <div className="mt-2.5 flex gap-1.5">
+                        <button onClick={(e) => { e.stopPropagation(); setReassignDossierId(d.id); }}
+                          className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#007AFF]/10 dark:bg-[#0A84FF]/15 text-[#007AFF] dark:text-[#0A84FF] hover:bg-[#007AFF]/15 dark:hover:bg-[#0A84FF]/25 font-semibold transition-all flex items-center gap-1">
+                          <UserCog size={11} /> Réaffecter
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -214,6 +226,125 @@ export function DossiersView() {
         if (!d) return null;
         return <ClientFicheModal dossier={d} onClose={() => setFicheId(null)} />;
       })()}
+
+      {/* Modal réaffectation */}
+      {reassignDossierId && (() => {
+        const d = store.dossiers.find((x) => x.id === reassignDossierId);
+        if (!d) return null;
+        return <ReassignModal dossier={d} onClose={() => setReassignDossierId(null)} />;
+      })()}
+    </div>
+  );
+}
+
+function ReassignModal({ dossier, onClose }: { dossier: any; onClose: () => void }) {
+  const store = useGameStore();
+  const [selectedAgentId, setSelectedAgentId] = useState<string>("");
+  const [motif, setMotif] = useState<string>("");
+  const currentAgent = store.agents.find((a) => a.id === dossier.agent_id);
+
+  function handleSubmit() {
+    if (!selectedAgentId) {
+      alert("Sélectionne un collaborateur.");
+      return;
+    }
+    const res = store.reassignDossier(dossier.id, selectedAgentId, motif || undefined);
+    if (!res.ok) {
+      alert(res.reason || "Échec réaffectation.");
+      return;
+    }
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[55] bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-2xl dark:shadow-black/60 w-full max-w-lg overflow-hidden border border-transparent dark:border-[#38383a]/60">
+        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a]/60 bg-gradient-to-r from-[#007AFF]/8 to-[#5856D6]/8 dark:from-[#0A84FF]/12 dark:to-[#5E5CE6]/12">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
+                <UserCog size={17} className="text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-[16px] text-[#1D1D1F] dark:text-white tracking-tight">Réaffecter le dossier</h3>
+                <p className="text-[12px] text-[#86868B] dark:text-[#98989D]">{dossier.client}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/80 dark:bg-[#2c2c2e] hover:bg-white dark:hover:bg-[#38383a] flex items-center justify-center">
+              <X size={14} className="text-[#86868B] dark:text-[#98989D]" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {currentAgent && (
+            <div className="bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[10px] p-3 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold" style={{ backgroundColor: currentAgent.avatar_color }}>
+                {currentAgent.initiales}
+              </div>
+              <div className="flex-1">
+                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white">Affecté actuellement à {currentAgent.nom}</div>
+                <div className="text-[10px] text-[#86868B] dark:text-[#98989D]">{currentAgent.role} · stress {currentAgent.stress} · {store.dossiers.filter((d) => d.agent_id === currentAgent.id && d.etat === "en_cours").length} dossier(s) en cours</div>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="text-[11px] font-semibold text-[#86868B] dark:text-[#98989D] uppercase tracking-wider block mb-1.5">
+              Nouveau collaborateur
+            </label>
+            <select
+              value={selectedAgentId}
+              onChange={(e) => setSelectedAgentId(e.target.value)}
+              className="w-full text-[12px] p-2.5 border border-[#E5E5EA] dark:border-[#38383a] rounded-[10px] outline-none focus:border-[#007AFF] bg-white dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white"
+            >
+              <option value="">— Choisir —</option>
+              {store.agents.filter((a) => a.id !== dossier.agent_id).map((a) => {
+                const charge = store.dossiers.filter((d) => d.agent_id === a.id && d.etat === "en_cours").length;
+                const stressed = a.stress > 70 ? " 🔥 stressé" : "";
+                const overload = charge >= 3 ? " ⚠ surchargé" : "";
+                return (
+                  <option key={a.id} value={a.id}>
+                    {a.nom} ({a.filiere}) · {charge} dossier(s){overload}{stressed}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-semibold text-[#86868B] dark:text-[#98989D] uppercase tracking-wider block mb-1.5">
+              Motif (optionnel)
+            </label>
+            <input
+              type="text"
+              value={motif}
+              onChange={(e) => setMotif(e.target.value)}
+              placeholder="Ex : compétence fiscale requise, surcharge actuelle…"
+              className="w-full text-[12px] p-2.5 border border-[#E5E5EA] dark:border-[#38383a] rounded-[10px] outline-none focus:border-[#007AFF] bg-white dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white"
+            />
+          </div>
+
+          <div className="bg-[#FF9500]/8 border border-[#FF9500]/20 rounded-[10px] p-2.5 text-[11px] text-[#86868B] dark:text-[#98989D]">
+            ⚠ Réaffecter génère un message au nouveau collaborateur (N3 décision) et un suivi à l'ancien. L'impact stress sera appliqué automatiquement.
+          </div>
+        </div>
+
+        <div className="px-6 py-3 bg-[#fafafa] dark:bg-[#161618] border-t border-[#E5E5EA]/40 dark:border-[#38383a]/60 flex items-center gap-2">
+          <button onClick={onClose}
+            className="ml-auto px-3 py-2 text-[12px] rounded-[10px] bg-[#F5F5F7] dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white hover:bg-[#E5E5EA] dark:hover:bg-[#38383a]">
+            Annuler
+          </button>
+          <button onClick={handleSubmit} disabled={!selectedAgentId}
+            className={`px-4 py-2 text-[12px] font-semibold rounded-[10px] transition-all flex items-center gap-1.5 ${
+              selectedAgentId
+                ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md hover:shadow-lg"
+                : "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] dark:text-[#636366] cursor-not-allowed"
+            }`}>
+            <UserCog size={11} /> Réaffecter
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

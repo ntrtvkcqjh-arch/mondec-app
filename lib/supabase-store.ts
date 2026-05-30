@@ -171,6 +171,9 @@ export interface GameState {
   last_prospect_day: number;
   prospects_dismissed_for_day: number; // jour où le joueur a fermé le modal sans tout traiter
 
+  // Sprint 4 : Historique fiscal (validations déposées par obligation_id)
+  fiscal_validations: Record<string, { game_day: number; date_iso: string; type: string; client: string }>;
+
   agents: Agent[];
   messages: Message[];
   dossiers: Dossier[];
@@ -206,6 +209,8 @@ export interface GameState {
   winDossier: (id: string) => void;
   loseDossier: (id: string) => void;
   advanceDossier: (id: string, amount: number) => void;
+  /** Réaffecte un dossier d'un agent à un autre + cascade d'événements internes. */
+  reassignDossier: (dossierId: string, newAgentId: string, motif?: string) => { ok: boolean; reason?: string };
 
   // Claude
   addClaudeMessage: (msg: ClaudeMsg) => void;
@@ -248,6 +253,9 @@ export interface GameState {
   acceptProspect: (id: string, agentId: string) => void;
   refuseProspect: (id: string) => void;
   dismissProspectsForDay: () => void;
+
+  // Sprint 4 : Marquer obligation fiscale comme déposée + historique
+  markObligationDeposee: (obligationId: string, type: string, client: string) => void;
   computeIncompatibilites: (dossierId: string, agentId: string) => string[];
 
   // Sprint 4 : Cohérence inter-onglets
@@ -285,6 +293,15 @@ function persistProspects(s: any) {
       last_day: s.last_prospect_day,
       dismissed_for_day: s.prospects_dismissed_for_day || 0,
     }));
+  } catch {}
+}
+
+/** Persiste la liste complète des dossiers dans localStorage (les seed Supabase
+ *  sont remplacés par cette source dès que le joueur a modifié quelque chose). */
+function persistDossiers(s: any) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("dossiers_state", JSON.stringify(s.dossiers));
   } catch {}
 }
 
@@ -328,6 +345,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   prospects_pending: [],
   last_prospect_day: 0,
   prospects_dismissed_for_day: 0,
+  fiscal_validations: {},
 
   agents: [],
   messages: [],
@@ -832,6 +850,93 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setDossiers: (d) => set({ dossiers: d }),
 
+  reassignDossier: (dossierId, newAgentId, motif) => {
+    const state = get();
+    const dossier = state.dossiers.find((d) => d.id === dossierId);
+    if (!dossier) return { ok: false, reason: "Dossier introuvable" };
+    if (dossier.agent_id === newAgentId) return { ok: false, reason: "Déjà affecté à cet agent" };
+    const oldAgent = state.agents.find((a) => a.id === dossier.agent_id);
+    const newAgent = state.agents.find((a) => a.id === newAgentId);
+    if (!newAgent) return { ok: false, reason: "Nouvel agent introuvable" };
+
+    // 1. Update le dossier
+    set((s) => ({
+      dossiers: s.dossiers.map((d) =>
+        d.id === dossierId ? { ...d, agent_id: newAgentId } : d
+      ),
+    }));
+    persistDossiers(get());
+
+    // 2. Cascade émotionnelle :
+    // - Ancien agent : soulagement (-5 stress, -2 fatigue) si charge > 3, sinon micro -2 stress
+    // - Nouveau agent : prise en charge (+5 stress, +3 fatigue) — la charge le pèse
+    const oldCharge = state.dossiers.filter((d) => d.agent_id === dossier.agent_id && d.etat === "en_cours").length;
+    const newCharge = state.dossiers.filter((d) => d.agent_id === newAgentId && d.etat === "en_cours").length;
+
+    set((s) => ({
+      agents: s.agents.map((a) => {
+        if (a.id === dossier.agent_id) {
+          return {
+            ...a,
+            stress: Math.max(0, a.stress - (oldCharge >= 3 ? 5 : 2)),
+            fatigue: Math.max(0, a.fatigue - 2),
+          };
+        }
+        if (a.id === newAgentId) {
+          return {
+            ...a,
+            stress: Math.min(100, a.stress + (newCharge >= 3 ? 8 : 5)),
+            fatigue: Math.min(100, a.fatigue + 3),
+          };
+        }
+        return a;
+      }),
+    }));
+
+    // 3. Messages auto inter-agents
+    const motifText = motif ? ` Motif : ${motif}.` : "";
+    if (oldAgent) {
+      get().addNewMessage({
+        agent_id: oldAgent.id,
+        niveau: "N1",
+        type: "Information",
+        sujet: `📤 Transfert dossier — ${dossier.client}`,
+        contenu: `Bien noté chef. Je transfère le dossier ${dossier.client} à ${newAgent.nom.split(" ")[0]}.${motifText} Je lui fais une passation orale ce matin et je lui envoie les pièces.`,
+        delai_reponse_heures: 48,
+      });
+    }
+    get().addNewMessage({
+      agent_id: newAgent.id,
+      niveau: "N3",
+      type: "Décision",
+      sujet: `📥 Nouveau dossier reçu — ${dossier.client}`,
+      contenu: `Chef, j'ai récupéré le dossier ${dossier.client} (phase ${dossier.phase}, ${dossier.progression}% d'avancement, qualité ${dossier.qualite}%). Je m'y mets dès aujourd'hui.${motifText} Tu confirmes la priorisation par rapport à mes dossiers actuels (j'en ai déjà ${newCharge}) ?`,
+      delai_reponse_heures: 12,
+    });
+
+    // 4. History pour les 2 agents
+    set((s) => ({
+      agent_player_history: {
+        ...s.agent_player_history,
+        ...(oldAgent ? {
+          [oldAgent.id]: [
+            { day: s.game_day, hour: s.game_hour, event: `Dossier ${dossier.client} transféré vers ${newAgent.nom.split(" ")[0]}`, impact: "−5 Stress · soulagement" },
+            ...(s.agent_player_history[oldAgent.id] || []),
+          ].slice(0, 20),
+        } : {}),
+        [newAgent.id]: [
+          { day: s.game_day, hour: s.game_hour, event: `Reçoit dossier ${dossier.client} (depuis ${oldAgent?.nom.split(" ")[0] || "?"})`, impact: "+5 Stress · charge" },
+          ...(s.agent_player_history[newAgent.id] || []),
+        ].slice(0, 20),
+      },
+    }));
+
+    get().recomputeTeamHealth();
+    get().recomputeMood();
+    get().saveGameState();
+    return { ok: true };
+  },
+
   winDossier: (id) => {
     const state = get();
     const d = state.dossiers.find((x) => x.id === id);
@@ -871,6 +976,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().addXP(20);
     get().recomputeMood();
     get().saveGameState();
+    persistDossiers(get());
   },
 
   loseDossier: (id) => {
@@ -918,6 +1024,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     get().recomputeMood();
     get().saveGameState();
+    persistDossiers(get());
   },
 
   advanceDossier: (id, amount) => {
@@ -1265,6 +1372,32 @@ export const useGameStore = create<GameState>((set, get) => ({
     persistProspects(get());
   },
 
+  markObligationDeposee: (obligationId, type, client) => {
+    const state = get();
+    set({
+      fiscal_validations: {
+        ...state.fiscal_validations,
+        [obligationId]: {
+          game_day: state.game_day,
+          date_iso: new Date().toISOString(),
+          type,
+          client,
+        },
+      },
+    });
+    // Persiste en localStorage
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("fiscal_validations", JSON.stringify(get().fiscal_validations));
+      } catch {}
+    }
+    // Micro-bonus : -1 stress global, +1 légitimité
+    set((s) => ({
+      stress_global: Math.max(0, s.stress_global - 1),
+      legitimite: Math.min(100, s.legitimite + 1),
+    }));
+  },
+
   acceptProspect: (id, agentId) => {
     const state = get();
     const prospect = state.prospects_pending.find((p) => p.id === id);
@@ -1314,6 +1447,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       reputation: Math.min(100, s.reputation + 3),
     }));
     persistProspects(get());
+    persistDossiers(get());
+
+    // Message N1 du collaborateur pour confirmer la prise en charge
+    const newAgent = get().agents.find((a) => a.id === agentId);
+    if (newAgent) {
+      get().addNewMessage({
+        agent_id: newAgent.id,
+        niveau: "N1",
+        type: "Information",
+        sujet: `🆕 Nouveau dossier — ${prospect.client}`,
+        contenu: `${newAgent.nom.split(" ")[0]} : OK chef, je récupère ${prospect.client} (${prospect.secteur}). J'envoie la lettre de mission demain matin et je commence le dossier permanent.`,
+        delai_reponse_heures: 48,
+      });
+    }
   },
 
   refuseProspect: (id) => {
@@ -1651,6 +1798,20 @@ export const useGameStore = create<GameState>((set, get) => ({
           last_prospect_day: typeof p.last_day === "number" ? p.last_day : s.last_prospect_day,
           prospects_dismissed_for_day: typeof p.dismissed_for_day === "number" ? p.dismissed_for_day : s.prospects_dismissed_for_day,
         }));
+      }
+      // Restaure la liste des dossiers (override le seed Supabase si modifié par le joueur)
+      const dossiers = localStorage.getItem("dossiers_state");
+      if (dossiers) {
+        const arr = JSON.parse(dossiers);
+        if (Array.isArray(arr) && arr.length > 0) {
+          set({ dossiers: arr });
+        }
+      }
+      // Restaure l'historique des validations fiscales
+      const fiscalVal = localStorage.getItem("fiscal_validations");
+      if (fiscalVal) {
+        const obj = JSON.parse(fiscalVal);
+        if (obj && typeof obj === "object") set({ fiscal_validations: obj });
       }
     } catch (e) {
       console.warn("[Store] loadLocalPersistence failed:", e);
