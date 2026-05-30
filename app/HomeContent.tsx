@@ -37,6 +37,7 @@ export default function HomeContent() {
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [generatingEvents, setGeneratingEvents] = useState(false);
   const [showProspects, setShowProspects] = useState(false);
+  const [showStartModeModal, setShowStartModeModal] = useState(false);
 
   const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "error">("checking");
   const [apiStatusReason, setApiStatusReason] = useState("");
@@ -52,12 +53,15 @@ export default function HomeContent() {
       const tab = e?.detail?.tab;
       if (tab) setActiveTab(tab as Tab);
     }
+    function handleOpenStartMode() { setShowStartModeModal(true); }
     if (typeof window !== "undefined") {
       window.addEventListener("open-morning-briefing", handleOpenBriefing);
       window.addEventListener("switch-tab", handleSwitchTab);
+      window.addEventListener("open-start-mode-modal", handleOpenStartMode);
       return () => {
         window.removeEventListener("open-morning-briefing", handleOpenBriefing);
         window.removeEventListener("switch-tab", handleSwitchTab);
+        window.removeEventListener("open-start-mode-modal", handleOpenStartMode);
       };
     }
   }, []);
@@ -269,8 +273,8 @@ export default function HomeContent() {
       <ClaudeFloating />
       <CascadeNotifications />
 
-      {!store.isLoading && store.isAuthenticated && !store.start_mode_chosen && (
-        <StartModeModal onClose={() => { /* le store gère le set */ }} />
+      {!store.isLoading && store.isAuthenticated && (!store.start_mode_chosen || showStartModeModal) && (
+        <StartModeModal onClose={() => setShowStartModeModal(false)} />
       )}
       {showProspects && <ProspectsModal onClose={() => { setShowProspects(false); store.dismissProspectsForDay(); }} />}
       {showBriefing && (
