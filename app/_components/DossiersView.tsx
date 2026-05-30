@@ -2,29 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useGameStore } from "@/lib/supabase-store";
-import { FolderOpen, Sparkles, RefreshCw, UserCog, X, MessageCircle } from "lucide-react";
+import { UserCog, X, MessageCircle, Sparkles, Star, AlertTriangle } from "lucide-react";
 import { ClientFicheModal } from "./ClientFicheModal";
 import { SectorTag } from "./SectorTag";
 import { DossierChatModal } from "./DossierChatModal";
-
-function getPhaseColor(phase: string | null) {
-  switch (phase) {
-    case "P5": return "bg-[#FF3B30]/15 text-[#FF3B30]";
-    case "P4": return "bg-[#FF9500]/15 text-[#FF9500]";
-    case "P3": return "bg-[#007AFF]/15 text-[#007AFF]";
-    case "P2": return "bg-[#34C759]/15 text-[#34C759]";
-    default: return "bg-[#86868B]/15 text-[#86868B]";
-  }
-}
-
-function DossierStat({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="bg-white px-3 py-2 rounded-[12px] border border-[#E5E5EA]/40 dark:border-[#38383a] text-center min-w-[78px] shadow-sm">
-      <div className="text-[18px] font-bold tabular-nums" style={{ color }}>{value}</div>
-      <div className="text-[10px] text-[#86868B]">{label}</div>
-    </div>
-  );
-}
+import { PageHeader } from "./ui/PageHeader";
+import { Card } from "./ui/Card";
+import { Section } from "./ui/Section";
 
 export function DossiersView() {
   const store = useGameStore();
@@ -38,19 +22,16 @@ export function DossiersView() {
     return () => clearInterval(t);
   }, []);
 
-  // CASCADE — Détection drama mauvaise affectation (toutes les 2 min jeu)
+  // CASCADE drama mauvaise affectation
   useEffect(() => {
     if (typeof window === "undefined") return;
     const flag = `drama_check_${store.game_day}_${Math.floor(store.game_minute / 30)}`;
     if (localStorage.getItem(flag)) return;
     localStorage.setItem(flag, "1");
-
     store.dossiers.forEach((d) => {
       if (d.etat !== "en_cours" && d.etat !== "surveillance") return;
       const incompat = store.computeIncompatibilites(d.id, d.agent_id);
-      if (incompat.length >= 2) {
-        store.triggerBadAffectationDrama(d.id);
-      }
+      if (incompat.length >= 2) store.triggerBadAffectationDrama(d.id);
     });
   }, [store.dossiers.length, store.game_day, store.game_minute]);
 
@@ -59,188 +40,171 @@ export function DossiersView() {
   const avances = store.dossiers.filter((d) => d.etat === "avance").length;
   const clotures = store.dossiers.filter((d) => d.etat === "cloture").length;
   const perdus = store.dossiers.filter((d) => d.etat === "perdu").length;
-
   const filtered = filter === "tous" ? store.dossiers : store.dossiers.filter((d) => d.etat === filter);
 
-  const statusMeta: any = {
-    en_cours: { label: "EN COURS", color: "#007AFF", bg: "bg-[#007AFF]/15", border: "border-[#E5E5EA]/40 dark:border-[#38383a]" },
-    surveillance: { label: "SURVEILLANCE", color: "#FF9500", bg: "bg-[#FF9500]/15", border: "border-[#FF9500]/30" },
-    avance: { label: "AVANCÉ", color: "#34C759", bg: "bg-[#34C759]/15", border: "border-[#34C759]/30" },
-    cloture: { label: "CLÔTURÉ", color: "#86868B", bg: "bg-[#86868B]/15", border: "border-[#86868B]/30" },
-    perdu: { label: "PERDU", color: "#FF3B30", bg: "bg-[#FF3B30]/15", border: "border-[#FF3B30]/30" },
-  };
+  const filters: { id: typeof filter; label: string; count: number }[] = [
+    { id: "en_cours", label: "Actifs", count: enCours },
+    { id: "surveillance", label: "Surveillance", count: surveillance },
+    { id: "avance", label: "Avancés", count: avances },
+    { id: "cloture", label: "Clôturés", count: clotures },
+    { id: "perdu", label: "Perdus", count: perdus },
+    { id: "tous", label: "Tous", count: store.dossiers.length },
+  ];
+
+  function phaseColor(p: string): string {
+    switch (p) {
+      case "P5": return "#FF3B30";
+      case "P4": return "#FF9500";
+      case "P3": return "#007AFF";
+      case "P2": return "#34C759";
+      default: return "#9ca3af";
+    }
+  }
 
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-10">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-end justify-between mb-4">
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
-              <span>☼</span><span>Portefeuille</span><span>·</span><span>Fiches clients</span>
-            </div>
-            <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">Dossiers.</h2>
-            <p className="text-[14px] text-[#86868B] mt-2">Aperçu temps réel · Les statuts évoluent selon ton travail</p>
-          </div>
-          <div className="flex gap-1.5">
-            <DossierStat label="En cours" value={enCours} color="#007AFF" />
-            <DossierStat label="Surveille" value={surveillance} color="#FF9500" />
-            <DossierStat label="Avancés" value={avances} color="#34C759" />
-            <DossierStat label="Clôturés" value={clotures} color="#86868B" />
-            <DossierStat label="Perdus" value={perdus} color="#FF3B30" />
-          </div>
-        </div>
+    <div className="flex-1 overflow-y-auto">
+      <PageHeader
+        title="DOSSIERS"
+        stats={[
+          { value: enCours, label: "dossiers actifs" },
+          { value: surveillance, label: "en surveillance", tone: surveillance > 0 ? "warning" : "default" },
+          { value: perdus, label: "perdus", tone: perdus > 0 ? "critical" : "default" },
+        ]}
+      />
 
-        <div className="flex gap-1.5 mb-4 bg-[#F5F5F7] dark:bg-[#2c2c2e] p-1 rounded-[12px] inline-flex flex-wrap">
-          {(["en_cours", "surveillance", "avance", "cloture", "perdu", "tous"] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 text-[12px] font-medium rounded-[8px] transition-all ${filter === f ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B] hover:text-[#1D1D1F] dark:text-white"}`}>
-              {f === "en_cours" ? "En cours" : f === "surveillance" ? "Surveillance" : f === "avance" ? "Avancés" : f === "cloture" ? "Clôturés" : f === "perdu" ? "Perdus" : "Tous"}
+      <div className="max-w-[1200px] mx-auto px-10 pb-16">
+        {/* Filtres segmentés style iOS */}
+        <div className="flex gap-1.5 mb-8 flex-wrap">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`px-3.5 py-2 rounded-full text-[12.5px] font-medium transition-all ${
+                filter === f.id
+                  ? "bg-[#111111] dark:bg-white text-white dark:text-[#111111]"
+                  : "bg-white dark:bg-[#1c1c1e] text-[#3a3a3c] dark:text-[#d1d1d6] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.06)]"
+              }`}
+            >
+              {f.label}
+              <span className={`ml-1.5 tabular-nums ${filter === f.id ? "opacity-60" : "text-[#9ca3af]"}`}>{f.count}</span>
             </button>
           ))}
         </div>
 
-        <div className="space-y-2">
-          {filtered.map((d) => {
-            const a = store.agents.find((x) => x.id === d.agent_id);
-            const meta = statusMeta[d.etat];
-            const recoverable = d.etat === "perdu" && d.recoverable_until && new Date(d.recoverable_until) > new Date();
-
-            return (
-              <div key={d.id} onClick={() => setFicheId(d.id)} className={`bg-white dark:bg-[#1c1c1e] rounded-[14px] p-4 border transition-all cursor-pointer ${meta.border} ${d.is_vip ? "ring-2 ring-[#AF52DE]/30" : ""} ${
-                d.etat === "avance" ? "bg-[#34C759]/5" :
-                d.etat === "perdu" ? "bg-[#FF3B30]/5 opacity-80" :
-                d.etat === "surveillance" ? "bg-[#FF9500]/5" :
-                d.etat === "cloture" ? "bg-[#86868B]/5" :
-                "hover:shadow-md"
-              }`}>
-                <div className="flex items-start gap-3">
-                  {a && (
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 shadow-sm" style={{ backgroundColor: a.avatar_color }}>
-                      {a.initiales}
+        {/* Grille compacte : 4 colonnes desktop, 2 tablet, 1 mobile */}
+        {filtered.length === 0 ? (
+          <Card className="px-10 py-16 text-center">
+            <p className="text-[14px] text-[#6b7280] dark:text-[#98989D]">Aucun dossier dans cette catégorie.</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filtered.map((d) => {
+              const a = store.agents.find((x) => x.id === d.agent_id);
+              const messagesAgent = store.messages.filter((m) => m.agent_id === d.agent_id && !m.repondu).length;
+              const recoverable = d.etat === "perdu" && d.recoverable_until && new Date(d.recoverable_until) > new Date();
+              const phaseCol = phaseColor(d.phase);
+              return (
+                <Card key={d.id} onClick={() => setFicheId(d.id)} className="p-5 flex flex-col gap-3">
+                  {/* Header : client + VIP */}
+                  <div className="flex items-start justify-between gap-2 min-h-[40px]">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[15px] font-semibold text-[#111111] dark:text-white tracking-[-0.01em] leading-tight">
+                        {d.client}
+                      </h3>
+                      <p className="text-[11.5px] text-[#6b7280] dark:text-[#98989D] mt-0.5 line-clamp-1">{d.theme}</p>
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">{d.client}</span>
-                      {d.is_vip && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-[#AF52DE] to-[#5856D6] text-white">⭐ VIP</span>}
-                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${getPhaseColor(d.phase)}`}>{d.phase}</span>
-                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ml-auto ${meta.bg}`} style={{ color: meta.color }}>
-                        {meta.label}
-                      </span>
-                    </div>
-                    <p className="text-[12px] text-[#86868B] mb-2">{d.theme} · échéance {d.echeance_heure} · {d.cas_traites} cas traité{d.cas_traites > 1 ? "s" : ""}</p>
-
-                    <div className="grid grid-cols-2 gap-3 mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-[#86868B] w-14">Progression</span>
-                        <div className="flex-1 h-[4px] bg-[#E5E5EA] rounded-full overflow-hidden">
-                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${d.progression}%`, backgroundColor: meta.color }} />
-                        </div>
-                        <span className="text-[9px] font-semibold tabular-nums w-7 text-right" style={{ color: meta.color }}>{d.progression}%</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-[#86868B] w-14">Qualité</span>
-                        <div className="flex-1 h-[4px] bg-[#E5E5EA] rounded-full overflow-hidden">
-                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${d.qualite}%`, backgroundColor: d.qualite >= 70 ? "#34C759" : d.qualite >= 50 ? "#FF9500" : "#FF3B30" }} />
-                        </div>
-                        <span className="text-[9px] font-semibold tabular-nums w-7 text-right" style={{ color: d.qualite >= 70 ? "#34C759" : d.qualite >= 50 ? "#FF9500" : "#FF3B30" }}>{d.qualite}%</span>
-                      </div>
-                    </div>
-
-                    {d.signaux_alerte.length > 0 && d.etat !== "perdu" && (
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {d.signaux_alerte.map((s, i) => {
-                          const labels: Record<string, string> = {
-                            agent_burnout: "⚠ Agent en burn-out",
-                            confiance_basse: "⚠ Confiance basse",
-                            agent_rupture: "⚠ Risque départ agent",
-                            retard_critique: "⚠ Retard J+5",
-                            cabinet_crise: "⚠ Mood Crise",
-                          };
-                          return (
-                            <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-md bg-[#FF9500]/10 text-[#FF9500] font-medium">
-                              {labels[s] || s}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {d.etat === "perdu" && d.cause_perte && (
-                      <div className="bg-[#FF3B30]/8 border border-[#FF3B30]/15 rounded-[8px] p-2 mb-2">
-                        <p className="text-[10px] text-[#FF3B30] font-medium">Cause : {d.cause_perte}</p>
-                        {recoverable && (
-                          <p className="text-[9px] text-[#86868B] mt-0.5">Récupération possible jusqu'au {new Date(d.recoverable_until!).toLocaleDateString("fr-FR")}</p>
-                        )}
-                      </div>
-                    )}
-
-                    {(d.etat === "en_cours" || d.etat === "surveillance") && (
-                      <div className="flex items-center gap-1.5 mt-2.5 text-[10px] text-[#86868B]">
-                        <RefreshCw size={9} className="animate-spin" style={{ animationDuration: "3s" }} />
-                        <span>
-                          {d.etat === "surveillance"
-                            ? "Statut surveillé · agis sur l'agent ou réponds vite avant que le client ne parte"
-                            : a ? `${a.nom.split(" ")[0]} travaille en autonomie — réponds aux messages pour accélérer` : "Avancement automatique"}
-                        </span>
-                      </div>
-                    )}
-
-                    {recoverable && (
-                      <div className="mt-2.5">
-                        <button onClick={(e) => {
-                            e.stopPropagation();
-                            const ok = store.attemptRecoverDossier(d.id);
-                            if (!ok) alert("Tentative ratée. Le client refuse de revenir.");
-                          }}
-                          className="text-[11px] px-2.5 py-1 rounded-[8px] bg-gradient-to-r from-[#AF52DE]/15 to-[#007AFF]/15 text-[#AF52DE] hover:from-[#AF52DE]/25 hover:to-[#007AFF]/25 font-semibold transition-all flex items-center gap-1">
-                          <Sparkles size={11} /> Tentative récupération (1h · honoraires ×1,5)
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Boutons d'action sur le dossier */}
-                    {(d.etat === "en_cours" || d.etat === "surveillance" || d.etat === "avance") && (
-                      <div className="mt-2.5 flex gap-1.5 flex-wrap">
-                        <button onClick={(e) => { e.stopPropagation(); setReassignDossierId(d.id); }}
-                          className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#007AFF]/10 dark:bg-[#0A84FF]/15 text-[#007AFF] dark:text-[#0A84FF] hover:bg-[#007AFF]/15 dark:hover:bg-[#0A84FF]/25 font-semibold transition-all flex items-center gap-1">
-                          <UserCog size={11} /> Réaffecter
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); setChatDossierId(d.id); }}
-                          className="text-[11px] px-2.5 py-1 rounded-[8px] bg-gradient-to-r from-[#AF52DE]/12 to-[#5856D6]/12 dark:from-[#BF5AF2]/20 dark:to-[#5E5CE6]/20 text-[#AF52DE] dark:text-[#BF5AF2] hover:from-[#AF52DE]/20 hover:to-[#5856D6]/20 font-semibold transition-all flex items-center gap-1">
-                          <MessageCircle size={11} /> Discuter
-                        </button>
-                      </div>
+                    {d.is_vip && (
+                      <Star size={13} fill="#FF9500" className="text-[#FF9500] shrink-0 mt-1" />
                     )}
                   </div>
-                </div>
-              </div>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div className="text-center py-12 text-[#86868B]">
-              <FolderOpen size={32} className="mx-auto mb-2 opacity-40" />
-              <p className="text-[13px]">Aucun dossier dans cette catégorie</p>
-            </div>
-          )}
-        </div>
+
+                  {/* Tag secteur compact */}
+                  {d.secteur_categorie && (
+                    <div><SectorTag categorie={d.secteur_categorie} size="sm" /></div>
+                  )}
+
+                  {/* Barre progression épurée */}
+                  <div>
+                    <div className="flex items-baseline justify-between mb-1.5">
+                      <span className="text-[26px] font-semibold tabular-nums tracking-[-0.02em] text-[#111111] dark:text-white leading-none">
+                        {d.progression}<span className="text-[14px] opacity-50">%</span>
+                      </span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: phaseCol }}>
+                        {d.phase}
+                      </span>
+                    </div>
+                    <div className="h-[3px] bg-[#f1f1f3] dark:bg-[#2c2c2e] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${d.progression}%`, backgroundColor: phaseCol }} />
+                    </div>
+                  </div>
+
+                  {/* Pied : collab + alertes */}
+                  <div className="flex items-center justify-between text-[11.5px] mt-auto">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {a ? (
+                        <>
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8.5px] font-semibold shrink-0" style={{ backgroundColor: a.avatar_color }}>
+                            {a.initiales}
+                          </div>
+                          <span className="text-[#3a3a3c] dark:text-[#d1d1d6] truncate">{a.nom.split(" ")[0]}</span>
+                        </>
+                      ) : (
+                        <span className="text-[#FF3B30] flex items-center gap-1"><AlertTriangle size={11} /> Non affecté</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-[#6b7280] dark:text-[#98989D] shrink-0">
+                      {messagesAgent > 0 && <span>{messagesAgent} msg</span>}
+                      {d.etat === "surveillance" && <span className="text-[#FF9500] font-medium">⚠</span>}
+                    </div>
+                  </div>
+
+                  {/* Actions discrètes au hover (apparaissent via opacity au hover de la card parent) */}
+                  <div className="flex gap-1.5 -mb-1 -mx-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setReassignDossierId(d.id); }}
+                      className="flex-1 px-2 py-1.5 rounded-[10px] bg-[#f5f5f7] dark:bg-[#2c2c2e] text-[10.5px] text-[#3a3a3c] dark:text-[#d1d1d6] hover:bg-[#ebebed] dark:hover:bg-[#38383a] flex items-center justify-center gap-1 font-medium"
+                    >
+                      <UserCog size={10} /> Réaffecter
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setChatDossierId(d.id); }}
+                      className="flex-1 px-2 py-1.5 rounded-[10px] bg-[#f5f5f7] dark:bg-[#2c2c2e] text-[10.5px] text-[#3a3a3c] dark:text-[#d1d1d6] hover:bg-[#ebebed] dark:hover:bg-[#38383a] flex items-center justify-center gap-1 font-medium"
+                    >
+                      <MessageCircle size={10} /> Discuter
+                    </button>
+                    {recoverable && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const ok = store.attemptRecoverDossier(d.id);
+                          if (!ok) alert("Tentative ratée — le client refuse de revenir.");
+                        }}
+                        className="px-2 py-1.5 rounded-[10px] bg-[#AF52DE]/10 text-[#AF52DE] hover:bg-[#AF52DE]/15 text-[10.5px] font-medium flex items-center gap-1"
+                      >
+                        <Sparkles size={10} /> Récup
+                      </button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Modal fiche client détaillée */}
+      {/* Modal fiche client */}
       {ficheId && (() => {
         const d = store.dossiers.find((x) => x.id === ficheId);
         if (!d) return null;
         return <ClientFicheModal dossier={d} onClose={() => setFicheId(null)} />;
       })()}
 
-      {/* Modal réaffectation */}
       {reassignDossierId && (() => {
         const d = store.dossiers.find((x) => x.id === reassignDossierId);
         if (!d) return null;
         return <ReassignModal dossier={d} onClose={() => setReassignDossierId(null)} />;
       })()}
 
-      {/* Modal chat dédié dossier */}
       {chatDossierId && (() => {
         const d = store.dossiers.find((x) => x.id === chatDossierId);
         if (!d) return null;
@@ -257,104 +221,53 @@ function ReassignModal({ dossier, onClose }: { dossier: any; onClose: () => void
   const currentAgent = store.agents.find((a) => a.id === dossier.agent_id);
 
   function handleSubmit() {
-    if (!selectedAgentId) {
-      alert("Sélectionne un collaborateur.");
-      return;
-    }
+    if (!selectedAgentId) return alert("Sélectionne un collaborateur.");
     const res = store.reassignDossier(dossier.id, selectedAgentId, motif || undefined);
-    if (!res.ok) {
-      alert(res.reason || "Échec réaffectation.");
-      return;
-    }
+    if (!res.ok) return alert(res.reason || "Échec.");
     onClose();
   }
 
   return (
-    <div className="fixed inset-0 z-[55] bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-2xl dark:shadow-black/60 w-full max-w-lg overflow-hidden border border-transparent dark:border-[#38383a]/60">
-        <div className="px-6 py-4 border-b border-[#E5E5EA]/40 dark:border-[#38383a]/60 bg-gradient-to-r from-[#007AFF]/8 to-[#5856D6]/8 dark:from-[#0A84FF]/12 dark:to-[#5E5CE6]/12">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#007AFF] to-[#0040DD] flex items-center justify-center shadow-md">
-                <UserCog size={17} className="text-white" />
-              </div>
-              <div>
-                <h3 className="font-bold text-[16px] text-[#1D1D1F] dark:text-white tracking-tight">Réaffecter le dossier</h3>
-                <p className="text-[12px] text-[#86868B] dark:text-[#98989D]">{dossier.client}</p>
-              </div>
-            </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/80 dark:bg-[#2c2c2e] hover:bg-white dark:hover:bg-[#38383a] flex items-center justify-center">
-              <X size={14} className="text-[#86868B] dark:text-[#98989D]" />
-            </button>
-          </div>
+    <div className="fixed inset-0 z-[55] bg-black/30 backdrop-blur-sm flex items-center justify-center p-6">
+      <div className="bg-white dark:bg-[#1c1c1e] rounded-[24px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] w-full max-w-md overflow-hidden">
+        <div className="px-7 pt-7 pb-5">
+          <h3 className="text-[22px] font-semibold tracking-[-0.02em] text-[#111111] dark:text-white">Réaffecter le dossier</h3>
+          <p className="text-[13px] text-[#6b7280] dark:text-[#98989D] mt-1">{dossier.client}</p>
         </div>
-
-        <div className="p-6 space-y-4">
+        <div className="px-7 pb-5 space-y-4">
           {currentAgent && (
-            <div className="bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[10px] p-3 flex items-center gap-3">
+            <div className="bg-[#fafafa] dark:bg-[#2c2c2e] rounded-[14px] p-3 flex items-center gap-3">
               <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-semibold" style={{ backgroundColor: currentAgent.avatar_color }}>
                 {currentAgent.initiales}
               </div>
               <div className="flex-1">
-                <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white">Affecté actuellement à {currentAgent.nom}</div>
-                <div className="text-[10px] text-[#86868B] dark:text-[#98989D]">{currentAgent.role} · stress {currentAgent.stress} · {store.dossiers.filter((d) => d.agent_id === currentAgent.id && d.etat === "en_cours").length} dossier(s) en cours</div>
+                <div className="text-[12px] font-semibold text-[#111111] dark:text-white">Actuellement : {currentAgent.nom}</div>
+                <div className="text-[10px] text-[#6b7280] dark:text-[#98989D]">Stress {currentAgent.stress} · {store.dossiers.filter((d) => d.agent_id === currentAgent.id && d.etat === "en_cours").length} dossier(s)</div>
               </div>
             </div>
           )}
-
           <div>
-            <label className="text-[11px] font-semibold text-[#86868B] dark:text-[#98989D] uppercase tracking-wider block mb-1.5">
-              Nouveau collaborateur
-            </label>
-            <select
-              value={selectedAgentId}
-              onChange={(e) => setSelectedAgentId(e.target.value)}
-              className="w-full text-[12px] p-2.5 border border-[#E5E5EA] dark:border-[#38383a] rounded-[10px] outline-none focus:border-[#007AFF] bg-white dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white"
-            >
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280] dark:text-[#98989D] block mb-1.5">Nouveau collaborateur</label>
+            <select value={selectedAgentId} onChange={(e) => setSelectedAgentId(e.target.value)}
+              className="w-full text-[13px] p-2.5 border border-[#e5e7eb] dark:border-[#38383a] rounded-[12px] outline-none focus:border-[#007AFF] bg-white dark:bg-[#2c2c2e] text-[#111111] dark:text-white">
               <option value="">— Choisir —</option>
               {store.agents.filter((a) => a.id !== dossier.agent_id).map((a) => {
                 const charge = store.dossiers.filter((d) => d.agent_id === a.id && d.etat === "en_cours").length;
-                const stressed = a.stress > 70 ? " 🔥 stressé" : "";
-                const overload = charge >= 3 ? " ⚠ surchargé" : "";
-                return (
-                  <option key={a.id} value={a.id}>
-                    {a.nom} ({a.filiere}) · {charge} dossier(s){overload}{stressed}
-                  </option>
-                );
+                return <option key={a.id} value={a.id}>{a.nom} ({a.filiere}) · {charge} dossier(s){charge >= 3 ? " ⚠" : ""}{a.stress > 70 ? " 🔥" : ""}</option>;
               })}
             </select>
           </div>
-
           <div>
-            <label className="text-[11px] font-semibold text-[#86868B] dark:text-[#98989D] uppercase tracking-wider block mb-1.5">
-              Motif (optionnel)
-            </label>
-            <input
-              type="text"
-              value={motif}
-              onChange={(e) => setMotif(e.target.value)}
-              placeholder="Ex : compétence fiscale requise, surcharge actuelle…"
-              className="w-full text-[12px] p-2.5 border border-[#E5E5EA] dark:border-[#38383a] rounded-[10px] outline-none focus:border-[#007AFF] bg-white dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white"
-            />
-          </div>
-
-          <div className="bg-[#FF9500]/8 border border-[#FF9500]/20 rounded-[10px] p-2.5 text-[11px] text-[#86868B] dark:text-[#98989D]">
-            ⚠ Réaffecter génère un message au nouveau collaborateur (N3 décision) et un suivi à l'ancien. L'impact stress sera appliqué automatiquement.
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280] dark:text-[#98989D] block mb-1.5">Motif (optionnel)</label>
+            <input type="text" value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Ex : compétence fiscale requise"
+              className="w-full text-[13px] p-2.5 border border-[#e5e7eb] dark:border-[#38383a] rounded-[12px] outline-none focus:border-[#007AFF] bg-white dark:bg-[#2c2c2e] text-[#111111] dark:text-white" />
           </div>
         </div>
-
-        <div className="px-6 py-3 bg-[#fafafa] dark:bg-[#161618] border-t border-[#E5E5EA]/40 dark:border-[#38383a]/60 flex items-center gap-2">
-          <button onClick={onClose}
-            className="ml-auto px-3 py-2 text-[12px] rounded-[10px] bg-[#F5F5F7] dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white hover:bg-[#E5E5EA] dark:hover:bg-[#38383a]">
-            Annuler
-          </button>
+        <div className="px-7 py-4 border-t border-[#f1f1f3] dark:border-[#2c2c2e] flex justify-end gap-2 bg-[#fafafa] dark:bg-[#161618]">
+          <button onClick={onClose} className="px-4 py-2 text-[13px] rounded-[12px] bg-white dark:bg-[#2c2c2e] text-[#111111] dark:text-white border border-[#e5e7eb] dark:border-[#38383a]">Annuler</button>
           <button onClick={handleSubmit} disabled={!selectedAgentId}
-            className={`px-4 py-2 text-[12px] font-semibold rounded-[10px] transition-all flex items-center gap-1.5 ${
-              selectedAgentId
-                ? "bg-gradient-to-br from-[#007AFF] to-[#0040DD] text-white shadow-md hover:shadow-lg"
-                : "bg-[#E5E5EA] dark:bg-[#38383a] text-[#86868B] dark:text-[#636366] cursor-not-allowed"
-            }`}>
-            <UserCog size={11} /> Réaffecter
+            className={`px-5 py-2 text-[13px] font-semibold rounded-[12px] transition-all ${selectedAgentId ? "bg-[#007AFF] text-white shadow-[0_2px_8px_rgba(0,122,255,0.3)]" : "bg-[#e5e7eb] dark:bg-[#38383a] text-[#9ca3af] cursor-not-allowed"}`}>
+            Réaffecter
           </button>
         </div>
       </div>

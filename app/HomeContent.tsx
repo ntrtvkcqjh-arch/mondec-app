@@ -203,9 +203,9 @@ export default function HomeContent() {
 
   return (
     <div className="flex h-screen overflow-hidden relative">
-      {/* Background : clair = gradient pastel iOS / sombre = noir Apple Dark Mode */}
+      {/* Background Apple Executive Dashboard : blanc cassé épuré, pas de pastel */}
       <div className="absolute inset-0 -z-10 transition-colors duration-500 dark:hidden" style={{
-        background: "linear-gradient(135deg, #FFF1EC 0%, #FCE9F7 30%, #F0EAFF 60%, #E8F4FF 100%)"
+        background: "#fafafa"
       }} />
       <div className="absolute inset-0 -z-10 transition-colors duration-500 hidden dark:block" style={{
         background: "#000000"

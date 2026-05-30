@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import type { ChatCorrection } from "@/lib/supabase-store";
 import { GraduationCap, BookOpen, TrendingUp, Filter, Trash2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { PageHeader } from "./ui/PageHeader";
+import { Card } from "./ui/Card";
 
 type DateFilter = "tous" | "aujourd_hui" | "semaine" | "ancien";
 type CatFilter = "tous" | string;
@@ -68,52 +70,117 @@ export function CorrectionsView() {
     return "Très insuffisant";
   }
 
-  return (
-    <div className="flex-1 overflow-y-auto px-8 py-10">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-end justify-between mb-5 flex-wrap gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
-              <span>📖</span><span>Examinateur</span><span>·</span><span>Corrections continues</span>
-            </div>
-            <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">Corrections.</h2>
-            <p className="text-[14px] text-[#86868B] mt-2">
-              Chaque réponse au chat est évaluée par un examinateur DEC senior · Historique et notation
-            </p>
-          </div>
-          {corrections.length > 0 && (
-            <button
-              onClick={() => {
-                if (confirm("Effacer tout l'historique des corrections ?")) store.clearChatCorrections();
-              }}
-              className="text-[11px] px-3 py-1.5 rounded-[10px] bg-[#FF3B30]/10 text-[#FF3B30] hover:bg-[#FF3B30]/15 font-medium flex items-center gap-1.5"
-            >
-              <Trash2 size={11} /> Effacer l'historique
-            </button>
-          )}
-        </div>
+  // Dernière correction (la claque la plus récente)
+  const lastCorrection = corrections[0]; // déjà triées par date desc dans addChatCorrection
 
-        {/* Stats globales */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="bg-white dark:bg-[#1c1c1e] rounded-[14px] p-3 border border-[#E5E5EA]/40 dark:border-[#38383a]">
-            <div className="text-[10px] font-semibold text-[#86868B] dark:text-[#98989D] uppercase tracking-wider mb-1">Corrections totales</div>
-            <div className="text-[24px] font-bold text-[#1D1D1F] dark:text-white tabular-nums leading-none">{totalCorrections}</div>
-            <div className="text-[10px] text-[#86868B] dark:text-[#98989D] mt-1">depuis le début</div>
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <PageHeader
+        title="CORRECTIONS"
+        stats={[
+          { value: totalCorrections, label: "évaluations" },
+          { value: `${moyenneTotal}/20`, label: "moyenne générale", tone: typeof moyenneTotal === "string" && moyenneTotal !== "—" && parseFloat(moyenneTotal) < 8 ? "critical" : parseFloat(moyenneTotal as string) < 12 ? "warning" : "default" },
+          { value: `${moyenneJour}/20`, label: `moyenne du jour` },
+        ]}
+      />
+
+      <div className="max-w-[1200px] mx-auto px-10 pb-16">
+        {corrections.length > 0 && (
+          <button
+            onClick={() => { if (confirm("Effacer tout l'historique des corrections ?")) store.clearChatCorrections(); }}
+            className="text-[11px] px-3 py-1.5 rounded-full bg-white dark:bg-[#1c1c1e] text-[#6b7280] dark:text-[#98989D] hover:text-[#FF3B30] shadow-[0_1px_3px_rgba(0,0,0,0.03)] font-medium flex items-center gap-1.5 mb-6"
+          >
+            <Trash2 size={11} /> Effacer l'historique
+          </button>
+        )}
+
+        {/* HERO : DERNIÈRE CORRECTION (la fiche de feedback) */}
+        {lastCorrection && (() => {
+          const c = lastCorrection;
+          const note = c.note_sur_20;
+          const color = noteColor(note);
+          const date = new Date(c.date_iso);
+          return (
+            <Card className="p-8 mb-8">
+              <div className="flex items-baseline gap-3 mb-1">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6b7280] dark:text-[#98989D]">Dernière correction</span>
+                <span className="text-[11px] text-[#9ca3af] dark:text-[#6b7280]">·</span>
+                <span className="text-[11px] text-[#6b7280] dark:text-[#98989D]">
+                  {date.toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" })}
+                </span>
+              </div>
+              <div className="flex items-end gap-6 mb-6">
+                <div className="text-[88px] font-semibold tabular-nums leading-[0.85] tracking-[-0.04em]" style={{ color }}>
+                  {note}
+                </div>
+                <div className="text-[18px] text-[#9ca3af] dark:text-[#6b7280] tabular-nums pb-3">/20</div>
+                <div className="text-[16px] font-medium pb-3" style={{ color }}>{noteLabel(note)}</div>
+              </div>
+              {/* Tags catégorie + agent */}
+              <div className="flex items-center gap-2 flex-wrap mb-5">
+                <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#f5f5f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#d1d1d6]">
+                  {c.categorie_dec}
+                </span>
+                <span className="text-[11px] px-2.5 py-1 rounded-full bg-[#f5f5f7] dark:bg-[#2c2c2e] text-[#6b7280] dark:text-[#98989D]">
+                  Avec {c.agent_nom}
+                </span>
+              </div>
+              {/* Verdict en gros */}
+              {c.verdict && (
+                <p className="text-[19px] font-medium text-[#111111] dark:text-white tracking-[-0.01em] leading-[1.35] mb-5 italic">
+                  "{c.verdict}"
+                </p>
+              )}
+              {/* Ta réponse */}
+              <div className="mb-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#6b7280] dark:text-[#98989D] mb-1.5">Ta réponse</div>
+                <p className="text-[13px] text-[#3a3a3c] dark:text-[#d1d1d6] leading-relaxed italic">"{c.player_response}"</p>
+              </div>
+              {/* Réponse idéale */}
+              {c.reponse_ideale && (
+                <div className="bg-[#34C759]/5 dark:bg-[#30D158]/10 rounded-[16px] p-4 mt-4">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#248A3D] dark:text-[#30D158] mb-1.5 flex items-center gap-1.5">
+                    <BookOpen size={11} /> Ce qu'aurait fait un EC senior
+                  </div>
+                  <p className="text-[13px] text-[#111111] dark:text-[#d1d1d6] leading-relaxed">"{c.reponse_ideale}"</p>
+                </div>
+              )}
+              {/* Sources */}
+              {c.sources?.length > 0 && (
+                <div className="mt-4 flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#6b7280] dark:text-[#98989D]">Sources</span>
+                  {c.sources.map((s, i) => (
+                    <span key={i} className="text-[10.5px] bg-[#f5f5f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#d1d1d6] px-2 py-0.5 rounded-md font-mono">{s}</span>
+                  ))}
+                </div>
+              )}
+            </Card>
+          );
+        })()}
+
+        {/* Filtres */}
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6b7280] dark:text-[#98989D] mr-1">Historique</span>
+          <div className="flex gap-1 bg-white dark:bg-[#1c1c1e] p-1 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+            {([
+              { id: "tous", label: "Tout" },
+              { id: "aujourd_hui", label: "Aujourd'hui" },
+              { id: "semaine", label: "7 jours" },
+              { id: "ancien", label: "Ancien" },
+            ] as Array<{ id: DateFilter; label: string }>).map((f) => (
+              <button key={f.id} onClick={() => setDateFilter(f.id)}
+                className={`px-3 py-1 text-[12px] font-medium rounded-full transition-all ${dateFilter === f.id ? "bg-[#111111] dark:bg-white text-white dark:text-[#111111]" : "text-[#6b7280] dark:text-[#98989D]"}`}>
+                {f.label}
+              </button>
+            ))}
           </div>
-          <div className="bg-white dark:bg-[#1c1c1e] rounded-[14px] p-3 border border-[#E5E5EA]/40 dark:border-[#38383a]">
-            <div className="text-[10px] font-semibold text-[#86868B] dark:text-[#98989D] uppercase tracking-wider mb-1">Moyenne générale</div>
-            <div className="text-[24px] font-bold tabular-nums leading-none" style={{ color: typeof moyenneTotal === "string" && moyenneTotal !== "—" ? noteColor(parseFloat(moyenneTotal)) : "#86868B" }}>
-              {moyenneTotal}<span className="text-[14px] opacity-60">/20</span>
-            </div>
-            <div className="text-[10px] text-[#86868B] dark:text-[#98989D] mt-1">{typeof moyenneTotal === "string" && moyenneTotal !== "—" ? noteLabel(parseFloat(moyenneTotal)) : "—"}</div>
-          </div>
-          <div className="bg-white dark:bg-[#1c1c1e] rounded-[14px] p-3 border border-[#E5E5EA]/40 dark:border-[#38383a]">
-            <div className="text-[10px] font-semibold text-[#86868B] dark:text-[#98989D] uppercase tracking-wider mb-1">Moyenne du jour (J{store.game_day})</div>
-            <div className="text-[24px] font-bold tabular-nums leading-none" style={{ color: typeof moyenneJour === "string" && moyenneJour !== "—" ? noteColor(parseFloat(moyenneJour)) : "#86868B" }}>
-              {moyenneJour}<span className="text-[14px] opacity-60">/20</span>
-            </div>
-            <div className="text-[10px] text-[#86868B] dark:text-[#98989D] mt-1">{corrections.filter((c) => c.game_day === store.game_day).length} correction(s)</div>
-          </div>
+          {categories.length > 0 && (
+            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}
+              className="text-[11px] px-3 py-1.5 rounded-full bg-white dark:bg-[#1c1c1e] text-[#3a3a3c] dark:text-[#d1d1d6] shadow-[0_1px_3px_rgba(0,0,0,0.03)] border-0 outline-none">
+              <option value="tous">Toutes catégories</option>
+              {categories.map((c) => (<option key={c} value={c}>{c}</option>))}
+            </select>
+          )}
         </div>
 
         {/* Filtres */}

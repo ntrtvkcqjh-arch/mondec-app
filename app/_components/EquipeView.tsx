@@ -6,6 +6,8 @@ import {
   Users, Heart, Filter, ArrowUpDown, GitBranch, Grid3x3, Lock,
   X, MessageSquare, Award, BookOpen, Megaphone, CheckCircle, Flame
 } from "lucide-react";
+import { PageHeader } from "./ui/PageHeader";
+import { Card } from "./ui/Card";
 
 function EmotionChip({ emotion, small }: { emotion: string; small?: boolean }) {
   const map: Record<string, string> = {
@@ -113,94 +115,135 @@ export function EquipeView() {
 
   const enCrise = store.agents.filter((a: any) => a.stress > 70 || a.fatigue > 70 || a.emotion === "En conflit" || a.emotion === "Frustré" || a.arc_actuel === "Rupture" || a.arc_actuel === "Crise");
 
+  // Statut résumé par agent (1 mot)
+  function getStatusLabel(a: any): { label: string; tone: "ok" | "warning" | "critical" } {
+    if (a.stress > 80 || a.fatigue > 80) return { label: "Burn-out", tone: "critical" };
+    if (a.arc_actuel === "Rupture") return { label: "Risque départ", tone: "critical" };
+    if (a.stress > 65 || a.confiance_joueur < 40) return { label: "Sous tension", tone: "warning" };
+    if (a.stress > 45) return { label: "Chargé", tone: "warning" };
+    return { label: "Serein", tone: "ok" };
+  }
+
   return (
-    <div className={`flex-1 overflow-y-auto px-8 py-10 ${view === "crise" ? "bg-gradient-to-br from-[#FF3B30]/5 via-white to-[#FF9500]/5" : ""}`}>
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.12em] uppercase text-[#86868B] mb-3">
-              <span>☼</span><span>Talents</span><span>·</span><span>Management</span>
-            </div>
-            <h2 className="text-[56px] font-semibold text-[#1D1D1F] dark:text-white tracking-[-0.04em] leading-[0.95]">Équipe.</h2>
-            <p className="text-[14px] text-[#86868B] mt-2">{store.agents.length} collaborateurs · Cabinet Morel &amp; Associés</p>
-          </div>
-          <div className="flex gap-1 bg-[#F5F5F7] dark:bg-[#2c2c2e] p-1 rounded-[10px]">
+    <div className="flex-1 overflow-y-auto">
+      <PageHeader
+        title="ÉQUIPE"
+        stats={[
+          { value: store.agents.length, label: "collaborateurs" },
+          { value: `${store.team_health}/100`, label: "climat social", tone: store.team_health < 50 ? "critical" : store.team_health < 70 ? "warning" : "default" },
+          { value: burnoutRisques, label: "burn-out", tone: burnoutRisques > 0 ? "critical" : "default" },
+        ]}
+      />
+
+      <div className="max-w-[1200px] mx-auto px-10 pb-16">
+        {/* Toggle vue + Filtres */}
+        <div className="flex items-center gap-2 mb-7 flex-wrap">
+          <div className="flex gap-1 bg-white dark:bg-[#1c1c1e] p-1 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
             <button onClick={() => setView("grid")}
-              className={`px-2.5 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${view === "grid" ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B]"}`}>
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-full transition-all flex items-center gap-1.5 ${view === "grid" ? "bg-[#111111] dark:bg-white text-white dark:text-[#111111]" : "text-[#6b7280] dark:text-[#98989D]"}`}>
               <Grid3x3 size={11} /> Grille
             </button>
             <button onClick={() => setView("org")}
-              className={`px-2.5 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${view === "org" ? "bg-white text-[#1D1D1F] shadow-sm" : "text-[#86868B]"}`}>
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-full transition-all flex items-center gap-1.5 ${view === "org" ? "bg-[#111111] dark:bg-white text-white dark:text-[#111111]" : "text-[#6b7280] dark:text-[#98989D]"}`}>
               <GitBranch size={11} /> Organigramme
             </button>
             <button onClick={() => setView("crise")}
-              className={`px-2.5 py-1.5 text-[11px] font-medium rounded-[7px] transition-all flex items-center gap-1 ${view === "crise" ? "bg-[#FF3B30] text-white shadow-sm" : "text-[#FF3B30]"}`}>
-              <Flame size={11} /> Mode Crise
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-full transition-all flex items-center gap-1.5 ${view === "crise" ? "bg-[#FF3B30] text-white" : "text-[#FF3B30]"}`}>
+              <Flame size={11} /> Crise
             </button>
           </div>
-        </div>
-
-        {/* Santé mentale équipe */}
-        <div className={`rounded-[18px] p-4 mb-4 border-2 ${store.team_health >= 70 ? "border-[#34C759]/30 bg-gradient-to-br from-[#34C759]/8 to-[#007AFF]/5" : store.team_health >= 50 ? "border-[#FF9500]/30 bg-gradient-to-br from-[#FF9500]/8 to-[#FF3B30]/5" : "border-[#FF3B30]/40 bg-gradient-to-br from-[#FF3B30]/10 to-[#FF9500]/5"}`}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Heart size={16} className={store.team_health >= 70 ? "text-[#34C759]" : store.team_health >= 50 ? "text-[#FF9500]" : "text-[#FF3B30]"} />
-              <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">Santé mentale équipe</span>
-            </div>
-            <div className="text-[28px] font-bold tabular-nums leading-none" style={{ color: store.team_health >= 70 ? "#34C759" : store.team_health >= 50 ? "#FF9500" : "#FF3B30" }}>
-              {store.team_health}<span className="text-[14px] text-[#86868B] font-normal">/100</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
-            <div className="bg-white/70 rounded-[10px] p-2">
-              <div className="text-[#86868B]">Satisfaction</div>
-              <div className="text-[14px] font-semibold text-[#1D1D1F] tabular-nums">{satisfMoyenne}%</div>
-            </div>
-            <div className="bg-white/70 rounded-[10px] p-2">
-              <div className="text-[#86868B]">Turnover risqué</div>
-              <div className="text-[14px] font-semibold text-[#FF3B30] tabular-nums">{turnoverRisques}</div>
-            </div>
-            <div className="bg-white/70 rounded-[10px] p-2">
-              <div className="text-[#86868B]">Conflits</div>
-              <div className="text-[14px] font-semibold text-[#FF9500] tabular-nums">{conflits}</div>
-            </div>
-            <div className="bg-white/70 rounded-[10px] p-2">
-              <div className="text-[#86868B]">Burn-out potentiel</div>
-              <div className="text-[14px] font-semibold text-[#FF3B30] tabular-nums">{burnoutRisques}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filtres + Tri */}
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <Filter size={12} className="text-[#86868B]" />
-          {(["tous", "en_ligne", "en_alerte", "stagiaires", "managers"] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-2.5 py-1 text-[11px] font-medium rounded-[8px] transition-all ${filter === f ? "bg-[#007AFF] text-white" : "bg-white text-[#86868B] hover:text-[#1D1D1F] border border-[#E5E5EA]/40 dark:border-[#38383a]"}`}>
-              {f === "tous" ? "Tous" : f === "en_ligne" ? "En ligne" : f === "en_alerte" ? "En alerte" : f === "stagiaires" ? "Stagiaires" : "Managers"}
-            </button>
-          ))}
-          <div className="ml-auto flex items-center gap-1">
-            <ArrowUpDown size={11} className="text-[#86868B]" />
-            <select value={sort} onChange={(e) => setSort(e.target.value as any)}
-              className="text-[11px] bg-white border border-[#E5E5EA]/40 dark:border-[#38383a] rounded-[8px] px-2 py-1 outline-none">
-              <option value="confiance">Confiance ↓</option>
-              <option value="stress">Stress ↓</option>
-              <option value="nom">Nom A-Z</option>
-            </select>
+          <div className="flex gap-1 ml-auto">
+            {(["tous", "en_alerte", "stagiaires", "managers"] as const).map((f) => (
+              <button key={f} onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 text-[12px] font-medium rounded-full transition-all ${filter === f ? "bg-[#111111] dark:bg-white text-white dark:text-[#111111]" : "bg-white dark:bg-[#1c1c1e] text-[#6b7280] dark:text-[#98989D] shadow-[0_1px_3px_rgba(0,0,0,0.03)]"}`}>
+                {f === "tous" ? "Tous" : f === "en_alerte" ? "En alerte" : f === "stagiaires" ? "Stagiaires" : "Managers"}
+              </button>
+            ))}
           </div>
         </div>
 
         {actionFeedback && (
-          <div className="mb-3 px-3 py-2 bg-[#007AFF]/10 border border-[#007AFF]/20 text-[#007AFF] text-[12px] rounded-[10px] flex items-center gap-2">
-            <CheckCircle size={12} /> {actionFeedback}
+          <div className="mb-5 px-4 py-2.5 bg-[#007AFF]/8 text-[#007AFF] text-[12px] rounded-[14px] flex items-center gap-2">
+            <CheckCircle size={13} /> {actionFeedback}
           </div>
         )}
 
-        {/* Vue Grille */}
+        {/* Vue Grille — cartes simplifiées style Apple */}
         {view === "grid" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((a: any) => {
+              const alerts = getAlerts(a);
+              const status = getStatusLabel(a);
+              const charge = store.dossiers.filter((d) => d.agent_id === a.id && d.etat === "en_cours").length;
+              const statusColor = status.tone === "critical" ? "#FF3B30" : status.tone === "warning" ? "#FF9500" : "#34C759";
+              return (
+                <Card key={a.id} onClick={() => setDetailId(a.id)} className="p-5">
+                  {/* Header : avatar + nom + statut résumé */}
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="relative shrink-0">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-[12px] font-semibold shadow-sm" style={{ backgroundColor: a.avatar_color }}>
+                        {a.initiales}
+                      </div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-[#1c1c1e]" style={{ backgroundColor: statusColor }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[15px] font-semibold text-[#111111] dark:text-white tracking-[-0.01em] truncate">{a.nom}</h3>
+                      <p className="text-[11.5px] text-[#6b7280] dark:text-[#98989D] truncate">{a.role}</p>
+                      <span className="inline-block mt-1 text-[11px] font-medium" style={{ color: statusColor }}>
+                        {status.tone === "ok" ? "🟢" : status.tone === "warning" ? "🟠" : "🔴"} {status.label}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Stats inline minimalistes */}
+                  <div className="flex items-baseline gap-x-5 gap-y-1 flex-wrap text-[12px] mb-3">
+                    <div className="flex items-baseline gap-1">
+                      <span className={`font-semibold tabular-nums ${a.stress > 70 ? "text-[#FF3B30]" : "text-[#111111] dark:text-white"}`}>{a.stress}</span>
+                      <span className="text-[#9ca3af] dark:text-[#6b7280] text-[11px]">stress</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className={`font-semibold tabular-nums ${a.confiance_joueur < 40 ? "text-[#FF3B30]" : "text-[#111111] dark:text-white"}`}>{a.confiance_joueur}</span>
+                      <span className="text-[#9ca3af] dark:text-[#6b7280] text-[11px]">confiance</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className={`font-semibold tabular-nums ${charge >= 4 ? "text-[#FF3B30]" : charge === 3 ? "text-[#FF9500]" : "text-[#111111] dark:text-white"}`}>{charge}</span>
+                      <span className="text-[#9ca3af] dark:text-[#6b7280] text-[11px]">dossier{charge > 1 ? "s" : ""}</span>
+                    </div>
+                    {alerts.length > 0 && (
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-semibold tabular-nums text-[#FF9500]">{alerts.length}</span>
+                        <span className="text-[#9ca3af] dark:text-[#6b7280] text-[11px]">alerte{alerts.length > 1 ? "s" : ""}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer minimal : filière + actions */}
+                  <div className="flex items-center justify-between pt-3 border-t border-[#f1f1f3] dark:border-[#2c2c2e]">
+                    <span className="text-[11px] text-[#6b7280] dark:text-[#98989D]">{a.filiere}</span>
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => handleAction(a.id, "talk")} title="Parler 5 min · +3 Conf"
+                        className="w-7 h-7 rounded-full bg-[#f5f5f7] dark:bg-[#2c2c2e] hover:bg-[#007AFF]/15 hover:text-[#007AFF] text-[#6b7280] dark:text-[#98989D] flex items-center justify-center transition-colors">
+                        <MessageSquare size={11} />
+                      </button>
+                      <button onClick={() => handleAction(a.id, "reward")} title="Récompenser 10 min · 500€"
+                        className="w-7 h-7 rounded-full bg-[#f5f5f7] dark:bg-[#2c2c2e] hover:bg-[#34C759]/15 hover:text-[#34C759] text-[#6b7280] dark:text-[#98989D] flex items-center justify-center transition-colors">
+                        <Award size={11} />
+                      </button>
+                      <button onClick={() => handleAction(a.id, "train")} title="Former 3h · 3k€"
+                        className="w-7 h-7 rounded-full bg-[#f5f5f7] dark:bg-[#2c2c2e] hover:bg-[#AF52DE]/15 hover:text-[#AF52DE] text-[#6b7280] dark:text-[#98989D] flex items-center justify-center transition-colors">
+                        <BookOpen size={11} />
+                      </button>
+                      <button onClick={() => handleAction(a.id, "reprimand")} title="Réprimander 10 min · risque"
+                        className="w-7 h-7 rounded-full bg-[#f5f5f7] dark:bg-[#2c2c2e] hover:bg-[#FF3B30]/15 hover:text-[#FF3B30] text-[#6b7280] dark:text-[#98989D] flex items-center justify-center transition-colors">
+                        <Megaphone size={11} />
+                      </button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+            {/* Hidden fallback for original layout when needed */}
+            {false && filtered.map((a: any) => {
               const alerts = getAlerts(a);
               return (
                 <div key={a.id} onClick={() => setDetailId(a.id)}
