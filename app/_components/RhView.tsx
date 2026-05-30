@@ -295,50 +295,106 @@ export function RhView() {
           </div>
         )}
 
-        {/* TAB RECRUTEMENTS */}
+        {/* TAB RECRUTEMENTS — chaque poste affiche ses CV réellement disponibles */}
         {tab === "recrutements" && (
-          <div className="space-y-3">
-            {recrutements.map((r) => (
-              <div key={r.id} className="bg-white dark:bg-[#1c1c1e] rounded-[16px] p-4 border border-[#E5E5EA]/40 dark:border-[#38383a]">
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-[10px] bg-gradient-to-br from-[#FF9500] to-[#FF3B30] flex items-center justify-center shadow-sm">
-                    <Briefcase size={18} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">{r.poste}</span>
-                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${r.urgence === "haute" ? "bg-[#FF3B30]/15 text-[#FF3B30]" : r.urgence === "moyenne" ? "bg-[#FF9500]/15 text-[#FF9500]" : "bg-[#86868B]/15 text-[#86868B]"}`}>
-                        Urgence {r.urgence}
-                      </span>
+          <div className="space-y-4">
+            {recrutements.map((r) => {
+              // Match : on prend les CV dont le poste_vise correspond au poste du recrutement
+              const posteKey = r.poste.toLowerCase().split(" — ")[0].trim();
+              const cvsLies = candidats.filter((c) => {
+                const visee = c.poste_vise.toLowerCase();
+                return visee.includes(posteKey) || posteKey.includes(visee);
+              });
+              return (
+                <div key={r.id} className="surface-card rounded-[24px] p-5">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-[12px] bg-gradient-to-br from-[#FF9500] to-[#FF3B30] flex items-center justify-center shadow-sm">
+                      <Briefcase size={18} className="text-white" />
                     </div>
-                    <p className="text-[11px] text-[#86868B]">{r.raison}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        <span className="font-semibold text-[14px]" style={{ color: "var(--mdec-text)" }}>{r.poste}</span>
+                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${r.urgence === "haute" ? "bg-[var(--mdec-rose-soft)] text-[var(--mdec-rose)]" : r.urgence === "moyenne" ? "bg-[var(--mdec-amber-soft)] text-[var(--mdec-amber)]" : "bg-[var(--mdec-active)] text-[var(--mdec-text-3)]"}`}>
+                          Urgence {r.urgence}
+                        </span>
+                      </div>
+                      <p className="text-[11px]" style={{ color: "var(--mdec-text-3)" }}>{r.raison}</p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-4 gap-2 text-[11px]">
-                  <div className="bg-[#F5F5F7] rounded-[8px] p-2">
-                    <div className="text-[#86868B] text-[9px]">Budget</div>
-                    <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white">{(r.budget / 1000).toFixed(0)}k€</div>
+                  <div className="grid grid-cols-4 gap-2 text-[11px] mb-4">
+                    <div className="rounded-[10px] p-2.5" style={{ background: "var(--mdec-active)" }}>
+                      <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--mdec-text-3)" }}>Budget</div>
+                      <div className="display-num text-[16px] font-semibold tabular-nums" style={{ color: "var(--mdec-text)" }}>{(r.budget / 1000).toFixed(0)}k€</div>
+                    </div>
+                    <div className="rounded-[10px] p-2.5" style={{ background: "var(--mdec-active)" }}>
+                      <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--mdec-text-3)" }}>CV reçus</div>
+                      <div className="display-num text-[16px] font-semibold tabular-nums" style={{ color: cvsLies.length > 0 ? "var(--mdec-accent)" : "var(--mdec-text-3)" }}>{cvsLies.length}</div>
+                    </div>
+                    <div className="rounded-[10px] p-2.5" style={{ background: "var(--mdec-active)" }}>
+                      <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--mdec-text-3)" }}>Entretiens</div>
+                      <div className="display-num text-[16px] font-semibold tabular-nums" style={{ color: "var(--mdec-text)" }}>{r.entretiens_planifies}</div>
+                    </div>
+                    <div className="rounded-[10px] p-2.5" style={{ background: "var(--mdec-active)" }}>
+                      <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--mdec-text-3)" }}>Deadline</div>
+                      <div className="display-num text-[16px] font-semibold tabular-nums" style={{ color: "var(--mdec-amber)" }}>J+{r.deadline_jour}</div>
+                      <div className="text-[9px] mt-0.5" style={{ color: "var(--mdec-text-3)" }}>{(() => {
+                        const d = gameJourToRealDate(store.game_day + r.deadline_jour);
+                        return `${d.dayOfWeek} ${d.full.replace(/ 2026$/, "")}`;
+                      })()}</div>
+                    </div>
                   </div>
-                  <div className="bg-[#F5F5F7] rounded-[8px] p-2">
-                    <div className="text-[#86868B] text-[9px]">CV reçus</div>
-                    <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white">{r.candidats_recus}</div>
-                  </div>
-                  <div className="bg-[#F5F5F7] rounded-[8px] p-2">
-                    <div className="text-[#86868B] text-[9px]">Entretiens</div>
-                    <div className="text-[12px] font-semibold text-[#1D1D1F] dark:text-white">{r.entretiens_planifies}</div>
-                  </div>
-                  <div className="bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[8px] p-2">
-                    <div className="text-[#86868B] dark:text-[#98989D] text-[9px]">Deadline</div>
-                    <div className="text-[12px] font-semibold text-[#FF9500]">J+{r.deadline_jour}</div>
-                    <div className="text-[9px] text-[#86868B] dark:text-[#98989D] mt-0.5">{(() => {
-                      const d = gameJourToRealDate(store.game_day + r.deadline_jour);
-                      return `${d.dayOfWeek} ${d.full.replace(/ 2026$/, "")}`;
-                    })()}</div>
-                  </div>
+
+                  {/* Liste des CV liés à ce poste */}
+                  {cvsLies.length === 0 ? (
+                    <div className="text-center py-6 rounded-[12px]" style={{ background: "var(--mdec-active)", color: "var(--mdec-text-3)" }}>
+                      <p className="text-[12px]">Aucun CV reçu pour ce poste pour le moment.</p>
+                      <p className="text-[10px] mt-1 italic">Sophie continue de chercher.</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.1em] mb-2" style={{ color: "var(--mdec-text-3)" }}>
+                        Candidats reçus ({cvsLies.length})
+                      </div>
+                      <div className="space-y-2">
+                        {cvsLies.map((c) => (
+                          <div key={c.id} className="rounded-[14px] p-3 flex items-center gap-3 lift cursor-pointer" style={{ background: "var(--mdec-active)" }} onClick={() => setActiveCV(c)}>
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-[11px] shrink-0 shadow-sm" style={{ background: "linear-gradient(135deg, var(--mdec-accent), var(--mdec-violet))" }}>
+                              {c.nom.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[13px] font-semibold truncate" style={{ color: "var(--mdec-text)" }}>{c.nom}</div>
+                              <div className="text-[10px]" style={{ color: "var(--mdec-text-3)" }}>{c.age} ans · {c.experience_annees} ans d'exp · {c.disponibilite}</div>
+                              <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                {c.specialites.slice(0, 3).map((s, i) => (
+                                  <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-md font-medium" style={{ background: "var(--mdec-accent-soft)", color: "var(--mdec-accent)" }}>{s}</span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="display-num text-[22px] font-semibold tabular-nums leading-none" style={{ color: c.score_match >= 80 ? "var(--mdec-mint)" : c.score_match >= 60 ? "var(--mdec-amber)" : "var(--mdec-rose)" }}>
+                                {c.score_match}
+                              </div>
+                              <div className="text-[9px]" style={{ color: "var(--mdec-text-3)" }}>match</div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className="text-[12px] font-semibold tabular-nums" style={{ color: "var(--mdec-text)" }}>{(c.salaire_demande / 1000).toFixed(0)}k€</div>
+                              <div className="text-[9px]" style={{ color: "var(--mdec-text-3)" }}>salaire</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+            {recrutements.length === 0 && (
+              <div className="text-center py-12" style={{ color: "var(--mdec-text-3)" }}>
+                <Briefcase size={32} className="mx-auto mb-2 opacity-40" />
+                <p className="text-[13px]">Aucun poste ouvert actuellement.</p>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
