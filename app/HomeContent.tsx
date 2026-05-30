@@ -70,7 +70,8 @@ export default function HomeContent() {
     if (store.prospects_pending.length > 0) setShowProspects(true);
   }, [store.prospects_pending.length]);
 
-  // Test santé API
+  // Test santé API — poll rapide (30s) si erreur (utile après ajout de crédits),
+  // poll lent (5min) si OK
   useEffect(() => {
     if (!store.isAuthenticated) return;
     function check() {
@@ -85,9 +86,10 @@ export default function HomeContent() {
       });
     }
     check();
-    const t = setInterval(check, 5 * 60 * 1000);
+    const interval = apiStatus === "error" ? 30 * 1000 : 5 * 60 * 1000;
+    const t = setInterval(check, interval);
     return () => clearInterval(t);
-  }, [store.isAuthenticated]);
+  }, [store.isAuthenticated, apiStatus]);
 
   // Génération autonome d'événements
   useEffect(() => {

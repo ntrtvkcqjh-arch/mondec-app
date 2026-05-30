@@ -57,12 +57,18 @@ export function ClaudeFloating() {
         const errData = await res.json().catch(() => ({}));
         const msg = errData?.error || `HTTP ${res.status}`;
         console.error("[CLAUDE] Erreur:", msg);
-        setError(typeof msg === "string" && msg.includes("model:") ? "Compte Anthropic sans crédit — ouvre ⚙" : msg);
+        if (errData?.needs_credit) {
+          setError(errData?.diagnostic || "Compte Anthropic sans crédit — recharge sur console.anthropic.com/settings/billing");
+        } else if (res.status === 401) {
+          setError("Clé API invalide ou révoquée — ouvre ⚙");
+        } else {
+          setError(msg);
+        }
         return;
       }
       const data = await res.json();
       console.log("[CLAUDE] Réponse OK", { hasContent: !!data.content });
-      if (data.error) { setError(data.error); return; }
+      if (data.error) { setError(data.diagnostic || data.error); return; }
       if (data.content) store.addClaudeMessage({ role: "assistant", content: data.content });
     } catch (err: any) {
       console.error("[CLAUDE] Exception:", err);

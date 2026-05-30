@@ -55,8 +55,20 @@ PRINCIPES :
       system: systemPrompt,
       messages,
     });
-    if (!result.ok) return NextResponse.json({ error: result.error || "Erreur API" }, { status: result.status || 500 });
-    return NextResponse.json({ content: result.data.content?.[0]?.text || "" });
+    if (!result.ok) {
+      return NextResponse.json(
+        {
+          error: result.error || "Erreur API",
+          needs_credit: result.needs_credit || false,
+          attempts: result.attempts || [],
+          diagnostic: result.needs_credit
+            ? "Compte Anthropic sans crédit ou sans accès aux modèles Claude. Vérifie console.anthropic.com/settings/billing."
+            : undefined,
+        },
+        { status: result.status || 500 }
+      );
+    }
+    return NextResponse.json({ content: result.data.content?.[0]?.text || "", model_used: result.model_used });
   } catch (err: any) {
     return NextResponse.json({ error: "Erreur serveur", details: err?.message }, { status: 500 });
   }

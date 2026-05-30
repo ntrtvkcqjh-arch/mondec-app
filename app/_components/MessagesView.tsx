@@ -62,7 +62,30 @@ export function MessagesView({ onOpenKeyModal }: Props) {
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [apiNeedsCredit, setApiNeedsCredit] = useState(false);
+  const [retesting, setRetesting] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Re-test la clé via /api/health et efface la bannière si OK
+  async function handleRetest() {
+    if (retesting) return;
+    setRetesting(true);
+    try {
+      const r = await apiFetch("/api/health");
+      const d = await r.json();
+      if (d.ok) {
+        setApiError("");
+        setApiNeedsCredit(false);
+      } else {
+        setApiError(d.diagnostic || d.reason || "Échec re-test");
+        setApiNeedsCredit(!!d.needs_credit);
+      }
+    } catch (e: any) {
+      setApiError("Erreur réseau pendant re-test : " + (e?.message || "inconnue"));
+    } finally {
+      setRetesting(false);
+    }
+  }
 
   const agent = store.agents.find((a) => a.id === selectedAgent);
 
@@ -155,21 +178,29 @@ export function MessagesView({ onOpenKeyModal }: Props) {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        const errMsg = errData?.error || `HTTP ${res.status}`;
-        if (typeof errMsg === "string" && (errMsg.includes("model:") || errMsg.toLowerCase().includes("credit") || res.status === 404)) {
-          setApiError("Compte Anthropic sans crédit — ouvre ⚙ pour charger ton compte");
+        const serverDiagnostic = errData?.diagnostic;
+        const serverError = errData?.error;
+        const serverNeedsCredit = !!errData?.needs_credit;
+        setApiNeedsCredit(serverNeedsCredit);
+        if (serverNeedsCredit) {
+          setApiError(serverDiagnostic || "Compte Anthropic sans crédit ou sans accès aux modèles — vérifie console.anthropic.com/settings/billing");
+        } else if (res.status === 401) {
+          setApiError("Clé API invalide ou révoquée — ouvre ⚙ pour la corriger");
         } else {
-          setApiError(`${errMsg}`);
+          setApiError(`${serverError || `HTTP ${res.status}`}`);
         }
         return;
       }
 
       const data = await res.json();
-      console.log("[CHAT] Réponse reçue:", { hasContent: !!data.content, hasError: !!data.error });
+      console.log("[CHAT] Réponse reçue:", { hasContent: !!data.content, hasError: !!data.error, model: data.model_used });
       if (data.error) {
-        setApiError(typeof data.error === "string" && data.error.includes("model:") ? "Compte sans crédit — ouvre ⚙" : `${data.error}`);
+        setApiNeedsCredit(!!data.needs_credit);
+        setApiError(data.diagnostic || `${data.error}`);
         return;
       }
+      // Succès : on efface tout état d'erreur précédent
+      setApiNeedsCredit(false);
       if (!data.content) {
         setApiError("Réponse vide — réessaye");
         return;
@@ -371,16 +402,24 @@ export function MessagesView({ onOpenKeyModal }: Props) {
 
             <div className="px-6 py-3 bg-white/70 dark:bg-[#1c1c1e]/70 backdrop-blur-xl border-t border-[#E5E5EA]/50 dark:border-[#38383a]">
               {apiError && (
-                <div className="flex items-center gap-2 mb-2 text-[11px] text-[#FF3B30] bg-[#FF3B30]/5 border border-[#FF3B30]/15 rounded-lg px-2 py-1.5">
+                <div className="flex items-center gap-2 mb-2 text-[11px] text-[#FF3B30] bg-[#FF3B30]/5 dark:bg-[#FF3B30]/10 border border-[#FF3B30]/15 dark:border-[#FF3B30]/25 rounded-lg px-2 py-1.5">
                   <AlertTriangle size={11} className="shrink-0" />
                   <span className="flex-1">{apiError}</span>
-                  {(apiError.includes("⚙") || apiError.toLowerCase().includes("crédit")) && (
+                  <button
+                    onClick={handleRetest}
+                    disabled={retesting}
+                    title="Re-tester l'API (utile après avoir ajouté des crédits)"
+                    className="px-2 py-0.5 bg-white dark:bg-[#2c2c2e] border border-[#FF3B30]/30 text-[#FF3B30] rounded-md text-[10px] font-semibold hover:bg-[#FF3B30]/10 dark:hover:bg-[#FF3B30]/15 transition-all flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <RefreshCw size={10} className={retesting ? "animate-spin" : ""} /> {retesting ? "Test…" : "Re-tester"}
+                  </button>
+                  {(apiNeedsCredit || apiError.includes("⚙") || apiError.toLowerCase().includes("crédit") || apiError.toLowerCase().includes("clé")) && (
                     <button onClick={onOpenKeyModal}
                       className="px-2 py-0.5 bg-[#FF3B30] text-white rounded-md text-[10px] font-semibold hover:bg-[#dc2626] transition-all">
                       Configurer ⚙
                     </button>
                   )}
-                  <button onClick={() => setApiError("")} className="opacity-60 hover:opacity-100 shrink-0"><X size={11} /></button>
+                  <button onClick={() => { setApiError(""); setApiNeedsCredit(false); }} className="opacity-60 hover:opacity-100 shrink-0"><X size={11} /></button>
                 </div>
               )}
               <div className="flex items-end gap-2">

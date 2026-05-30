@@ -82,10 +82,20 @@ export async function POST(req: NextRequest) {
     });
 
     if (!result.ok) {
-      return NextResponse.json({ error: result.error || "Erreur API Claude" }, { status: result.status || 500 });
+      return NextResponse.json(
+        {
+          error: result.error || "Erreur API Claude",
+          needs_credit: result.needs_credit || false,
+          attempts: result.attempts || [],
+          diagnostic: result.needs_credit
+            ? "Compte Anthropic sans crédit ou sans accès aux modèles Claude. Vérifie console.anthropic.com/settings/billing."
+            : undefined,
+        },
+        { status: result.status || 500 }
+      );
     }
 
-    return NextResponse.json({ content: result.data.content[0].text });
+    return NextResponse.json({ content: result.data.content[0].text, model_used: result.model_used });
   } catch (error) {
     console.error("Erreur API chat:", error);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
