@@ -1,7 +1,7 @@
 "use client";
 
 import { useGameStore } from "@/lib/supabase-store";
-import { Sparkles, Coffee, Briefcase, Moon, Sunrise } from "lucide-react";
+import { Sparkles, Coffee, Briefcase, Moon, Sunrise, Sunrise as SunriseIcon } from "lucide-react";
 
 interface Props {
   apiStatus: "checking" | "ok" | "error";
@@ -72,6 +72,16 @@ export function TopBar({ apiStatus }: Props) {
 
         {/* Droite : Indicateurs (mood, tréso, temps, IA) */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Bouton Briefing du jour */}
+          <button
+            onClick={() => { if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("open-morning-briefing")); }}
+            title="Ouvrir le briefing du jour"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-[#FF9500]/12 to-[#FFCC00]/12 dark:from-[#FF9F0A]/20 dark:to-[#FFD60A]/20 hover:from-[#FF9500]/20 hover:to-[#FFCC00]/20 transition-all"
+          >
+            <SunriseIcon size={11} className="text-[#FF9500] dark:text-[#FF9F0A]" />
+            <span className="text-[11px] font-medium text-[#C76A00] dark:text-[#FF9F0A]">Briefing</span>
+          </button>
+
           {/* Mood pill */}
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F5F5F7] dark:bg-[#2c2c2e]">
             <div className={`w-1.5 h-1.5 rounded-full ${

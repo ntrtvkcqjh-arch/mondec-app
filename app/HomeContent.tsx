@@ -12,6 +12,7 @@ import { MessagesView } from "./_components/MessagesView";
 import { MorningBriefingModal } from "./_components/MorningBriefingModal";
 import { EveningRecapModal } from "./_components/EveningRecapModal";
 import { CorrectionsView } from "./_components/CorrectionsView";
+import { AffectationsView } from "./_components/AffectationsView";
 import { EquipeView } from "./_components/EquipeView";
 import { AgendaView } from "./_components/AgendaView";
 import { DossiersView } from "./_components/DossiersView";
@@ -39,20 +40,15 @@ export default function HomeContent() {
   const [showBriefing, setShowBriefing] = useState(false);
   const [showEveningRecap, setShowEveningRecap] = useState(false);
 
-  // Briefing matinal : se déclenche à 8h30 (game-time) une seule fois par game_day
+  // Briefing matinal : déclenchement MANUEL via le bouton TopBar
+  // (plus de popup auto sur refresh — c'était trop intrusif)
   useEffect(() => {
-    if (!store.isAuthenticated || store.isLoading) return;
-    if (typeof window === "undefined") return;
-    if (store.agents.length === 0) return;
-    // Fenêtre de déclenchement : 8h30 → 10h (au cas où le tick saute 8h30 exact)
-    const minutesNow = store.game_hour * 60 + store.game_minute;
-    if (minutesNow < 8 * 60 + 30 || minutesNow > 10 * 60) return;
-    const lastBriefingDay = parseInt(localStorage.getItem("last_briefing_day") || "0");
-    if (lastBriefingDay !== store.game_day) {
-      setShowBriefing(true);
-      localStorage.setItem("last_briefing_day", String(store.game_day));
+    function handleOpenBriefing() { setShowBriefing(true); }
+    if (typeof window !== "undefined") {
+      window.addEventListener("open-morning-briefing", handleOpenBriefing);
+      return () => window.removeEventListener("open-morning-briefing", handleOpenBriefing);
     }
-  }, [store.game_day, store.game_hour, store.game_minute, store.isAuthenticated, store.isLoading, store.agents.length]);
+  }, []);
 
   // Récap fin de journée : 1x par game_day quand game_hour >= 18
   useEffect(() => {
@@ -226,6 +222,7 @@ export default function HomeContent() {
         {activeTab === "agenda" && <AgendaView apiStatus={apiStatus} />}
         {activeTab === "tasks" && <TasksView />}
         {activeTab === "dossiers" && <DossiersView />}
+        {activeTab === "affectations" && <AffectationsView />}
         {activeTab === "fiscal" && <SuiviFiscalView />}
         {activeTab === "rh" && <RhView />}
         {activeTab === "dec" && <DecPrepView />}

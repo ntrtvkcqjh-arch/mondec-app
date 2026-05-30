@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { signOut } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Mail, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key, BarChart3, UserPlus, Sun, Moon, Monitor, RotateCcw, BookOpen } from "lucide-react";
+import { Mail, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key, BarChart3, UserPlus, Sun, Moon, Monitor, RotateCcw, BookOpen, Grid3x3 } from "lucide-react";
 import { ClaudeTuteur } from "./ClaudeTuteur";
 import { useTheme } from "./ThemeProvider";
 
-export type Tab = "messages" | "equipe" | "agenda" | "tasks" | "dossiers" | "fiscal" | "rh" | "dec" | "corrections";
+export type Tab = "messages" | "equipe" | "agenda" | "tasks" | "dossiers" | "affectations" | "fiscal" | "rh" | "dec" | "corrections";
 
 interface Props {
   activeTab: Tab;
@@ -48,6 +48,7 @@ const navColors: Record<Tab, { bg: string; ring: string; text: string }> = {
   agenda: { bg: "bg-[#E5EFFF]", ring: "ring-[#7FA8E8]", text: "text-[#2456A8]" },
   tasks: { bg: "bg-[#FFF4DB]", ring: "ring-[#FFD478]", text: "text-[#A07000]" },
   dossiers: { bg: "bg-[#F0E6FF]", ring: "ring-[#B698E8]", text: "text-[#6A38A8]" },
+  affectations: { bg: "bg-[#FFEFD6]", ring: "ring-[#FFC97A]", text: "text-[#995500]" },
   fiscal: { bg: "bg-[#E0EAFF]", ring: "ring-[#7B9AE8]", text: "text-[#2440A0]" },
   rh: { bg: "bg-[#FFE5F0]", ring: "ring-[#E89BC4]", text: "text-[#A02868]" },
   dec: { bg: "bg-[#E8F4F8]", ring: "ring-[#7BC4D4]", text: "text-[#1F6A82]" },
@@ -65,6 +66,7 @@ export function Sidebar(props: Props) {
     { id: "agenda", icon: Calendar, label: "Agenda" },
     { id: "tasks", icon: ClipboardCheck, label: "Tâches", badge: props.tasksDispos },
     { id: "dossiers", icon: FolderOpen, label: "Dossiers", badge: props.dossiersAlerte },
+    { id: "affectations", icon: Grid3x3, label: "Affectations" },
     { id: "fiscal", icon: BarChart3, label: "Suivi Fiscal" },
     { id: "rh", icon: UserPlus, label: "RH" },
     { id: "dec", icon: GraduationCap, label: "DEC Prep" },
