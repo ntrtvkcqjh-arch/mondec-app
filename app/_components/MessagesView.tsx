@@ -50,6 +50,26 @@ function getNiveauLabel(n: string) {
   }
 }
 
+type ConvFilter = "tous" | "nouveaux" | "non_lus" | "sans_reponse" | "anciens";
+
+// Détermine la "fraîcheur" d'un message à partir de son timestamp réel
+function getMessageAge(timestamp: string): { isNew: boolean; isRecent: boolean; isOld: boolean; ageLabel: string } {
+  const ts = new Date(timestamp).getTime();
+  const now = Date.now();
+  const ageHours = (now - ts) / (1000 * 60 * 60);
+  if (ageHours < 24) {
+    const h = Math.floor(ageHours);
+    const min = Math.floor((ageHours - h) * 60);
+    const label = h < 1 ? `${min}min` : `${h}h${String(min).padStart(2, "0")}`;
+    return { isNew: true, isRecent: false, isOld: false, ageLabel: `il y a ${label}` };
+  }
+  if (ageHours < 72) {
+    return { isNew: false, isRecent: true, isOld: false, ageLabel: `il y a ${Math.floor(ageHours / 24)}j` };
+  }
+  const days = Math.floor(ageHours / 24);
+  return { isNew: false, isRecent: false, isOld: true, ageLabel: days < 30 ? `il y a ${days}j` : `il y a +${Math.floor(days / 30)}m` };
+}
+
 export function MessagesView({ onOpenKeyModal }: Props) {
   const store = useGameStore();
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -58,6 +78,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
   const [apiError, setApiError] = useState("");
   const [apiNeedsCredit, setApiNeedsCredit] = useState(false);
   const [retesting, setRetesting] = useState(false);
+  const [convFilter, setConvFilter] = useState<ConvFilter>("tous");
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Re-test la clé via /api/health et efface la bannière si OK
@@ -262,19 +283,83 @@ export function MessagesView({ onOpenKeyModal }: Props) {
 
   const unreadCount = store.messages.filter((m) => !m.lu).length;
 
+  // Compteurs par filtre (pour les pills)
+  const counts = {
+    tous: conversationsByAgent.length,
+    nouveaux: conversationsByAgent.filter((c) => c.unread > 0 && getMessageAge(c.lastMsg.timestamp).isNew).length,
+    non_lus: conversationsByAgent.filter((c) => c.unread > 0).length,
+    sans_reponse: conversationsByAgent.filter((c) => !!c.pendingMsg).length,
+    anciens: conversationsByAgent.filter((c) => getMessageAge(c.lastMsg.timestamp).isOld).length,
+  };
+
+  // Filtre actif
+  const filteredConvs = conversationsByAgent.filter((conv) => {
+    const age = getMessageAge(conv.lastMsg.timestamp);
+    if (convFilter === "nouveaux") return conv.unread > 0 && age.isNew;
+    if (convFilter === "non_lus") return conv.unread > 0;
+    if (convFilter === "sans_reponse") return !!conv.pendingMsg;
+    if (convFilter === "anciens") return age.isOld;
+    return true;
+  });
+
   return (
     <>
       {/* Liste conversations */}
       <div className="w-72 bg-white/60 dark:bg-[#1c1c1e] backdrop-blur-xl border-r border-[#E5E5EA] dark:border-[#38383a] flex flex-col">
         <div className="px-3 py-3 border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center justify-between">
           <h3 className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">Messagerie</h3>
-          <span className="text-[10px] text-[#86868B]">{conversationsByAgent.length}</span>
+          <span className="text-[10px] text-[#86868B]">{filteredConvs.length}/{conversationsByAgent.length}</span>
         </div>
+
+        {/* Filtre conversations : pills horizontales */}
+        <div className="px-2 py-2 border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex gap-1 overflow-x-auto scrollbar-hide">
+          {([
+            { id: "tous", label: "Tous", emoji: "💬" },
+            { id: "nouveaux", label: "Nouveaux", emoji: "🆕" },
+            { id: "non_lus", label: "Non lus", emoji: "•" },
+            { id: "sans_reponse", label: "À traiter", emoji: "✋" },
+            { id: "anciens", label: "Anciens", emoji: "🗄" },
+          ] as Array<{ id: ConvFilter; label: string; emoji: string }>).map((f) => {
+            const active = convFilter === f.id;
+            const count = counts[f.id];
+            return (
+              <button
+                key={f.id}
+                onClick={() => setConvFilter(f.id)}
+                className={`shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold transition-all flex items-center gap-1 ${
+                  active
+                    ? "bg-gradient-to-r from-[#007AFF] to-[#0a84ff] text-white shadow-sm"
+                    : "bg-[#F5F5F7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#d1d1d6] hover:bg-[#E5E5EA] dark:hover:bg-[#38383a]"
+                }`}
+                title={`Filtrer : ${f.label} (${count})`}
+              >
+                <span>{f.emoji}</span>
+                <span>{f.label}</span>
+                {count > 0 && (
+                  <span className={`tabular-nums ${active ? "text-white/80" : "text-[#86868B] dark:text-[#98989D]"}`}>{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="flex-1 overflow-y-auto py-1">
-          {conversationsByAgent.map((conv) => {
+          {filteredConvs.length === 0 && (
+            <div className="text-center py-12 px-4">
+              <p className="text-[11px] text-[#86868B] dark:text-[#98989D]">Aucune conversation dans ce filtre.</p>
+              {convFilter !== "tous" && (
+                <button onClick={() => setConvFilter("tous")} className="mt-2 text-[10px] text-[#007AFF] dark:text-[#0A84FF] hover:underline">
+                  Voir toutes →
+                </button>
+              )}
+            </div>
+          )}
+          {filteredConvs.map((conv) => {
             const a = conv.agent;
             const isSelected = selectedAgent === a.id;
             const display = conv.pendingMsg || conv.lastMsg;
+            const age = getMessageAge(conv.lastMsg.timestamp);
+            const isFresh = conv.unread > 0 && age.isNew; // nouveau + non lu = pastille NOUVEAU
             return (
               <div key={a.id}
                 onClick={() => handleSelectAgent(a.id)}
@@ -290,10 +375,15 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5 gap-1">
-                      <span className={`text-[13px] font-semibold truncate ${isSelected ? "text-white" : "text-[#1D1D1F]"}`}>
+                      <span className={`text-[13px] font-semibold truncate ${isSelected ? "text-white" : "text-[#1D1D1F] dark:text-white"}`}>
                         {a.nom}
                       </span>
                       <div className="flex items-center gap-1 shrink-0">
+                        {isFresh && !isSelected && (
+                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-[#FF3B30] to-[#FF9500] text-white shadow-sm animate-pulse">
+                            🆕 NOUVEAU
+                          </span>
+                        )}
                         {conv.pendingMsg && !isSelected && (
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${getUrgenceBadge(conv.pendingMsg.delai_reponse_heures).bg} ${getUrgenceBadge(conv.pendingMsg.delai_reponse_heures).color}`}>
                             {getUrgenceBadge(conv.pendingMsg.delai_reponse_heures).label}
@@ -304,9 +394,13 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                         )}
                       </div>
                     </div>
-                    <p className={`text-[12px] truncate mb-1 ${isSelected ? "text-white/80" : "text-[#86868B]"}`}>
+                    <p className={`text-[12px] truncate mb-1 ${isSelected ? "text-white/80" : "text-[#86868B] dark:text-[#98989D]"}`}>
                       {display.sujet}
                     </p>
+                    {/* Indicateur d'ancienneté (toujours visible) */}
+                    <div className={`text-[9px] mb-1 ${isSelected ? "text-white/70" : age.isNew ? "text-[#34C759] font-semibold" : age.isOld ? "text-[#86868B] italic" : "text-[#86868B] dark:text-[#98989D]"}`}>
+                      {age.isNew ? "🟢" : age.isRecent ? "🟡" : "⚫"} {age.ageLabel}
+                    </div>
                     <div className="flex items-center gap-1 flex-wrap">
                       {conv.pendingMsg && (
                         <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${isSelected ? "bg-white/20 text-white" : "bg-[#007AFF]/10 text-[#007AFF]"}`}>
