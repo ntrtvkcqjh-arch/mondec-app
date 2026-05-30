@@ -251,6 +251,62 @@ export function EquipeView() {
           </div>
         )}
 
+        {/* Section Anciens collaborateurs — visible toutes vues sauf crise */}
+        {view !== "crise" && store.former_agents.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#86868B] dark:text-[#98989D]">📜 Anciens collaborateurs</span>
+              <span className="text-[10px] text-[#86868B] dark:text-[#98989D]">({store.former_agents.length})</span>
+              <div className="flex-1 h-[1px] bg-[#E5E5EA]/40 dark:bg-[#38383a]/60" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {store.former_agents.map((fa) => {
+                const motifStyle = fa.motif_type === "licencie"
+                  ? { bg: "bg-[#FF3B30]/8 dark:bg-[#FF453A]/15", border: "border-[#FF3B30]/30", label: "Licencié" }
+                  : fa.motif_type === "demission"
+                    ? { bg: "bg-[#FF9500]/8 dark:bg-[#FF9F0A]/15", border: "border-[#FF9500]/30", label: "Démission" }
+                    : fa.motif_type === "burnout"
+                      ? { bg: "bg-[#AF52DE]/8 dark:bg-[#BF5AF2]/15", border: "border-[#AF52DE]/30", label: "Burn-out" }
+                      : { bg: "bg-[#86868B]/8 dark:bg-white/10", border: "border-[#86868B]/30", label: "Fin contrat" };
+                return (
+                  <div key={fa.id} className={`bg-white dark:bg-[#1c1c1e] rounded-[14px] p-3 border ${motifStyle.border} opacity-90`}>
+                    <div className="flex items-start gap-2.5 mb-2">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 grayscale" style={{ backgroundColor: fa.avatar_color }}>
+                        {fa.initiales}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white line-through opacity-80">{fa.nom}</span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${motifStyle.bg} ${motifStyle.border.replace("border-", "text-")}`}>
+                            {motifStyle.label}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-[#86868B] dark:text-[#98989D]">
+                          {fa.role} · {fa.filiere} · {fa.duree_cabinet_jours}j dans le cabinet
+                        </div>
+                        <div className="text-[10px] text-[#86868B] dark:text-[#98989D] mt-0.5 italic">
+                          Parti J{fa.departure_game_day} · Motif : {fa.motif}
+                        </div>
+                      </div>
+                    </div>
+                    {fa.dossiers_transferes_a.length > 0 && (
+                      <div className="text-[10px] text-[#3a3a3c] dark:text-[#d1d1d6] bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-[8px] px-2 py-1.5">
+                        <span className="font-semibold">📂 Dossiers transférés :</span>{" "}
+                        {fa.dossiers_transferes_a.map((d) => `${d.dossier} → ${d.nouvel_agent.split(" ")[0]}`).join(", ")}
+                      </div>
+                    )}
+                    <div className="mt-1.5 text-[9px] text-[#86868B] dark:text-[#98989D] flex items-center gap-2">
+                      <span>Confiance finale : <span className="font-semibold">{fa.final_confiance}/100</span></span>
+                      <span>·</span>
+                      <span>Loyauté finale : <span className="font-semibold">{fa.final_loyaute}/100</span></span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Mode Crise */}
         {view === "crise" && (
           <>

@@ -10,6 +10,7 @@ import { Sidebar, type Tab, CabinetLogo } from "./_components/Sidebar";
 import { MessagesView } from "./_components/MessagesView";
 import { MorningBriefingModal } from "./_components/MorningBriefingModal";
 import { EveningRecapModal } from "./_components/EveningRecapModal";
+import { CorrectionsView } from "./_components/CorrectionsView";
 import { EquipeView } from "./_components/EquipeView";
 import { AgendaView } from "./_components/AgendaView";
 import { DossiersView } from "./_components/DossiersView";
@@ -37,16 +38,20 @@ export default function HomeContent() {
   const [showBriefing, setShowBriefing] = useState(false);
   const [showEveningRecap, setShowEveningRecap] = useState(false);
 
-  // Briefing matinal : 1x par game_day (au démarrage / à la rotation)
+  // Briefing matinal : se déclenche à 8h30 (game-time) une seule fois par game_day
   useEffect(() => {
     if (!store.isAuthenticated || store.isLoading) return;
     if (typeof window === "undefined") return;
+    if (store.agents.length === 0) return;
+    // Fenêtre de déclenchement : 8h30 → 10h (au cas où le tick saute 8h30 exact)
+    const minutesNow = store.game_hour * 60 + store.game_minute;
+    if (minutesNow < 8 * 60 + 30 || minutesNow > 10 * 60) return;
     const lastBriefingDay = parseInt(localStorage.getItem("last_briefing_day") || "0");
-    if (lastBriefingDay !== store.game_day && store.agents.length > 0) {
+    if (lastBriefingDay !== store.game_day) {
       setShowBriefing(true);
       localStorage.setItem("last_briefing_day", String(store.game_day));
     }
-  }, [store.game_day, store.isAuthenticated, store.isLoading, store.agents.length]);
+  }, [store.game_day, store.game_hour, store.game_minute, store.isAuthenticated, store.isLoading, store.agents.length]);
 
   // Récap fin de journée : 1x par game_day quand game_hour >= 18
   useEffect(() => {
@@ -221,6 +226,7 @@ export default function HomeContent() {
         {activeTab === "fiscal" && <SuiviFiscalView />}
         {activeTab === "rh" && <RhView />}
         {activeTab === "dec" && <DecPrepView />}
+        {activeTab === "corrections" && <CorrectionsView />}
       </div>
 
       <ApiKeyModal

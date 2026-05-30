@@ -52,6 +52,81 @@ function getNiveauLabel(n: string) {
 
 type ConvFilter = "tous" | "nouveaux" | "non_lus" | "sans_reponse" | "anciens";
 
+/**
+ * Analyse le message du joueur et détecte une intention forte (licencier, former,
+ * récompenser, réaffecter). Demande confirmation pour les actions destructives,
+ * puis exécute via le store. Affiche un toast/alert pour confirmer l'exécution.
+ */
+function detectAndExecuteIntent(text: string, agent: any, store: ReturnType<typeof useGameStore>) {
+  const lower = text.toLowerCase().trim();
+
+  // === LICENCIEMENT ===
+  // Patterns : "tu es viré", "je te vire", "tu pars", "je te licencie", "dégage", "fait tes valises"
+  const firePatterns = [
+    /\btu\s+es\s+vir[ée]\b/,
+    /\bje\s+te\s+vire\b/,
+    /\btu\s+pars\b/,
+    /\bje\s+te\s+licenci[ée]?\b/,
+    /\bd[ée]gage\b/,
+    /\bfait?s?\s+tes\s+valises\b/,
+    /\bquitte\s+le\s+cabinet\b/,
+    /\btu\s+n'es?\s+plus\s+ici\b/,
+    /\btu\s+es\s+licenci[ée]\b/,
+  ];
+  if (firePatterns.some((p) => p.test(lower))) {
+    const confirmed = confirm(
+      `⚠️ Tu viens de dire à ${agent.nom} qu'il/elle est licencié(e).\n\n` +
+      `Cela va :\n` +
+      `• Le retirer définitivement de l'équipe\n` +
+      `• Réaffecter ses ${store.dossiers.filter((d: any) => d.agent_id === agent.id).length} dossier(s)\n` +
+      `• Impacter la légitimité (-5) et le stress équipe (+5)\n\n` +
+      `Confirmer le licenciement ?`
+    );
+    if (confirmed) {
+      const motif = lower.match(/\b(parce\s+qu[e']|car|à\s+cause\s+de)\s+(.{5,100})/)?.[2] || "Décision du patron";
+      const res = store.fireAgent(agent.id, motif.trim().slice(0, 100), "licencie");
+      if (res.ok) {
+        alert(`✅ ${agent.nom} a quitté le cabinet. Ses dossiers ont été réaffectés. Sophie a envoyé un message de confirmation.`);
+      }
+    } else {
+      alert(`Action annulée. ${agent.nom} reste dans l'équipe.`);
+    }
+    return;
+  }
+
+  // === FORMATION ===
+  const trainPatterns = [
+    /\b(je\s+t['e]\s+autorise|tu\s+peux)\s+(une\s+|la\s+)?formation\b/,
+    /\bj[e']?\s+(t['e]?\s+)?envoie\s+en\s+formation\b/,
+    /\bje\s+te\s+forme\b/,
+  ];
+  if (trainPatterns.some((p) => p.test(lower))) {
+    const res = store.trainAgent(agent.id);
+    if (res.ok) {
+      alert(`🎓 Formation de ${agent.nom.split(" ")[0]} programmée (3h + 3k€).`);
+    } else {
+      alert(`Formation impossible : ${res.reason}`);
+    }
+    return;
+  }
+
+  // === RÉCOMPENSE ===
+  const rewardPatterns = [
+    /\b(je\s+te|tu\s+as)\s+(une\s+)?prime\b/,
+    /\bch[èe]que.cadeau\b/,
+    /\bje\s+te\s+r[ée]compense\b/,
+    /\bbravo\s+pour\s+ton\s+travail/,
+    /\btu\s+(as|a)\s+m[ée]rit[ée]\b/,
+  ];
+  if (rewardPatterns.some((p) => p.test(lower))) {
+    const res = store.rewardAgent(agent.id);
+    if (res.ok) {
+      alert(`💝 ${agent.nom.split(" ")[0]} récompensé(e) (chèque-cadeau 500€).`);
+    }
+    return;
+  }
+}
+
 // Détermine la "fraîcheur" d'un message à partir de son timestamp réel
 function getMessageAge(timestamp: string): { isNew: boolean; isRecent: boolean; isOld: boolean; ageLabel: string } {
   const ts = new Date(timestamp).getTime();
@@ -272,8 +347,56 @@ export function MessagesView({ onOpenKeyModal }: Props) {
         store.addConversation(agent.id, "user", text).catch(() => {});
         store.addConversation(agent.id, "assistant", data.content).catch(() => {});
       }
-      const pending = store.messages.find((m) => m.agent_id === agent.id && !m.repondu);
-      if (pending) store.replyToMessage(pending.id, text).catch(() => {});
+      // Marque TOUS les messages pending de cet agent comme répondus (pas juste le 1er)
+      // — quand le joueur engage la conversation, il traite l'ensemble des sujets en attente
+      const allPending = store.messages.filter((m) => m.agent_id === agent.id && !m.repondu);
+      for (const p of allPending) {
+        store.replyToMessage(p.id, text).catch(() => {});
+      }
+
+      // 🔥 DÉTECTION D'INTENTIONS — analyse le message du joueur pour déclencher des actions réelles
+      detectAndExecuteIntent(text, agent, store);
+
+      // 📖 CORRECTION EXAMINATEUR DEC — appel async pour évaluer la réponse du joueur
+      const agentMessage = allPending[0]?.contenu || "(le patron a ouvert la conversation)";
+      apiFetch("/api/chat-correction", {
+        method: "POST",
+        body: JSON.stringify({
+          agent_message: agentMessage,
+          player_response: text,
+          agent,
+          dossiers_lies: store.dossiers.filter((d) => d.agent_id === agent.id),
+          game_state: {
+            day: store.game_day, hour: store.game_hour, minute: store.game_minute,
+            mood: store.mood_global, tresorerie: store.tresorerie, legitimite: store.legitimite,
+          },
+        }),
+      })
+        .then((r) => r.json())
+        .then((corr) => {
+          if (corr?.skip) return;
+          if (corr?.note_sur_20 === undefined) return;
+          store.addChatCorrection({
+            game_day: store.game_day,
+            game_hour: store.game_hour,
+            game_minute: store.game_minute,
+            date_iso: new Date().toISOString(),
+            agent_id: agent.id,
+            agent_nom: agent.nom,
+            agent_role: agent.role,
+            agent_message: agentMessage,
+            player_response: text,
+            note_sur_20: corr.note_sur_20,
+            verdict: corr.verdict || "",
+            points_forts: corr.points_forts || [],
+            points_faibles: corr.points_faibles || [],
+            reponse_ideale: corr.reponse_ideale || "",
+            correction_detaillee: corr.correction_detaillee || "",
+            sources: corr.sources || [],
+            categorie_dec: corr.categorie_dec || "Communication",
+          });
+        })
+        .catch((e) => console.warn("[CHAT] Correction failed:", e));
     } catch (err: any) {
       setApiError("Erreur réseau — " + (err?.message || "inconnue"));
     } finally {
@@ -491,22 +614,39 @@ export function MessagesView({ onOpenKeyModal }: Props) {
                   </div>
                 ))}
 
-              {(store.conversation_history[agent.id] || []).map((msg, i) => (
-                <div key={`conv_${i}`} className={`flex ${msg.role === "user" ? "justify-end" : "gap-3 max-w-[78%]"}`}>
-                  {msg.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 mt-1" style={{ backgroundColor: agent.avatar_color }}>
-                      {agent.initiales}
+              {(store.conversation_history[agent.id] || []).map((msg, i) => {
+                // Pour chaque message du joueur, on cherche la correction la plus proche en date
+                let matchedCorr: any = null;
+                if (msg.role === "user") {
+                  matchedCorr = store.chat_corrections.find(
+                    (c) => c.agent_id === agent.id && c.player_response === msg.content
+                  );
+                }
+                return (
+                  <div key={`conv_${i}`}>
+                    <div className={`flex ${msg.role === "user" ? "justify-end" : "gap-3 max-w-[78%]"}`}>
+                      {msg.role === "assistant" && (
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold shrink-0 mt-1" style={{ backgroundColor: agent.avatar_color }}>
+                          {agent.initiales}
+                        </div>
+                      )}
+                      <div className={`px-[14px] py-[9px] rounded-[20px] text-[14px] leading-[1.4] whitespace-pre-wrap max-w-[75%] ${
+                        msg.role === "user"
+                          ? "bg-[#007AFF] text-white rounded-br-[6px] shadow-[0_1px_2px_rgba(0,122,255,0.25)]"
+                          : "bg-[#E9E9EB] dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white rounded-tl-[6px]"
+                      }`}>
+                        {msg.content}
+                      </div>
                     </div>
-                  )}
-                  <div className={`px-[14px] py-[9px] rounded-[20px] text-[14px] leading-[1.4] whitespace-pre-wrap max-w-[75%] ${
-                    msg.role === "user"
-                      ? "bg-[#007AFF] text-white rounded-br-[6px] shadow-[0_1px_2px_rgba(0,122,255,0.25)]"
-                      : "bg-[#E9E9EB] dark:bg-[#2c2c2e] text-[#1D1D1F] dark:text-white rounded-tl-[6px]"
-                  }`}>
-                    {msg.content}
+                    {/* Correction inline sous la réponse du joueur (si dispo) */}
+                    {matchedCorr && (
+                      <div className="flex justify-end mt-1">
+                        <CorrectionInlineCard correction={matchedCorr} />
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {sending && (
                 <div className="flex gap-3 max-w-[78%]">
@@ -579,5 +719,55 @@ export function MessagesView({ onOpenKeyModal }: Props) {
         )}
       </main>
     </>
+  );
+}
+
+/** Mini-carte inline qui affiche la note + verdict d'une correction sous la réponse joueur,
+ *  dépliable pour voir la correction expert détaillée. */
+function CorrectionInlineCard({ correction }: { correction: any }) {
+  const [open, setOpen] = useState(false);
+  const note = correction.note_sur_20;
+  const color = note >= 16 ? "#34C759" : note >= 12 ? "#007AFF" : note >= 8 ? "#FF9500" : "#FF3B30";
+  return (
+    <div className="max-w-[75%] w-full">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full text-left bg-gradient-to-r from-[#AF52DE]/8 to-[#5856D6]/8 dark:from-[#BF5AF2]/15 dark:to-[#5E5CE6]/15 border border-[#AF52DE]/20 dark:border-[#BF5AF2]/30 rounded-[12px] px-3 py-2 hover:from-[#AF52DE]/12 hover:to-[#5856D6]/12 transition-all"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#AF52DE] dark:text-[#BF5AF2]">📖 Examinateur DEC</span>
+          <span className="text-[14px] font-bold tabular-nums leading-none ml-auto" style={{ color }}>{note}<span className="text-[10px] opacity-60">/20</span></span>
+          <span className="text-[10px] text-[#86868B] dark:text-[#98989D]">{open ? "▴" : "▾"}</span>
+        </div>
+        {correction.verdict && (
+          <div className={`text-[11px] text-[#3a3a3c] dark:text-[#d1d1d6] italic mt-1 ${open ? "" : "line-clamp-1"}`}>
+            "{correction.verdict}"
+          </div>
+        )}
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-1.5 bg-white dark:bg-[#1c1c1e] border border-[#E5E5EA]/40 dark:border-[#38383a] rounded-[12px] p-3">
+          {correction.correction_detaillee && (
+            <div>
+              <div className="text-[9px] font-bold uppercase tracking-wider text-[#86868B] dark:text-[#98989D] mb-0.5">Correction de l'examinateur</div>
+              <p className="text-[11px] text-[#1D1D1F] dark:text-[#d1d1d6] leading-relaxed">{correction.correction_detaillee}</p>
+            </div>
+          )}
+          {correction.reponse_ideale && (
+            <div className="bg-[#34C759]/5 dark:bg-[#30D158]/12 rounded-[8px] p-2">
+              <div className="text-[9px] font-bold uppercase tracking-wider text-[#248A3D] dark:text-[#30D158] mb-0.5">Réponse idéale</div>
+              <p className="text-[11px] text-[#1D1D1F] dark:text-[#d1d1d6] italic">"{correction.reponse_ideale}"</p>
+            </div>
+          )}
+          {correction.sources?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {correction.sources.map((s: string, i: number) => (
+                <span key={i} className="text-[9px] bg-[#86868B]/10 dark:bg-white/10 text-[#3a3a3c] dark:text-[#d1d1d6] px-1.5 py-0.5 rounded-md font-mono">{s}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

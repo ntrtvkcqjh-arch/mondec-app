@@ -110,6 +110,46 @@ export interface ClaudeMsg {
   content: string;
 }
 
+/** Un ancien collaborateur ayant quitté le cabinet (démission ou licenciement) */
+export interface FormerAgent {
+  id: string;
+  nom: string;
+  initiales: string;
+  avatar_color: string;
+  role: string;
+  filiere: string;
+  departure_game_day: number;
+  departure_date_iso: string;
+  motif: string; // "Licencié par le patron" | "Démission" | "Burn-out" | ...
+  motif_type: "licencie" | "demission" | "burnout" | "fin_contrat";
+  final_confiance: number;
+  final_loyaute: number;
+  dossiers_transferes_a: { dossier: string; nouvel_agent: string }[];
+  duree_cabinet_jours: number;
+}
+
+/** Une correction d'examinateur DEC sur une réponse du joueur dans le chat */
+export interface ChatCorrection {
+  id: string;
+  game_day: number;
+  game_hour: number;
+  game_minute: number;
+  date_iso: string;
+  agent_id: string;
+  agent_nom: string;
+  agent_role: string;
+  agent_message: string;
+  player_response: string;
+  note_sur_20: number;
+  verdict: string;
+  points_forts: string[];
+  points_faibles: string[];
+  reponse_ideale: string;
+  correction_detaillee: string;
+  sources: string[];
+  categorie_dec: string;
+}
+
 export interface FiscalDeadline {
   id: string;
   label: string;
@@ -173,6 +213,12 @@ export interface GameState {
 
   // Sprint 4 : Historique fiscal (validations déposées par obligation_id)
   fiscal_validations: Record<string, { game_day: number; date_iso: string; type: string; client: string }>;
+
+  // Sprint 5 : Corrections du chat (examinateur DEC) — historique
+  chat_corrections: ChatCorrection[];
+
+  // Sprint 5 : Anciens collaborateurs (démissions / licenciements)
+  former_agents: FormerAgent[];
 
   agents: Agent[];
   messages: Message[];
@@ -256,6 +302,16 @@ export interface GameState {
 
   // Sprint 4 : Marquer obligation fiscale comme déposée + historique
   markObligationDeposee: (obligationId: string, type: string, client: string) => void;
+
+  // Sprint 5 : Ajouter une correction du chat à l'historique
+  addChatCorrection: (correction: Omit<ChatCorrection, "id">) => void;
+  clearChatCorrections: () => void;
+
+  // Sprint 5 : Licencier / faire partir un collaborateur (avec cascade)
+  fireAgent: (agentId: string, motif: string, motifType?: FormerAgent["motif_type"]) => { ok: boolean; reason?: string };
+
+  // Reset complet du jeu (localStorage + Supabase user data)
+  resetGame: () => Promise<void>;
   computeIncompatibilites: (dossierId: string, agentId: string) => string[];
 
   // Sprint 4 : Cohérence inter-onglets
@@ -305,6 +361,60 @@ function persistDossiers(s: any) {
   } catch {}
 }
 
+/** Persiste l'état des agents (stress, fatigue, confiance, emotion, arc…)
+ *  + history + cooldowns. Fix le bug 'tout se reset au refresh'. */
+function persistAgents(s: any) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("agents_state", JSON.stringify(s.agents));
+    localStorage.setItem("agent_player_history", JSON.stringify(s.agent_player_history || {}));
+    localStorage.setItem("agent_cooldowns", JSON.stringify(s.agent_cooldowns || {}));
+  } catch {}
+}
+
+/** Persiste la liste des messages (statut lu / répondu) en localStorage.
+ *  Survit au refresh même si Supabase n'a pas eu le temps de synchroniser. */
+function persistMessages(s: any) {
+  if (typeof window === "undefined") return;
+  try {
+    // Stocke uniquement les 100 derniers messages pour éviter explosion localStorage
+    const last = (s.messages || []).slice(0, 100);
+    localStorage.setItem("messages_state", JSON.stringify(last));
+  } catch {}
+}
+
+/** Persiste le système Temps (compteur quotidien + heures sup) */
+function persistTime(s: any) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("time_state", JSON.stringify({
+      temps_disponible_min: s.temps_disponible_min,
+      temps_disponible_max: s.temps_disponible_max,
+      heures_sup_cumul: s.heures_sup_cumul,
+      time_day: s.game_day, // jour de référence : si on change de jour, on reset
+    }));
+  } catch {}
+}
+
+/** Persiste l'état global du joueur (ressources + horloge) en plus de Supabase
+ *  pour résister au refresh même sans connexion. */
+function persistPlayerState(s: any) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("player_state", JSON.stringify({
+      legitimite: s.legitimite,
+      tresorerie: s.tresorerie,
+      reputation: s.reputation,
+      stress_global: s.stress_global,
+      mood_global: s.mood_global,
+      player_level: s.player_level,
+      player_xp: s.player_xp,
+      xp_to_next: s.xp_to_next,
+      team_health: s.team_health,
+    }));
+  } catch {}
+}
+
 export const useGameStore = create<GameState>((set, get) => ({
   user_id: null,
   legitimite: 72,
@@ -346,6 +456,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   last_prospect_day: 0,
   prospects_dismissed_for_day: 0,
   fiscal_validations: {},
+  chat_corrections: [],
+  former_agents: [],
 
   agents: [],
   messages: [],
@@ -604,6 +716,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   setResources: (res) => {
     set((state) => ({ ...state, ...res }));
     get().saveGameState();
+    persistPlayerState(get());
   },
 
   markMessageRead: async (id) => {
@@ -613,6 +726,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         m.id === id ? { ...m, lu: true } : m
       ),
     }));
+    persistMessages(get());
     if (!state.user_id) return;
     await supabase
       .from("messages")
@@ -625,13 +739,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     set((state) => ({
       messages: state.messages.map((m) =>
-        m.id === id ? { ...m, repondu: true, reponse_joueur: reply } : m
+        m.id === id ? { ...m, repondu: true, lu: true, reponse_joueur: reply } : m
       ),
     }));
+    persistMessages(get());
     if (!state.user_id) return;
     await supabase
       .from("messages")
-      .update({ repondu: true, reponse_joueur: reply })
+      .update({ repondu: true, lu: true, reponse_joueur: reply })
       .eq("message_id", id)
       .eq("user_id", state.user_id);
     get().saveGameState();
@@ -673,6 +788,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         : s.agents,
     }));
     get().saveGameState();
+    persistTime(get());
+    persistPlayerState(get());
+    if (overtime) persistAgents(get()); // les agents ont pris +5 stress
     return { ok: true, overtime };
   },
 
@@ -761,6 +879,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     };
 
     set((state) => ({ messages: [newMsg, ...state.messages] }));
+    persistMessages(get());
 
     if (!state.user_id) return;
     try {
@@ -823,30 +942,28 @@ export const useGameStore = create<GameState>((set, get) => ({
     } catch {}
 
     if (!startTs || isNaN(startTs)) {
-      // Première fois : on initialise au jour 1, 9h00 maintenant
+      // Première fois : on initialise au jour 1, 8h30 maintenant
       startTs = Date.now();
       try { localStorage.setItem("game_start_ts", String(startTs)); } catch {}
     }
 
     const now = Date.now();
     const elapsedRealSeconds = Math.floor((now - startTs) / 1000);
-    // 1 sec réelle = 1 min jeu
-    const elapsedGameMinutes = elapsedRealSeconds;
+    // 1 sec réelle = 30 sec jeu (ratio 1:30) → 1 jour jeu = 48 min réelles, confortable pour jouer
+    const elapsedGameMinutes = Math.floor(elapsedRealSeconds * 0.5);
 
-    // On commence Jour 1 à 9h00 = 9*60 = 540 minutes
-    const startOfDay = 8 * 60; // 8h00
-    const endOfDay = 19 * 60;  // 19h00
-    const dayLength = endOfDay - startOfDay; // 660 minutes par jour ouvré
-    const initialOffset = 9 * 60 - startOfDay; // démarrage à 9h00 = +60 min après 8h
+    // Journée complète 24h (0h00 → 24h00). Permet de voir qui travaille le soir.
+    const dayLength = 24 * 60; // 1440 minutes par jour
+    const initialOffset = 8 * 60 + 30; // démarrage à 8h30 (briefing time)
 
     const totalMinutesFromStart = elapsedGameMinutes + initialOffset;
     const day = Math.floor(totalMinutesFromStart / dayLength) + 1;
     const minutesInThisDay = totalMinutesFromStart % dayLength;
-    const hour = Math.floor((startOfDay + minutesInThisDay) / 60);
-    const minute = (startOfDay + minutesInThisDay) % 60;
+    const hour = Math.floor(minutesInThisDay / 60);
+    const minute = minutesInThisDay % 60;
 
     set((state) => {
-      // Si on change de jour → reset PA + reset Temps disponible + reset heures sup
+      // Si on change de jour → reset Temps disponible + reset heures sup
       const isNewDay = day > state.game_day;
       return {
         game_hour: hour,
@@ -1400,6 +1517,58 @@ export const useGameStore = create<GameState>((set, get) => ({
     persistProspects(get());
   },
 
+  resetGame: async () => {
+    if (typeof window === "undefined") return;
+    const state = get();
+
+    // 1. Purge tout le localStorage du jeu (préserve la clé Anthropic + le thème)
+    const keysToPurge = [
+      "game_start_ts",
+      "dossiers_state",
+      "prospects_state",
+      "fiscal_validations",
+      "agents_state",
+      "agent_player_history",
+      "agent_cooldowns",
+      "player_state",
+      "time_state",
+      "messages_state",
+      "dec_state",
+      "completed_tasks",
+      "last_briefing_day",
+      "last_evening_recap_day",
+      "lastEventGen",
+      "dossier_chats_v1",
+      "chat_corrections",
+      "former_agents",
+    ];
+    // Aussi purger toutes les clés dynamiques de tracking (retard_X, drama_check_X, etc.)
+    const allKeys = Object.keys(localStorage);
+    for (const k of allKeys) {
+      if (k.startsWith("retard_") || k.startsWith("drama_check_") || k.startsWith("surcharge_")) {
+        try { localStorage.removeItem(k); } catch {}
+      }
+    }
+    for (const k of keysToPurge) {
+      try { localStorage.removeItem(k); } catch {}
+    }
+
+    // 2. Purge Supabase si user connecté (messages, conversations, profile, agents_state)
+    if (state.user_id) {
+      try {
+        await Promise.all([
+          supabase.from("messages").delete().eq("user_id", state.user_id),
+          supabase.from("conversations").delete().eq("user_id", state.user_id),
+        ]);
+      } catch (e) {
+        console.warn("[Reset] Erreur purge Supabase :", e);
+      }
+    }
+
+    // 3. Reload de la page : tout repart from scratch
+    if (typeof window !== "undefined") window.location.reload();
+  },
+
   markObligationDeposee: (obligationId, type, client) => {
     const state = get();
     set({
@@ -1424,6 +1593,128 @@ export const useGameStore = create<GameState>((set, get) => ({
       stress_global: Math.max(0, s.stress_global - 1),
       legitimite: Math.min(100, s.legitimite + 1),
     }));
+  },
+
+  addChatCorrection: (correction) => {
+    const id = `corr_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    set((s) => ({
+      chat_corrections: [{ ...correction, id }, ...s.chat_corrections].slice(0, 300), // garde 300 max
+    }));
+    // Persiste en localStorage
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("chat_corrections", JSON.stringify(get().chat_corrections));
+      } catch {}
+    }
+  },
+
+  clearChatCorrections: () => {
+    set({ chat_corrections: [] });
+    if (typeof window !== "undefined") {
+      try { localStorage.removeItem("chat_corrections"); } catch {}
+    }
+  },
+
+  fireAgent: (agentId, motif, motifType = "licencie") => {
+    const state = get();
+    const agent = state.agents.find((a) => a.id === agentId);
+    if (!agent) return { ok: false, reason: "Agent introuvable" };
+
+    // 1. Réaffecte automatiquement ses dossiers : on cherche un autre agent de la même filière
+    // (idéalement Manager), sinon le premier collaborateur dispo
+    const sameFiliereAgents = state.agents.filter((a) => a.id !== agentId && a.filiere === agent.filiere);
+    const manager = sameFiliereAgents.find((a) => (a.role || "").toLowerCase().includes("manager"));
+    const fallback = manager || sameFiliereAgents[0] || state.agents.find((a) => a.id !== agentId);
+
+    const sesDossiers = state.dossiers.filter((d) => d.agent_id === agentId && d.etat !== "perdu" && d.etat !== "cloture");
+    const dossiers_transferes_a: { dossier: string; nouvel_agent: string }[] = [];
+
+    if (fallback) {
+      sesDossiers.forEach((d) => {
+        dossiers_transferes_a.push({ dossier: d.client, nouvel_agent: fallback.nom });
+      });
+      set((s) => ({
+        dossiers: s.dossiers.map((d) =>
+          d.agent_id === agentId && d.etat !== "perdu" && d.etat !== "cloture"
+            ? { ...d, agent_id: fallback.id }
+            : d
+        ),
+      }));
+    }
+
+    // 2. Calcul de la durée passée au cabinet (game_day - 1 par défaut, on n'a pas de date d'embauche)
+    const dureeJours = state.game_day; // approximation : tous les agents seedés sont là depuis le J1
+
+    // 3. Ajoute aux anciens collaborateurs
+    const formerAgent: FormerAgent = {
+      id: agentId,
+      nom: agent.nom,
+      initiales: agent.initiales,
+      avatar_color: agent.avatar_color,
+      role: agent.role,
+      filiere: agent.filiere,
+      departure_game_day: state.game_day,
+      departure_date_iso: new Date().toISOString(),
+      motif,
+      motif_type: motifType,
+      final_confiance: agent.confiance_joueur,
+      final_loyaute: agent.loyaute,
+      dossiers_transferes_a,
+      duree_cabinet_jours: dureeJours,
+    };
+
+    // 4. Retire l'agent de la liste active
+    set((s) => ({
+      agents: s.agents.filter((a) => a.id !== agentId),
+      former_agents: [formerAgent, ...s.former_agents],
+      // Cascade émotionnelle sur le reste de l'équipe selon le motif
+      // Licenciement = légitimité -5, stress équipe +5 (peur), peur +10
+      // Démission = légitimité -3, stress équipe +3, peur +5
+      // Burn-out = légitimité -10 (n'a pas vu venir), stress équipe +8
+      legitimite: Math.max(0, s.legitimite + (motifType === "burnout" ? -10 : motifType === "licencie" ? -5 : -3)),
+    }));
+
+    // Propagation aux autres agents
+    set((s) => ({
+      agents: s.agents.map((a) => ({
+        ...a,
+        stress: Math.min(100, a.stress + (motifType === "burnout" ? 8 : motifType === "licencie" ? 5 : 3)),
+        peur: Math.min(100, a.peur + (motifType === "licencie" ? 10 : 5)),
+      })),
+    }));
+
+    // 5. Message N1 collectif (Sophie RH) annonçant le départ
+    const sophie = state.agents.find((a) => (a.role || "").toLowerCase().includes("rh"));
+    if (sophie && sophie.id !== agentId) {
+      const motifTxt = motifType === "licencie"
+        ? "à la suite de la décision du patron"
+        : motifType === "demission"
+          ? "à sa propre demande"
+          : motifType === "burnout"
+            ? "pour raisons de santé (arrêt maladie longue durée)"
+            : "à l'issue de son contrat";
+      get().addNewMessage({
+        agent_id: sophie.id,
+        niveau: "N1",
+        type: "Information",
+        sujet: `📤 Départ de ${agent.nom.split(" ")[0]}`,
+        contenu: `Sophie : ${agent.nom} quitte le cabinet ${motifTxt}. Motif : ${motif}. ${dossiers_transferes_a.length > 0 ? `J'ai transféré ses ${dossiers_transferes_a.length} dossier${dossiers_transferes_a.length > 1 ? "s" : ""} à ${fallback?.nom.split(" ")[0]}.` : "Aucun dossier à transférer."} Je m'occupe de l'attestation Pôle Emploi et du solde de tout compte.`,
+        delai_reponse_heures: 48,
+      });
+    }
+
+    // 6. Persistance
+    persistAgents(get());
+    persistDossiers(get());
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("former_agents", JSON.stringify(get().former_agents));
+      } catch {}
+    }
+    get().recomputeTeamHealth();
+    get().recomputeMood();
+    get().saveGameState();
+    return { ok: true };
   },
 
   acceptProspect: (id, agentId) => {
@@ -1851,6 +2142,96 @@ export const useGameStore = create<GameState>((set, get) => ({
         const obj = JSON.parse(fiscalVal);
         if (obj && typeof obj === "object") set({ fiscal_validations: obj });
       }
+
+      // Restaure l'historique des corrections chat (examinateur DEC)
+      const corrections = localStorage.getItem("chat_corrections");
+      if (corrections) {
+        const arr = JSON.parse(corrections);
+        if (Array.isArray(arr)) set({ chat_corrections: arr });
+      }
+      // Restaure la liste des anciens collaborateurs
+      const formers = localStorage.getItem("former_agents");
+      if (formers) {
+        const arr = JSON.parse(formers);
+        if (Array.isArray(arr)) set({ former_agents: arr });
+      }
+
+      // Restaure l'état complet des agents (stress, fatigue, confiance, emotion, arc)
+      const agentsStored = localStorage.getItem("agents_state");
+      if (agentsStored) {
+        const arr = JSON.parse(agentsStored);
+        if (Array.isArray(arr) && arr.length > 0) set({ agents: arr });
+      }
+      const historyStored = localStorage.getItem("agent_player_history");
+      if (historyStored) {
+        const obj = JSON.parse(historyStored);
+        if (obj && typeof obj === "object") set({ agent_player_history: obj });
+      }
+      const cdStored = localStorage.getItem("agent_cooldowns");
+      if (cdStored) {
+        const obj = JSON.parse(cdStored);
+        if (obj && typeof obj === "object") set({ agent_cooldowns: obj });
+      }
+
+      // Restaure les ressources joueur (fallback offline-first quand Supabase tarde)
+      const playerStored = localStorage.getItem("player_state");
+      if (playerStored) {
+        const p = JSON.parse(playerStored);
+        set((s) => ({
+          legitimite: typeof p.legitimite === "number" ? p.legitimite : s.legitimite,
+          tresorerie: typeof p.tresorerie === "number" ? p.tresorerie : s.tresorerie,
+          reputation: typeof p.reputation === "number" ? p.reputation : s.reputation,
+          stress_global: typeof p.stress_global === "number" ? p.stress_global : s.stress_global,
+          mood_global: p.mood_global || s.mood_global,
+          player_level: typeof p.player_level === "number" ? p.player_level : s.player_level,
+          player_xp: typeof p.player_xp === "number" ? p.player_xp : s.player_xp,
+          xp_to_next: typeof p.xp_to_next === "number" ? p.xp_to_next : s.xp_to_next,
+          team_health: typeof p.team_health === "number" ? p.team_health : s.team_health,
+        }));
+      }
+
+      // Restaure les messages (avec leur statut lu/répondu actualisé)
+      const msgsStored = localStorage.getItem("messages_state");
+      if (msgsStored) {
+        const arr = JSON.parse(msgsStored);
+        if (Array.isArray(arr) && arr.length > 0) {
+          // Merge : si Supabase a chargé des messages, on prend l'état localStorage pour
+          // chaque message connu (statut lu/repondu plus à jour). Sinon on prend la liste localStorage.
+          set((s) => {
+            if (s.messages.length === 0) return { messages: arr };
+            const localMap = new Map<string, any>(arr.map((m: any) => [m.id, m]));
+            const merged = s.messages.map((m) => {
+              const localVersion = localMap.get(m.id);
+              if (!localVersion) return m;
+              // Préfère localStorage si plus à jour sur lu/répondu
+              return {
+                ...m,
+                lu: m.lu || localVersion.lu,
+                repondu: m.repondu || localVersion.repondu,
+                reponse_joueur: m.reponse_joueur || localVersion.reponse_joueur,
+              };
+            });
+            // Ajoute les messages présents en local mais pas dans Supabase
+            const knownIds = new Set(s.messages.map((m) => m.id));
+            const onlyLocal = arr.filter((m: any) => !knownIds.has(m.id));
+            return { messages: [...onlyLocal, ...merged] };
+          });
+        }
+      }
+
+      // Restaure le compteur Temps (mais le reset si on a changé de game_day)
+      const timeStored = localStorage.getItem("time_state");
+      if (timeStored) {
+        const t = JSON.parse(timeStored);
+        set((s) => {
+          const sameDay = t.time_day === s.game_day;
+          return {
+            temps_disponible_min: sameDay && typeof t.temps_disponible_min === "number" ? t.temps_disponible_min : s.temps_disponible_max,
+            temps_disponible_max: typeof t.temps_disponible_max === "number" ? t.temps_disponible_max : s.temps_disponible_max,
+            heures_sup_cumul: sameDay && typeof t.heures_sup_cumul === "number" ? t.heures_sup_cumul : 0,
+          };
+        });
+      }
     } catch (e) {
       console.warn("[Store] loadLocalPersistence failed:", e);
     }
@@ -1881,6 +2262,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       },
     }));
     get().recomputeTeamHealth();
+    persistAgents(get());
     return { ok: true };
   },
 
@@ -1911,6 +2293,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       },
     }));
     get().recomputeTeamHealth();
+    persistAgents(get());
     return { ok: true };
   },
 
@@ -1944,6 +2327,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       },
     }));
     get().recomputeTeamHealth();
+    persistAgents(get());
     return { ok: true };
   },
 
@@ -1975,6 +2359,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     }));
     get().recomputeTeamHealth();
     get().saveGameState();
+    persistAgents(get());
+    persistTime(get());
     return { ok: true };
   },
 

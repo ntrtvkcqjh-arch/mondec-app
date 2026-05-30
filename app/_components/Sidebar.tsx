@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { useGameStore } from "@/lib/supabase-store";
 import { signOut } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Mail, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key, BarChart3, UserPlus, Sun, Moon, Monitor } from "lucide-react";
+import { Mail, Users, Calendar, FolderOpen, GraduationCap, ClipboardCheck, LogOut, Settings, Trophy, Clock as ClockIcon, RefreshCw, Key, BarChart3, UserPlus, Sun, Moon, Monitor, RotateCcw, BookOpen } from "lucide-react";
 import { ClaudeTuteur } from "./ClaudeTuteur";
 import { useTheme } from "./ThemeProvider";
 
-export type Tab = "messages" | "equipe" | "agenda" | "tasks" | "dossiers" | "fiscal" | "rh" | "dec";
+export type Tab = "messages" | "equipe" | "agenda" | "tasks" | "dossiers" | "fiscal" | "rh" | "dec" | "corrections";
 
 interface Props {
   activeTab: Tab;
@@ -51,6 +51,7 @@ const navColors: Record<Tab, { bg: string; ring: string; text: string }> = {
   fiscal: { bg: "bg-[#E0EAFF]", ring: "ring-[#7B9AE8]", text: "text-[#2440A0]" },
   rh: { bg: "bg-[#FFE5F0]", ring: "ring-[#E89BC4]", text: "text-[#A02868]" },
   dec: { bg: "bg-[#E8F4F8]", ring: "ring-[#7BC4D4]", text: "text-[#1F6A82]" },
+  corrections: { bg: "bg-[#F0E6FF]", ring: "ring-[#AF52DE]", text: "text-[#6A38A8]" },
 };
 
 export function Sidebar(props: Props) {
@@ -67,6 +68,7 @@ export function Sidebar(props: Props) {
     { id: "fiscal", icon: BarChart3, label: "Suivi Fiscal" },
     { id: "rh", icon: UserPlus, label: "RH" },
     { id: "dec", icon: GraduationCap, label: "DEC Prep" },
+    { id: "corrections", icon: BookOpen, label: "Corrections", badge: store.chat_corrections.filter((c) => c.game_day === store.game_day).length },
   ];
 
   function handleLogout() {
@@ -222,6 +224,16 @@ export function Sidebar(props: Props) {
             <div className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white truncate">Toi</div>
             <div className="text-[10px] text-[#86868B] dark:text-[#a0a0a5] truncate">Expert-comptable associé</div>
           </div>
+          <button
+            onClick={() => {
+              if (confirm("⚠️ Réinitialiser le jeu ?\n\nToutes tes données seront supprimées : dossiers, agents, messages, conversations, scores. Tu repars de zéro.\n\nContinuer ?")) {
+                store.resetGame();
+              }
+            }}
+            title="Réinitialiser le jeu (repartir de zéro)"
+            className="w-7 h-7 rounded-full bg-white dark:bg-[#2c2c2e] hover:bg-[#FF9500]/10 dark:hover:bg-[#FF9500]/20 flex items-center justify-center transition-colors group">
+            <RotateCcw size={12} className="text-[#86868B] dark:text-[#a0a0a5] group-hover:text-[#FF9500]" />
+          </button>
           <button onClick={handleLogout} className="w-7 h-7 rounded-full bg-white dark:bg-[#2c2c2e] hover:bg-[#FF3B30]/10 dark:hover:bg-[#FF3B30]/20 flex items-center justify-center transition-colors group">
             <LogOut size={12} className="text-[#86868B] dark:text-[#a0a0a5] group-hover:text-[#FF3B30]" />
           </button>
