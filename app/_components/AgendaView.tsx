@@ -212,6 +212,51 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
 
   const gameMinutes = store.game_hour * 60 + store.game_minute;
   const nonPauseSlots = slots.filter((s) => s.type !== "pause");
+  const hasClients = store.dossiers.length > 0;
+  const hasTeam = store.agents.length > 0;
+  // Le client SAS Vidal existe-t-il dans les dossiers ? Sinon on n'affiche pas
+  // le bandeau Boss Fight (incohérent en mode zéro)
+  const hasVidalBoss = store.dossiers.some((d) => d.client.toLowerCase().includes("vidal"));
+
+  // === ÉTAT VIDE : pas de client, pas de planning à afficher ===
+  if (!hasClients) {
+    return (
+      <div className="flex-1 overflow-y-auto">
+        <PageHeader title="AGENDA" stats={[{ value: 0, label: "créneaux aujourd'hui" }]} />
+        <div className="max-w-[800px] mx-auto px-10 pb-16">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[20px] p-10 text-center border border-[#E5E5EA]/40 dark:border-[#38383a]">
+            <div className="text-[48px] mb-3">📅</div>
+            <h2 className="text-[20px] font-bold text-[#1D1D1F] dark:text-white mb-2">Agenda vide</h2>
+            <p className="text-[13px] text-[#86868B] dark:text-[#98989D] mb-6 max-w-[480px] mx-auto leading-relaxed">
+              Ton planning se remplit automatiquement <strong>en fonction de tes clients et de ton équipe</strong>. Pour l'instant, ton cabinet n'a pas encore de dossier actif.
+            </p>
+            <div className="space-y-2 text-left max-w-[420px] mx-auto bg-[#FAFAFB] dark:bg-[#2c2c2e] rounded-[12px] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#86868B] mb-2">Pour démarrer :</div>
+              <div className="flex items-start gap-2 text-[12px]">
+                <span className="text-[#FF9500]">①</span>
+                <span className={hasTeam ? "line-through text-[#86868B]" : "text-[#1D1D1F] dark:text-white"}>
+                  Recrute au moins un collaborateur dans <strong>RH</strong>
+                </span>
+                {hasTeam && <span className="ml-auto text-[#34C759]">✓</span>}
+              </div>
+              <div className="flex items-start gap-2 text-[12px]">
+                <span className="text-[#FF9500]">②</span>
+                <span className="text-[#1D1D1F] dark:text-white">
+                  Accepte ton premier prospect dans le modal qui s'ouvre quand ton équipe est prête
+                </span>
+              </div>
+              <div className="flex items-start gap-2 text-[12px]">
+                <span className="text-[#FF9500]">③</span>
+                <span className="text-[#1D1D1F] dark:text-white">
+                  Reviens ici : ton agenda se remplira avec briefings, cas pratiques, RDV clients et validations
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -239,14 +284,16 @@ export function AgendaView({ apiStatus }: { apiStatus: "checking" | "ok" | "erro
           <p className="text-[10px] text-[#86868B] mt-3 text-right">Généré à {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")} · Jour {store.game_day}</p>
         </div>
 
-        <div className="bg-gradient-to-br from-[#FF3B30]/8 to-[#FF9500]/8 border border-[#FF3B30]/20 rounded-[18px] p-4 mb-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Flame size={16} className="text-[#FF3B30]" />
-            <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">Boss Fight — Clôture bilan 30/06</span>
-            <span className="ml-auto text-[13px] font-bold text-[#FF3B30]">J-16</span>
+        {hasVidalBoss && (
+          <div className="bg-gradient-to-br from-[#FF3B30]/8 to-[#FF9500]/8 border border-[#FF3B30]/20 rounded-[18px] p-4 mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Flame size={16} className="text-[#FF3B30]" />
+              <span className="font-semibold text-[14px] text-[#1D1D1F] dark:text-white">Boss Fight — Clôture bilan 30/06</span>
+              <span className="ml-auto text-[13px] font-bold text-[#FF3B30]">J-16</span>
+            </div>
+            <p className="text-[12px] text-[#86868B]">Signature bilan SAS Vidal Industries · Provision risque client en suspens</p>
           </div>
-          <p className="text-[12px] text-[#86868B]">Signature bilan SAS Vidal Industries · Provision risque client en suspens</p>
-        </div>
+        )}
 
         <div className="relative">
           <div className="absolute left-[68px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-[#E5E5EA]/0 via-[#E5E5EA] to-[#E5E5EA]/0" />

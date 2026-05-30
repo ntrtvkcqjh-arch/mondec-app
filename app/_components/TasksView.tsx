@@ -205,6 +205,46 @@ export function TasksView() {
   }
 
   const completedTasks = new Set(store.completed_tasks);
+  const hasClients = store.dossiers.length > 0;
+  const hasTeam = store.agents.length > 0;
+
+  // === ÉTAT VIDE : pas de client → pas de tâches à traiter ===
+  // Les tâches représentent des documents préparés par les collaborateurs
+  // pour des clients. Sans dossier ni équipe, rien à valider.
+  if (!hasClients) {
+    return (
+      <div className="flex-1 overflow-y-auto">
+        <PageHeader title="TÂCHES" stats={[{ value: 0, label: "documents à contrôler" }]} />
+        <div className="max-w-[800px] mx-auto px-10 pb-16">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[20px] p-10 text-center border border-[#E5E5EA]/40 dark:border-[#38383a]">
+            <div className="text-[48px] mb-3">📋</div>
+            <h2 className="text-[20px] font-bold text-[#1D1D1F] dark:text-white mb-2">Aucune tâche à traiter</h2>
+            <p className="text-[13px] text-[#86868B] dark:text-[#98989D] mb-6 max-w-[480px] mx-auto leading-relaxed">
+              Les tâches sont des documents (déclarations TVA, liasses, bilans, écritures…) <strong>préparés par tes collaborateurs pour tes clients</strong>. Tu les valides ou les refuses.
+            </p>
+            <div className="space-y-2 text-left max-w-[420px] mx-auto bg-[#FAFAFB] dark:bg-[#2c2c2e] rounded-[12px] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#86868B] mb-2">Pour avoir des tâches :</div>
+              <div className="flex items-start gap-2 text-[12px]">
+                <span className="text-[#FF9500]">①</span>
+                <span className={hasTeam ? "line-through text-[#86868B]" : "text-[#1D1D1F] dark:text-white"}>
+                  Recrute au moins un collaborateur dans <strong>RH</strong>
+                </span>
+                {hasTeam && <span className="ml-auto text-[#34C759]">✓</span>}
+              </div>
+              <div className="flex items-start gap-2 text-[12px]">
+                <span className="text-[#FF9500]">②</span>
+                <span className="text-[#1D1D1F] dark:text-white">Accepte un prospect pour avoir ton premier client</span>
+              </div>
+              <div className="flex items-start gap-2 text-[12px]">
+                <span className="text-[#FF9500]">③</span>
+                <span className="text-[#1D1D1F] dark:text-white">Les tâches arriveront automatiquement (TVA, IS, liasses, bilans…)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto">
