@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { apiFetch, hasUserApiKey } from "@/lib/api-client";
 
 import { Sidebar, type Tab, CabinetLogo } from "./_components/Sidebar";
+import { TopBar } from "./_components/TopBar";
 import { MessagesView } from "./_components/MessagesView";
 import { MorningBriefingModal } from "./_components/MorningBriefingModal";
 import { EveningRecapModal } from "./_components/EveningRecapModal";
@@ -217,7 +218,9 @@ export default function HomeContent() {
         generatingEvents={generatingEvents}
       />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopBar apiStatus={apiStatus} />
+        <div className="flex-1 flex overflow-hidden">
         {activeTab === "messages" && <MessagesView onOpenKeyModal={() => setShowKeyModal(true)} />}
         {activeTab === "equipe" && <EquipeView />}
         {activeTab === "agenda" && <AgendaView apiStatus={apiStatus} />}
@@ -227,6 +230,7 @@ export default function HomeContent() {
         {activeTab === "rh" && <RhView />}
         {activeTab === "dec" && <DecPrepView />}
         {activeTab === "corrections" && <CorrectionsView />}
+        </div>
       </div>
 
       <ApiKeyModal

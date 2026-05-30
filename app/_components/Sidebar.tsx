@@ -119,72 +119,20 @@ export function Sidebar(props: Props) {
         })}
       </nav>
 
-      {/* Horloge JEU + Niveau compact */}
-      <div className="px-4 pb-3 space-y-2">
-        <div className="bg-white/60 dark:bg-[#1c1c1e] backdrop-blur rounded-[16px] p-3 border border-white/80 dark:border-[#38383a]">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#007AFF] animate-pulse" />
-              <span className="text-[10px] font-medium text-[#86868B] dark:text-[#a0a0a5] uppercase tracking-wide">Jour {store.game_day}</span>
+      {/* Niveau joueur + XP — compact, sous la nav */}
+      <div className="px-5 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FF9500] to-[#FF3B30] flex items-center justify-center shadow-sm">
+            <Trophy size={12} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-semibold text-[#1D1D1F] dark:text-white">Niveau {store.player_level}</div>
+            <div className="mt-1 h-[3px] bg-[#E5E5EA] dark:bg-[#2c2c2e] rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#FF9500] to-[#FF3B30] rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (store.player_xp / store.xp_to_next) * 100)}%` }} />
             </div>
-            <div className="flex items-center gap-1.5">
-              <Trophy size={11} className="text-[#FF9500]" />
-              <span className="text-[10px] font-semibold text-[#1D1D1F] dark:text-white">N{store.player_level}</span>
-            </div>
           </div>
-          <div className="font-mono text-[22px] font-bold text-[#1D1D1F] dark:text-white tabular-nums leading-none">
-            {String(store.game_hour).padStart(2, "0")}:{String(store.game_minute).padStart(2, "0")}
-          </div>
-          <div className="mt-2 h-[3px] bg-[#E5E5EA] dark:bg-[#2c2c2e] rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#FF9500] to-[#FF3B30] rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (store.player_xp / store.xp_to_next) * 100)}%` }} />
-          </div>
+          <span className="text-[10px] text-[#86868B] dark:text-[#a0a0a5] tabular-nums">{store.player_xp}/{store.xp_to_next}</span>
         </div>
-
-        {/* Bar Temps disponible (remplace les PA) */}
-        <div className="bg-white/60 dark:bg-[#1c1c1e] backdrop-blur rounded-[16px] p-3 border border-white/80 dark:border-[#38383a]">
-          {(() => {
-            const min = store.temps_disponible_min ?? 480;
-            const max = store.temps_disponible_max ?? 480;
-            const ratio = Math.max(0, min / max);
-            const h = Math.floor(min / 60);
-            const m = min % 60;
-            const hmax = Math.floor(max / 60);
-            const overtime = (store.heures_sup_cumul ?? 0) > 0;
-            const color = overtime || ratio < 0.15 ? "from-[#FF3B30] to-[#FF9500]" : ratio < 0.4 ? "from-[#FF9500] to-[#FFCC00]" : "from-[#34C759] to-[#007AFF]";
-            return (
-              <>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-medium text-[#86868B] dark:text-[#a0a0a5] uppercase tracking-wide">⏱ Temps</span>
-                  {overtime && <span className="text-[9px] font-bold text-[#FF3B30] bg-[#FF3B30]/10 px-1.5 py-0.5 rounded">HEURES SUP</span>}
-                </div>
-                <div className="font-mono text-[16px] font-bold text-[#1D1D1F] dark:text-white tabular-nums leading-none">
-                  {h}h{String(m).padStart(2, "0")} <span className="text-[10px] text-[#86868B] dark:text-[#98989D] font-normal">/ {hmax}h00</span>
-                </div>
-                <div className="mt-2 h-[4px] bg-[#E5E5EA] dark:bg-[#2c2c2e] rounded-full overflow-hidden">
-                  <div className={`h-full bg-gradient-to-r ${color} rounded-full transition-all duration-500`} style={{ width: `${ratio * 100}%` }} />
-                </div>
-              </>
-            );
-          })()}
-        </div>
-
-        {/* Statut API */}
-        <button onClick={props.onOpenKeyModal}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-[12px] text-[11px] transition-all ${
-            props.apiStatus === "ok" ? "bg-[#34C759]/10 text-[#34C759] hover:bg-[#34C759]/15" :
-            props.apiStatus === "error" ? "bg-[#FF3B30]/10 text-[#FF3B30] hover:bg-[#FF3B30]/15" :
-            "bg-[#FF9500]/10 text-[#FF9500]"
-          }`}>
-          <div className={`w-1.5 h-1.5 rounded-full ${
-            props.apiStatus === "ok" ? "bg-[#34C759] animate-pulse" :
-            props.apiStatus === "error" ? "bg-[#FF3B30]" : "bg-[#FF9500]"
-          }`} />
-          <span className="flex-1 text-left font-medium truncate">
-            {props.apiStatus === "ok" ? "IA Claude connectée" : props.apiStatus === "error" ? "IA hors ligne" : "Vérification…"}
-          </span>
-          {props.generatingEvents && <RefreshCw size={10} className="animate-spin" />}
-          <Settings size={11} className="opacity-50" />
-        </button>
       </div>
 
       {/* Claude Tuteur — bulle contextuelle */}
@@ -240,16 +188,6 @@ export function Sidebar(props: Props) {
         </div>
       </div>
 
-      {/* Switch CORE / IA (style PHDDEC) */}
-      <div className="px-4 pb-4">
-        <div className="flex items-center justify-between px-3">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#86868B]" />
-            <span className="text-[11px] font-medium text-[#86868B] dark:text-[#a0a0a5] uppercase tracking-wider">Mood · {store.mood_global}</span>
-          </div>
-          <span className="text-[10px] text-[#86868B]">{(store.tresorerie / 1000).toFixed(0)}k€</span>
-        </div>
-      </div>
     </aside>
   );
 }
