@@ -2073,8 +2073,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (state.mails.length > 0) return; // déjà des mails
 
-    // Génère 3-4 mails initiaux de clients
+    // 🚫 BLOCAGE MODE ZÉRO : pas de mails seedés tant que le cabinet n'a aucun
+    // dossier — ce serait incohérent (clients fantômes, agent qui parle de
+    // dossiers qu'il n'a pas).
     const dossiersActifs = state.dossiers.filter((d) => d.etat === "en_cours" || d.etat === "surveillance");
+    if (dossiersActifs.length === 0) {
+      set({ last_mail_check_iso: new Date().toISOString() });
+      return;
+    }
+
+    // Génère 3-4 mails initiaux de clients (depuis les dossiers actifs réels)
     const samples = dossiersActifs.slice(0, 4);
     samples.forEach((d, idx) => {
       const agent = state.agents.find((a) => a.id === d.agent_id);
@@ -2098,14 +2106,23 @@ export const useGameStore = create<GameState>((set, get) => ({
       }, idx * 100); // étale les timestamps
     });
 
-    // 1 mail d'un salarié
-    if (state.agents.length > 0) {
-      const a = state.agents[0];
+    // 1 mail d'un salarié — UNIQUEMENT si cet agent a AU MOINS 1 dossier,
+    // et le mail référence un VRAI dossier qu'il gère (pas de "Vidal" hardcodé).
+    const agentsAvecDossiers = state.agents.filter((a) =>
+      state.dossiers.some((d) => d.agent_id === a.id && (d.etat === "en_cours" || d.etat === "surveillance"))
+    );
+    if (agentsAvecDossiers.length > 0) {
+      const a = agentsAvecDossiers[0];
+      const sesDossiers = state.dossiers.filter((d) => d.agent_id === a.id && (d.etat === "en_cours" || d.etat === "surveillance"));
+      const dossierRef = sesDossiers[0]; // dossier le plus important pour citer
+      const chargeBlock = sesDossiers.length >= 4
+        ? `J'ai actuellement ${sesDossiers.length} dossiers en cours, dont ${dossierRef.client} (${dossierRef.theme}) qui demande pas mal de temps`
+        : `Je gère en ce moment ${sesDossiers.length} dossier${sesDossiers.length > 1 ? "s" : ""}, notamment ${dossierRef.client} (${dossierRef.theme})`;
       setTimeout(() => {
         get().receiveMail({
           from: { type: "agent", id: a.id, name: a.nom, email: `${a.nom.toLowerCase().replace(/\s+/g, ".")}@cabinet-morel.fr` },
-          subject: "Point organisation semaine",
-          body: `Bonjour chef,\n\nJ'aimerais qu'on fasse un point sur la répartition de mes dossiers cette semaine. Avec le bilan de Vidal qui arrive, je vais avoir besoin de soulager mon planning.\n\nSerait-il possible de me dégager un créneau cette semaine ?\n\nMerci,\n${a.nom.split(" ")[0]}`,
+          subject: "Point organisation — ma charge actuelle",
+          body: `Bonjour chef,\n\n${chargeBlock}. J'aimerais qu'on fasse un point sur la répartition pour anticiper la fin du mois.\n\nSerait-il possible de me dégager un créneau cette semaine ?\n\nMerci,\n${a.nom.split(" ")[0]}`,
         });
       }, samples.length * 100);
     }
