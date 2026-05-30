@@ -1829,8 +1829,30 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
 
-    // 3. Reset in-memory du flag start_mode_chosen pour que le modal s'affiche
-    set({ start_mode: null, start_mode_chosen: false, dynamic_cvs: [], agents: [], dossiers: [] });
+    // 3. Reset in-memory de TOUT ce qui pourrait persister malgré le reload
+    //    (prospects, mails, messages, corrections, former agents, etc.)
+    set({
+      start_mode: null,
+      start_mode_chosen: false,
+      dynamic_cvs: [],
+      agents: [],
+      dossiers: [],
+      prospects_pending: [],
+      last_prospect_day: 0,
+      prospects_dismissed_for_day: 0,
+      mails: [],
+      messages: [],
+      chat_corrections: [],
+      former_agents: [],
+      hired_candidates: [],
+      filled_positions: [],
+      fiscal_validations: {},
+      completed_tasks: [],
+      agent_player_history: {},
+      agent_cooldowns: {},
+      pending_obligation_id: null,
+      pending_obligation_meta: null,
+    });
 
     // 4. Reload de la page : tout repart from scratch + le modal de choix s'affiche
     if (typeof window !== "undefined") window.location.reload();
@@ -2261,8 +2283,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       persistAgents(get());
       persistDossiers(get());
       persistPlayerState(get());
-      // Génère 6 CVs initiaux pour pouvoir recruter
-      get().pushUrgentCVsAfterDeparture(6);
+      // Génère 20 CVs initiaux (tout le pool) pour pouvoir recruter sereinement
+      // → couvre toutes les filières + 4 profils RH
+      get().pushUrgentCVsAfterDeparture(20);
     }
     // mode "ready" : on garde l'état seedé par défaut
   },
@@ -2270,23 +2293,48 @@ export const useGameStore = create<GameState>((set, get) => ({
   /**
    * Pousse N candidats spontanés dans dynamic_cvs.
    * Utilisé après un départ d'agent OU au démarrage mode zéro.
+   * Pool de 20 candidats variés couvrant toutes les filières + 4 profils RH.
    */
   pushUrgentCVsAfterDeparture: (n = 3) => {
     const POOL = [
+      // === COMPTABLES (5) ===
       { nom: "Léa Marchand", age: 26, poste_vise: "Collaborateur Comptable", experience_annees: 3, competence_pct: 65, specialites: ["Tenue comptable", "DSN", "TVA"], salaire_demande: 34000, filiere: "Comptable", trait_dominant: "Loyal", notes_sophie: "Spontanée — disponibilité immédiate.", score_match: 72 },
-      { nom: "Karim Sefa", age: 31, poste_vise: "Manager Fiscal", experience_annees: 8, competence_pct: 84, specialites: ["IS", "CGI avancé", "Contentieux"], salaire_demande: 52000, filiere: "Fiscal", trait_dominant: "Rigoureux", notes_sophie: "Ex Cabinet Big4 — solide.", score_match: 88 },
+      { nom: "Inès Faure", age: 27, poste_vise: "Collaboratrice Comptable", experience_annees: 3, competence_pct: 60, specialites: ["Tenue", "Lettrage", "TVA"], salaire_demande: 32000, filiere: "Comptable", trait_dominant: "Loyal", notes_sophie: "Profil junior fiable.", score_match: 68 },
+      { nom: "Antoine Rossi", age: 41, poste_vise: "Chef de mission Comptable", experience_annees: 17, competence_pct: 88, specialites: ["Révision", "Bilan", "Liasse 2065", "Annexes"], salaire_demande: 58000, filiere: "Comptable", trait_dominant: "Rigide", notes_sophie: "Très expérimenté — exige autonomie.", score_match: 90 },
+      { nom: "Sara Bouchard", age: 29, poste_vise: "Collaboratrice Comptable", experience_annees: 5, competence_pct: 72, specialites: ["TVA", "DSN", "Révision", "Sage"], salaire_demande: 38000, filiere: "Comptable", trait_dominant: "Créatif", notes_sophie: "Bonne maîtrise outils — polyvalente.", score_match: 75 },
+      { nom: "Jules Mercier", age: 23, poste_vise: "Stagiaire Comptable", experience_annees: 1, competence_pct: 45, specialites: ["Saisie", "Lettrage", "Stage DCG"], salaire_demande: 22000, filiere: "Comptable", trait_dominant: "Empathique", notes_sophie: "Tout jeune — à former.", score_match: 55 },
+
+      // === FISCAUX (4) ===
+      { nom: "Karim Sefa", age: 31, poste_vise: "Manager Fiscal", experience_annees: 8, competence_pct: 84, specialites: ["IS", "CGI avancé", "Contentieux"], salaire_demande: 52000, filiere: "Fiscal", trait_dominant: "Rigide", notes_sophie: "Ex Cabinet Big4 — solide.", score_match: 88 },
+      { nom: "Hugo Vasseur", age: 35, poste_vise: "Chef de mission Fiscal", experience_annees: 10, competence_pct: 78, specialites: ["TVA intracom.", "Optimisation IS", "Contrôles fiscaux"], salaire_demande: 48000, filiere: "Fiscal", trait_dominant: "Rigide", notes_sophie: "Profil opérationnel.", score_match: 82 },
+      { nom: "Nadia El Amrani", age: 33, poste_vise: "Manager Fiscal International", experience_annees: 9, competence_pct: 86, specialites: ["Fiscalité internationale", "Prix de transfert", "BEPS"], salaire_demande: 62000, filiere: "Fiscal", trait_dominant: "Ambitieux", notes_sophie: "Profil rare — clients grands comptes.", score_match: 92 },
+      { nom: "Clément Riou", age: 26, poste_vise: "Collaborateur Fiscal", experience_annees: 3, competence_pct: 68, specialites: ["TVA", "IS", "CFE/CVAE"], salaire_demande: 36000, filiere: "Fiscal", trait_dominant: "Créatif", notes_sophie: "Bon potentiel — formé à Toulouse.", score_match: 74 },
+
+      // === AUDIT & IFRS (4) ===
       { nom: "Manon Dupré", age: 24, poste_vise: "Stagiaire DEC", experience_annees: 0, competence_pct: 40, specialites: ["Stage 3e année DEC"], salaire_demande: 24000, filiere: "Audit & IFRS", trait_dominant: "Créatif", notes_sophie: "Très motivée — formera bien.", score_match: 65 },
       { nom: "Thomas Régnier", age: 38, poste_vise: "Directeur Audit", experience_annees: 14, competence_pct: 92, specialites: ["IFRS", "Consolidation", "CAC"], salaire_demande: 75000, filiere: "Audit & IFRS", trait_dominant: "Ambitieux", notes_sophie: "Profil senior — coûteux mais expert.", score_match: 95 },
+      { nom: "Mathilde Leroy", age: 30, poste_vise: "Manager Audit", experience_annees: 7, competence_pct: 80, specialites: ["NEP", "CAC", "Révision IFRS"], salaire_demande: 50000, filiere: "Audit & IFRS", trait_dominant: "Loyal", notes_sophie: "Très solide en NEP.", score_match: 86 },
+      { nom: "Erwan Le Bras", age: 25, poste_vise: "Auditeur Junior", experience_annees: 2, competence_pct: 55, specialites: ["Audit légal", "Mémorisation NEP"], salaire_demande: 30000, filiere: "Audit & IFRS", trait_dominant: "Rigide", notes_sophie: "Sortie DSCG — appliqué.", score_match: 68 },
+
+      // === SOCIAL & PAIE (3) ===
       { nom: "Aïcha Bensaïd", age: 28, poste_vise: "Collaborateur Social", experience_annees: 4, competence_pct: 70, specialites: ["Paie", "DSN", "Droit social"], salaire_demande: 36000, filiere: "Social", trait_dominant: "Empathique", notes_sophie: "Très demandée — saisir vite.", score_match: 80 },
-      { nom: "Hugo Vasseur", age: 35, poste_vise: "Chef de mission Fiscal", experience_annees: 10, competence_pct: 78, specialites: ["TVA intracom.", "Optimisation IS", "Contrôles fiscaux"], salaire_demande: 48000, filiere: "Fiscal", trait_dominant: "Rigide", notes_sophie: "Profil opérationnel.", score_match: 82 },
-      { nom: "Inès Faure", age: 27, poste_vise: "Collaboratrice Comptable", experience_annees: 3, competence_pct: 60, specialites: ["Tenue", "Lettrage", "TVA"], salaire_demande: 32000, filiere: "Comptable", trait_dominant: "Loyal", notes_sophie: "Profil junior fiable.", score_match: 68 },
+      { nom: "Pierre Caillaux", age: 37, poste_vise: "Manager Social", experience_annees: 12, competence_pct: 85, specialites: ["Paie complexe", "Conventions collectives", "DSN", "URSSAF"], salaire_demande: 54000, filiere: "Social", trait_dominant: "Rigide", notes_sophie: "Connaît toutes les conventions.", score_match: 89 },
+      { nom: "Yasmine Daher", age: 26, poste_vise: "Gestionnaire Paie", experience_annees: 3, competence_pct: 62, specialites: ["Paie Silae", "DSN", "Soldes de tout compte"], salaire_demande: 33000, filiere: "Social", trait_dominant: "Loyal", notes_sophie: "Solide opérationnelle paie.", score_match: 72 },
+
+      // === RH (4 — important pour le mode zéro) ===
+      { nom: "Camille Rocheteau", age: 32, poste_vise: "Responsable RH", experience_annees: 8, competence_pct: 82, specialites: ["Recrutement", "Droit du travail", "Formation", "Conduite d'entretiens"], salaire_demande: 48000, filiere: "RH", trait_dominant: "Empathique", notes_sophie: "Profil RH expert cabinet libéral.", score_match: 88 },
+      { nom: "Olivier Schmidt", age: 45, poste_vise: "Directeur RH", experience_annees: 20, competence_pct: 91, specialites: ["Stratégie RH", "Talent management", "Médiation", "GPEC"], salaire_demande: 78000, filiere: "RH", trait_dominant: "Ambitieux", notes_sophie: "Profil DRH senior — référence cabinet.", score_match: 94 },
+      { nom: "Léna Vidal", age: 27, poste_vise: "Chargée de recrutement RH", experience_annees: 4, competence_pct: 72, specialites: ["Sourcing", "Entretiens", "Onboarding"], salaire_demande: 36000, filiere: "RH", trait_dominant: "Créatif", notes_sophie: "Très active sur LinkedIn — sourcing efficace.", score_match: 78 },
+      { nom: "Bertrand Aubert", age: 38, poste_vise: "Responsable Formation & RH", experience_annees: 13, competence_pct: 84, specialites: ["Plan formation", "Droit du travail", "Médiation", "DSN"], salaire_demande: 56000, filiere: "RH", trait_dominant: "Loyal", notes_sophie: "Mix formation/RH/social — polyvalent.", score_match: 86 },
     ];
 
     const existingIds = new Set(get().dynamic_cvs.map((c: any) => c.id));
     const newCVs: any[] = [];
-    for (let i = 0; i < n && i < POOL.length; i++) {
-      const base = POOL[Math.floor(Math.random() * POOL.length)];
-      const id = `dyn_cv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    // Tire SANS DOUBLON dans le pool : on shuffle puis on prend n premiers
+    const shuffled = [...POOL].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < n && i < shuffled.length; i++) {
+      const base = shuffled[i];
+      const id = `dyn_cv_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 7)}`;
       if (existingIds.has(id)) continue;
       newCVs.push({
         ...base,
@@ -2295,7 +2343,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         arrived_game_day: get().game_day,
       });
     }
-    set((s) => ({ dynamic_cvs: [...newCVs, ...s.dynamic_cvs].slice(0, 30) }));
+    set((s) => ({ dynamic_cvs: [...newCVs, ...s.dynamic_cvs].slice(0, 40) }));
     if (typeof window !== "undefined") {
       try { localStorage.setItem("dynamic_cvs", JSON.stringify(get().dynamic_cvs)); } catch {}
     }

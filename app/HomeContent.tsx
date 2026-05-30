@@ -117,12 +117,16 @@ export default function HomeContent() {
   }, [store.isAuthenticated, store.isLoading]);
 
   // Sprint 2 : 1-3 nouveaux prospects chaque jour
+  // ⚠️ Mode "zéro" : pas de prospects tant que l'équipe est vide
+  //   (sinon le joueur reçoit des clients qu'il ne peut pas servir).
   useEffect(() => {
     if (!store.isAuthenticated || store.isLoading) return;
+    if (!store.start_mode_chosen) return; // attend le choix du joueur
+    if (store.start_mode === "zero" && store.agents.length === 0) return;
     if (store.last_prospect_day !== store.game_day && store.prospects_pending.length === 0) {
       store.generateProspects();
     }
-  }, [store.game_day, store.isAuthenticated, store.isLoading]);
+  }, [store.game_day, store.isAuthenticated, store.isLoading, store.start_mode_chosen, store.start_mode, store.agents.length]);
 
   // Sprint 9 : CVs saisonniers — 1 check par jour
   useEffect(() => {

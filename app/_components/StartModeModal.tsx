@@ -110,7 +110,7 @@ export function StartModeModal({ onClose }: Props) {
               <li>💰 <strong>500 000 €</strong> de fonds de roulement</li>
               <li>👤 <strong>Aucun collaborateur</strong> — c'est toi tout seul</li>
               <li>📋 Aucun dossier client au départ</li>
-              <li>📨 <strong>6 CV</strong> spontanés à étudier dans RH</li>
+              <li>📨 <strong>20 CV</strong> spontanés à étudier dans RH (5 comptables, 4 fiscaux, 4 audit, 3 paie, 4 RH)</li>
               <li>📉 Légitimité 30/100 · Réputation 25/100 (à construire)</li>
             </ul>
             <div className="text-[11px] italic text-[#FF9500] dark:text-[#FF9F0A]">
