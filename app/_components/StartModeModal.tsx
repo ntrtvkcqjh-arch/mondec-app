@@ -107,14 +107,14 @@ export function StartModeModal({ onClose }: Props) {
               </div>
             </div>
             <ul className="text-[12px] text-[#3a3a3c] dark:text-[#d1d1d6] space-y-1.5 mb-4">
-              <li>💰 <strong>50 000 €</strong> de fonds de roulement</li>
+              <li>💰 <strong>500 000 €</strong> de fonds de roulement</li>
               <li>👤 <strong>Aucun collaborateur</strong> — c'est toi tout seul</li>
               <li>📋 Aucun dossier client au départ</li>
               <li>📨 <strong>6 CV</strong> spontanés à étudier dans RH</li>
               <li>📉 Légitimité 30/100 · Réputation 25/100 (à construire)</li>
             </ul>
             <div className="text-[11px] italic text-[#FF9500] dark:text-[#FF9F0A]">
-              Recommandé pour : apprendre la gestion RH et la stratégie de recrutement.
+              Recommandé pour : apprendre la gestion RH et la stratégie de recrutement. Budget suffisant pour 4-6 recrutements.
             </div>
           </button>
 

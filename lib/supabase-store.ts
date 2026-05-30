@@ -2246,11 +2246,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       try { localStorage.setItem("start_mode", mode); } catch {}
     }
     if (mode === "zero") {
-      // Vide l'équipe + dossiers, donne un fonds de roulement réduit
+      // Vide l'équipe + dossiers, donne un fonds de roulement de 500 k€
+      // → permet de recruter 4-6 collaborateurs (3 mois de salaire d'avance)
       set({
         agents: [],
         dossiers: [],
-        tresorerie: 50000,         // budget de démarrage minimal
+        tresorerie: 500000,         // fonds de roulement de démarrage
         legitimite: 30,             // jeune cabinet, faible légitimité
         reputation: 25,             // peu connu
         stress_global: 20,          // calme initial
