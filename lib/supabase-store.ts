@@ -163,6 +163,7 @@ export interface GameState {
   // Sprint 2 : Nouveaux prospects
   prospects_pending: NouveauProspect[];
   last_prospect_day: number;
+  prospects_dismissed_for_day: number; // jour où le joueur a fermé le modal sans tout traiter
 
   agents: Agent[];
   messages: Message[];
@@ -237,6 +238,7 @@ export interface GameState {
   generateProspects: () => void;
   acceptProspect: (id: string, agentId: string) => void;
   refuseProspect: (id: string) => void;
+  dismissProspectsForDay: () => void;
   computeIncompatibilites: (dossierId: string, agentId: string) => string[];
 
   // Sprint 4 : Cohérence inter-onglets
@@ -259,6 +261,9 @@ function persistDec(s: any) {
       badges: s.dec_badges,
       streak: s.dec_streak,
       last_day: s.dec_last_day,
+      today_deonto: s.dec_today_deonto,
+      today_mission: s.dec_today_mission,
+      today_day: s.game_day, // jour de référence pour today_*
     }));
   } catch {}
 }
@@ -269,6 +274,7 @@ function persistProspects(s: any) {
     localStorage.setItem("prospects_state", JSON.stringify({
       pending: s.prospects_pending,
       last_day: s.last_prospect_day,
+      dismissed_for_day: s.prospects_dismissed_for_day || 0,
     }));
   } catch {}
 }
@@ -309,6 +315,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   prospects_pending: [],
   last_prospect_day: 0,
+  prospects_dismissed_for_day: 0,
 
   agents: [],
   messages: [],
@@ -1126,8 +1133,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   // ── SPRINT 2 : Prospects + Incompatibilités ─────────────────────────────
   generateProspects: () => {
     const state = get();
-    // 1 popup tous les 3 jours max
-    if (state.game_day - state.last_prospect_day < 3) return;
+    // Max 1 batch par jour. Pas de re-génération si déjà en attente ou déjà vu aujourd'hui.
+    if (state.last_prospect_day === state.game_day) return;
     if (state.prospects_pending.length > 0) return;
 
     const SECTEURS = ["BioTech Lyon", "Boulangerie Dupont", "Tech Composants", "Conseil Stratégie", "Restaurant Mer", "BTP Sud", "SaaS Pro", "Distribution Plus", "Cabinet Médical", "Immobilier Centre"];
@@ -1140,11 +1147,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       return arr.slice().sort(() => Math.random() - 0.5).slice(0, n);
     }
 
-    const newProspects: NouveauProspect[] = Array.from({ length: 2 }).map((_, i) => {
+    // 1, 2 ou 3 prospects au hasard chaque jour
+    const count = 1 + Math.floor(Math.random() * 3);
+    const newProspects: NouveauProspect[] = Array.from({ length: count }).map((_, i) => {
       const nameBase = SECTEURS[Math.floor(Math.random() * SECTEURS.length)];
       const suffix = SUFFIX[Math.floor(Math.random() * SUFFIX.length)];
       return {
-        id: `prospect_${state.game_day}_${i}`,
+        id: `prospect_${state.game_day}_${i}_${Date.now()}`,
         client: `${nameBase} ${suffix}`,
         secteur: nameBase.split(" ").slice(0, 2).join(" "),
         ca: 200000 + Math.floor(Math.random() * 4800000),
@@ -1162,6 +1171,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     set({ prospects_pending: newProspects, last_prospect_day: state.game_day });
+    persistProspects(get());
+  },
+
+  dismissProspectsForDay: () => {
+    const state = get();
+    set({ prospects_dismissed_for_day: state.game_day });
     persistProspects(get());
   },
 
@@ -1527,21 +1542,28 @@ export const useGameStore = create<GameState>((set, get) => ({
       const dec = localStorage.getItem("dec_state");
       if (dec) {
         const d = JSON.parse(dec);
-        set((s) => ({
-          dec_completed_deonto_ids: d.deonto || s.dec_completed_deonto_ids,
-          dec_completed_mission_ids: d.mission || s.dec_completed_mission_ids,
-          dec_badges: d.badges || s.dec_badges,
-          dec_streak: d.streak ?? s.dec_streak,
-          dec_last_day: d.last_day ?? s.dec_last_day,
-        }));
+        set((s) => {
+          // today_* ne sont valides que si on est le même jour qu'à la sauvegarde
+          const sameDay = typeof d.today_day === "number" && d.today_day === s.game_day;
+          return {
+            dec_completed_deonto_ids: d.deonto || s.dec_completed_deonto_ids,
+            dec_completed_mission_ids: d.mission || s.dec_completed_mission_ids,
+            dec_badges: d.badges || s.dec_badges,
+            dec_streak: d.streak ?? s.dec_streak,
+            dec_last_day: d.last_day ?? s.dec_last_day,
+            dec_today_deonto: sameDay ? !!d.today_deonto : s.dec_today_deonto,
+            dec_today_mission: sameDay ? !!d.today_mission : s.dec_today_mission,
+          };
+        });
       }
-      // Sprint 2 : restaure aussi les prospects (last_prospect_day + pending)
+      // Sprint 2 : restaure aussi les prospects (last_prospect_day + pending + dismissed)
       const prospects = localStorage.getItem("prospects_state");
       if (prospects) {
         const p = JSON.parse(prospects);
         set((s) => ({
           prospects_pending: Array.isArray(p.pending) ? p.pending : s.prospects_pending,
           last_prospect_day: typeof p.last_day === "number" ? p.last_day : s.last_prospect_day,
+          prospects_dismissed_for_day: typeof p.dismissed_for_day === "number" ? p.dismissed_for_day : s.prospects_dismissed_for_day,
         }));
       }
     } catch (e) {

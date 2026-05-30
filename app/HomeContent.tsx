@@ -57,18 +57,20 @@ export default function HomeContent() {
     return () => clearInterval(t);
   }, [store.isAuthenticated, store.isLoading]);
 
-  // Sprint 2 : Nouveaux prospects tous les 3 jours
+  // Sprint 2 : 1-3 nouveaux prospects chaque jour
   useEffect(() => {
     if (!store.isAuthenticated || store.isLoading) return;
-    if (store.game_day >= store.last_prospect_day + 3 && store.prospects_pending.length === 0) {
+    if (store.last_prospect_day !== store.game_day && store.prospects_pending.length === 0) {
       store.generateProspects();
     }
   }, [store.game_day, store.isAuthenticated, store.isLoading]);
 
-  // Ouvre le modal prospects dès qu'il y a des prospects en attente
+  // Ouvre le modal prospects UNIQUEMENT si le joueur n'a pas déjà fermé le batch du jour
   useEffect(() => {
-    if (store.prospects_pending.length > 0) setShowProspects(true);
-  }, [store.prospects_pending.length]);
+    if (store.prospects_pending.length === 0) return;
+    if (store.prospects_dismissed_for_day === store.game_day) return; // déjà fermé aujourd'hui
+    setShowProspects(true);
+  }, [store.prospects_pending.length, store.prospects_dismissed_for_day, store.game_day]);
 
   // Test santé API — poll rapide (30s) si erreur (utile après ajout de crédits),
   // poll lent (5min) si OK
@@ -192,7 +194,7 @@ export default function HomeContent() {
       <ClaudeFloating />
       <CascadeNotifications />
 
-      {showProspects && <ProspectsModal onClose={() => setShowProspects(false)} />}
+      {showProspects && <ProspectsModal onClose={() => { setShowProspects(false); store.dismissProspectsForDay(); }} />}
     </div>
   );
 }

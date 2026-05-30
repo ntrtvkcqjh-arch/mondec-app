@@ -50,12 +50,6 @@ function getNiveauLabel(n: string) {
   }
 }
 
-function getPACost(n: string) {
-  if (n === "N3" || n === "N4") return 1;
-  if (n === "N5") return 2;
-  return 0;
-}
-
 export function MessagesView({ onOpenKeyModal }: Props) {
   const store = useGameStore();
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
@@ -147,9 +141,26 @@ export function MessagesView({ onOpenKeyModal }: Props) {
     // Chat illimité — plus de limite de PA pour envoyer des messages
     // (les PA restent utilisables pour les actions stratégiques : Former, Récupération, etc.)
 
-    const currentHistory = store.conversation_history[agent.id] || [];
+    // Mémoire enrichie : on construit l'historique pour Claude en injectant TOUS
+    // les messages que l'agent t'a envoyés (depuis store.messages[]) comme des
+    // tours "assistant". Sinon Claude ne voit pas ce que l'agent t'a dit en premier
+    // et te répond comme s'il découvrait la conversation.
+    const agentInitialMessages = store.messages
+      .filter((m) => m.agent_id === agent.id)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .map((m) => ({
+        role: "assistant" as const,
+        content: `[${m.niveau} · ${m.sujet}]\n${m.contenu}${m.reponse_joueur ? `\n\n— Tu as répondu à ce moment-là : "${m.reponse_joueur}"` : ""}`,
+      }));
+
+    const storedHistory = store.conversation_history[agent.id] || [];
+    // Dedoublonnage : si un message initial a déjà été ajouté à storedHistory, ne pas le ré-injecter
+    const initialSubjects = new Set(storedHistory.map((m) => m.content.slice(0, 80)));
+    const initialToInject = agentInitialMessages.filter((m) => !initialSubjects.has(m.content.slice(0, 80)));
+
+    const fullHistory = [...initialToInject, ...storedHistory];
     const userMsg = { role: "user" as const, content: text };
-    console.log("[CHAT] Envoi à l'API…", { agent: agent.nom, historyLength: currentHistory.length });
+    console.log("[CHAT] Envoi à l'API…", { agent: agent.nom, initialMsgs: initialToInject.length, storedMsgs: storedHistory.length });
 
     useGameStore.setState((s) => ({
       conversation_history: {
@@ -163,7 +174,7 @@ export function MessagesView({ onOpenKeyModal }: Props) {
         method: "POST",
         body: JSON.stringify({
           mode: "agent",
-          messages: [...currentHistory, userMsg],
+          messages: [...fullHistory, userMsg],
           agent_context: agent,
           game_state: {
             date: store.date_simulation,
@@ -172,6 +183,11 @@ export function MessagesView({ onOpenKeyModal }: Props) {
             minute: store.game_minute,
             day: store.game_day,
             player_level: store.player_level,
+            // Contexte enrichi : dossiers de l'agent, satisfaction, etc.
+            agent_dossiers: store.dossiers.filter((d) => d.agent_id === agent.id).map((d) => ({
+              client: d.client, etat: d.etat, progression: d.progression, phase: d.phase, qualite: d.qualite,
+            })),
+            agent_history_recent: (store.agent_player_history[agent.id] || []).slice(0, 5),
           },
         }),
       });
