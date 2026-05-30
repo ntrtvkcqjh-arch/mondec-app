@@ -31,8 +31,22 @@ interface Recrutement {
 
 export function RhView() {
   const store = useGameStore();
-  const candidats: Candidat[] = (cvData as any).candidats || [];
-  const recrutements: Recrutement[] = (cvData as any).recrutements_actifs || [];
+  const allCandidats: Candidat[] = (cvData as any).candidats || [];
+  const allRecrutements: Recrutement[] = (cvData as any).recrutements_actifs || [];
+
+  // Filtre : exclure les candidats déjà embauchés et les postes pourvus
+  const candidats = allCandidats.filter((c) => !store.hired_candidates.includes(c.id));
+  const recrutements = allRecrutements.filter((r) => !store.filled_positions.includes(r.id));
+
+  // Cohérence : on ne montre que les CV dont le poste_vise correspond à un poste ouvert
+  // (ou qui n'ont pas de poste précis matché — on les garde tous par défaut)
+  const postesOuvertsKeys = recrutements.map((r) => r.poste.toLowerCase().split(" — ")[0].trim());
+  const candidatsCoherents = candidats.filter((c) => {
+    if (postesOuvertsKeys.length === 0) return true; // aucun poste ouvert → on garde tout (au cas où)
+    const visee = c.poste_vise.toLowerCase();
+    return postesOuvertsKeys.some((k) => visee.includes(k) || k.includes(visee));
+  });
+
   const [activeCV, setActiveCV] = useState<Candidat | null>(null);
   const [tab, setTab] = useState<"sophie" | "cv" | "recrutements">("sophie");
   const [reportValidated, setReportValidated] = useState(false);
@@ -51,7 +65,15 @@ export function RhView() {
     // CASCADE : Ajoute l'agent à l'équipe + message N1 de Sophie
     store.hireFromCV(c);
     store.applyEmbaucheBonus(c.nom);
-    alert(`✅ ${c.nom} embauché(e) ! L'équipe a été notifiée. +5 Réputation · +3 Légitimité · −5 stress équipe · −${(c.salaire_demande * 3 / 1000).toFixed(0)}k€ trésorerie`);
+
+    // Marque le candidat embauché + pourvoit le poste correspondant
+    const matchingPosition = recrutements.find((r) =>
+      r.poste.toLowerCase().includes(c.poste_vise.toLowerCase()) ||
+      c.poste_vise.toLowerCase().includes(r.poste.toLowerCase().split(" — ")[0].trim())
+    );
+    store.markCandidateHired(c.id, matchingPosition?.id || null);
+
+    alert(`✅ ${c.nom} embauché(e) ! ${matchingPosition ? `Poste '${matchingPosition.poste}' pourvu.` : ""} L'équipe a été notifiée. +5 Réputation · +3 Légitimité · −5 stress équipe · −${(c.salaire_demande * 3 / 1000).toFixed(0)}k€ trésorerie`);
     setActiveCV(null);
   }
 
@@ -113,7 +135,7 @@ export function RhView() {
         <div className="flex gap-1.5 mb-4 bg-[#F5F5F7] dark:bg-[#2c2c2e] p-1 rounded-[10px] inline-flex">
           {[
             { id: "sophie", label: "📊 Compte-rendu Sophie" },
-            { id: "cv", label: `📄 CV pré-sélectionnés (${candidats.length})` },
+            { id: "cv", label: `📄 CV pré-sélectionnés (${candidatsCoherents.length})` },
             { id: "recrutements", label: `💼 Postes ouverts (${recrutements.length})` },
           ].map((t) => (
             <button key={t.id} onClick={() => setTab(t.id as any)}
@@ -218,10 +240,15 @@ export function RhView() {
           </div>
         )}
 
-        {/* TAB CV */}
+        {/* TAB CV — uniquement les CV correspondant à un poste ouvert (cohérence) */}
         {tab === "cv" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {candidats.map((c) => (
+            {candidatsCoherents.length === 0 && (
+              <div className="col-span-full text-center py-12 text-[#86868B] dark:text-[#98989D] text-[12px]">
+                Aucun CV ne correspond aux postes ouverts. Ouvre un nouveau recrutement ou attends que Sophie en pré-sélectionne d'autres.
+              </div>
+            )}
+            {candidatsCoherents.map((c) => (
               <div key={c.id} className="bg-white dark:bg-[#1c1c1e] rounded-[16px] p-4 border border-[#E5E5EA]/40 dark:border-[#38383a] hover:shadow-md transition-all">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#AF52DE] to-[#5856D6] flex items-center justify-center text-white font-bold text-[14px] shadow-sm shrink-0">

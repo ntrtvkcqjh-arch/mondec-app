@@ -13,6 +13,7 @@ import { MorningBriefingModal } from "./_components/MorningBriefingModal";
 import { EveningRecapModal } from "./_components/EveningRecapModal";
 import { CorrectionsView } from "./_components/CorrectionsView";
 import { AffectationsView } from "./_components/AffectationsView";
+import { MailView } from "./_components/MailView";
 import { EquipeView } from "./_components/EquipeView";
 import { AgendaView } from "./_components/AgendaView";
 import { DossiersView } from "./_components/DossiersView";
@@ -218,6 +219,7 @@ export default function HomeContent() {
         <TopBar apiStatus={apiStatus} />
         <div className="flex-1 flex overflow-hidden">
         {activeTab === "messages" && <MessagesView onOpenKeyModal={() => setShowKeyModal(true)} />}
+        {activeTab === "mail" && <MailView />}
         {activeTab === "equipe" && <EquipeView />}
         {activeTab === "agenda" && <AgendaView apiStatus={apiStatus} />}
         {activeTab === "tasks" && <TasksView />}

@@ -110,6 +110,33 @@ export interface ClaudeMsg {
   content: string;
 }
 
+/** Contact mail (client, agent, ou soi) */
+export interface MailContact {
+  type: "client" | "agent" | "self" | "external";
+  id?: string; // dossier_id pour client, agent_id pour agent
+  name: string;
+  email: string;
+}
+
+/** Un email du jeu — formel, avec To/CC, relances auto, impacts relation */
+export interface Email {
+  id: string;
+  direction: "in" | "out"; // reçu ou envoyé par le joueur
+  from: MailContact;
+  to: MailContact[];
+  cc: MailContact[];
+  subject: string;
+  body: string;
+  date_iso: string;
+  game_day: number;
+  game_hour: number;
+  read: boolean;
+  replied: boolean;
+  relance_count: number;
+  parent_id?: string; // si c'est une relance ou réponse à un autre mail
+  expected_cc_ids?: string[]; // ids des contacts qui auraient dû être en CC (pour scoring relation)
+}
+
 /** Un ancien collaborateur ayant quitté le cabinet (démission ou licenciement) */
 export interface FormerAgent {
   id: string;
@@ -220,6 +247,14 @@ export interface GameState {
   // Sprint 5 : Anciens collaborateurs (démissions / licenciements)
   former_agents: FormerAgent[];
 
+  // Sprint 6 : RH — tracking des recrutements
+  filled_positions: string[]; // ids des recrutements pourvus
+  hired_candidates: string[]; // ids des CV embauchés
+
+  // Sprint 7 : Système Mail (distinct de la Messagerie)
+  mails: Email[];
+  last_mail_check_iso: string | null; // pour générer les relances auto
+
   agents: Agent[];
   messages: Message[];
   dossiers: Dossier[];
@@ -309,6 +344,17 @@ export interface GameState {
 
   // Sprint 5 : Licencier / faire partir un collaborateur (avec cascade)
   fireAgent: (agentId: string, motif: string, motifType?: FormerAgent["motif_type"]) => { ok: boolean; reason?: string };
+
+  // Sprint 6 : Recrutement — marque un candidat embauché + poste pourvu
+  markCandidateHired: (candidatId: string, positionId: string | null) => void;
+
+  // Sprint 7 : Système Mail
+  sendMail: (payload: { to: MailContact[]; cc: MailContact[]; subject: string; body: string; parent_id?: string; expected_cc_ids?: string[] }) => void;
+  receiveMail: (payload: { from: MailContact; to?: MailContact[]; cc?: MailContact[]; subject: string; body: string; expected_cc_ids?: string[] }) => void;
+  markMailRead: (id: string) => void;
+  deleteMail: (id: string) => void;
+  generateInitialMails: () => void;
+  checkAndGenerateRelances: () => void;
 
   // Reset complet du jeu (localStorage + Supabase user data)
   resetGame: () => Promise<void>;
@@ -458,6 +504,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   fiscal_validations: {},
   chat_corrections: [],
   former_agents: [],
+  filled_positions: [],
+  hired_candidates: [],
+  mails: [],
+  last_mail_check_iso: null,
 
   agents: [],
   messages: [],
@@ -942,28 +992,27 @@ export const useGameStore = create<GameState>((set, get) => ({
     } catch {}
 
     if (!startTs || isNaN(startTs)) {
-      // Première fois : on initialise au jour 1, 8h30 maintenant
+      // Première fois : on initialise au moment réel du démarrage
       startTs = Date.now();
       try { localStorage.setItem("game_start_ts", String(startTs)); } catch {}
     }
 
-    const now = Date.now();
-    const elapsedRealSeconds = Math.floor((now - startTs) / 1000);
-    // 1 sec réelle = 30 sec jeu (ratio 1:30) → 1 jour jeu = 48 min réelles, confortable pour jouer
-    const elapsedGameMinutes = Math.floor(elapsedRealSeconds * 0.5);
+    // ⏰ HORLOGE TEMPS RÉEL : on suit l'heure réelle de l'utilisateur
+    // game_day = nombre de jours réels depuis le 1er lancement (+ 1)
+    // game_hour/minute = heure réelle
+    const now = new Date();
+    const startDate = new Date(startTs);
 
-    // Journée complète 24h (0h00 → 24h00). Permet de voir qui travaille le soir.
-    const dayLength = 24 * 60; // 1440 minutes par jour
-    const initialOffset = 8 * 60 + 30; // démarrage à 8h30 (briefing time)
+    // Comparaison des jours civils (pas des 24h écoulées) pour matcher minuit local
+    const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
+    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const day = Math.floor((nowMidnight - startMidnight) / (24 * 60 * 60 * 1000)) + 1;
 
-    const totalMinutesFromStart = elapsedGameMinutes + initialOffset;
-    const day = Math.floor(totalMinutesFromStart / dayLength) + 1;
-    const minutesInThisDay = totalMinutesFromStart % dayLength;
-    const hour = Math.floor(minutesInThisDay / 60);
-    const minute = minutesInThisDay % 60;
+    const hour = now.getHours();
+    const minute = now.getMinutes();
 
     set((state) => {
-      // Si on change de jour → reset Temps disponible + reset heures sup
+      // Si on change de jour civil → reset Temps disponible + heures sup
       const isNewDay = day > state.game_day;
       return {
         game_hour: hour,
@@ -1541,6 +1590,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       "dossier_chats_v1",
       "chat_corrections",
       "former_agents",
+      "hired_candidates",
+      "filled_positions",
+      "mails_state",
     ];
     // Aussi purger toutes les clés dynamiques de tracking (retard_X, drama_check_X, etc.)
     const allKeys = Object.keys(localStorage);
@@ -1567,6 +1619,23 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // 3. Reload de la page : tout repart from scratch
     if (typeof window !== "undefined") window.location.reload();
+  },
+
+  markCandidateHired: (candidatId, positionId) => {
+    set((s) => ({
+      hired_candidates: s.hired_candidates.includes(candidatId)
+        ? s.hired_candidates
+        : [...s.hired_candidates, candidatId],
+      filled_positions: positionId && !s.filled_positions.includes(positionId)
+        ? [...s.filled_positions, positionId]
+        : s.filled_positions,
+    }));
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("hired_candidates", JSON.stringify(get().hired_candidates));
+        localStorage.setItem("filled_positions", JSON.stringify(get().filled_positions));
+      } catch {}
+    }
   },
 
   markObligationDeposee: (obligationId, type, client) => {
@@ -1612,6 +1681,175 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ chat_corrections: [] });
     if (typeof window !== "undefined") {
       try { localStorage.removeItem("chat_corrections"); } catch {}
+    }
+  },
+
+  sendMail: (payload) => {
+    const state = get();
+    const newMail: Email = {
+      id: `mail_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      direction: "out",
+      from: { type: "self", name: "Toi", email: "associe@cabinet-morel.fr" },
+      to: payload.to,
+      cc: payload.cc,
+      subject: payload.subject,
+      body: payload.body,
+      date_iso: new Date().toISOString(),
+      game_day: state.game_day,
+      game_hour: state.game_hour,
+      read: true,
+      replied: false,
+      relance_count: 0,
+      parent_id: payload.parent_id,
+      expected_cc_ids: payload.expected_cc_ids,
+    };
+    set((s) => ({ mails: [newMail, ...s.mails].slice(0, 200) }));
+
+    // Si c'est une réponse à un mail, marque le parent comme répondu + applique impact CC
+    if (payload.parent_id) {
+      const parent = state.mails.find((m) => m.id === payload.parent_id);
+      if (parent) {
+        // Impact relation : si on a oublié de mettre en CC les bons agents/clients → -confiance
+        const ccIdsSent = new Set(payload.cc.map((c) => c.id).filter(Boolean) as string[]);
+        const expected = parent.expected_cc_ids || [];
+        const missed = expected.filter((id) => !ccIdsSent.has(id));
+        if (missed.length > 0) {
+          // Pénalité légère pour chaque agent oublié en CC
+          set((s) => ({
+            agents: s.agents.map((a) =>
+              missed.includes(a.id) ? { ...a, confiance_joueur: Math.max(0, a.confiance_joueur - 3) } : a
+            ),
+          }));
+        }
+        // Marque parent répondu
+        set((s) => ({
+          mails: s.mails.map((m) => m.id === parent.id ? { ...m, replied: true, read: true } : m),
+        }));
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("mails_state", JSON.stringify(get().mails)); } catch {}
+    }
+  },
+
+  receiveMail: (payload) => {
+    const state = get();
+    const newMail: Email = {
+      id: `mail_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      direction: "in",
+      from: payload.from,
+      to: payload.to || [{ type: "self", name: "Toi", email: "associe@cabinet-morel.fr" }],
+      cc: payload.cc || [],
+      subject: payload.subject,
+      body: payload.body,
+      date_iso: new Date().toISOString(),
+      game_day: state.game_day,
+      game_hour: state.game_hour,
+      read: false,
+      replied: false,
+      relance_count: 0,
+      expected_cc_ids: payload.expected_cc_ids,
+    };
+    set((s) => ({ mails: [newMail, ...s.mails].slice(0, 200) }));
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("mails_state", JSON.stringify(get().mails)); } catch {}
+    }
+  },
+
+  markMailRead: (id) => {
+    set((s) => ({ mails: s.mails.map((m) => m.id === id ? { ...m, read: true } : m) }));
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("mails_state", JSON.stringify(get().mails)); } catch {}
+    }
+  },
+
+  deleteMail: (id) => {
+    set((s) => ({ mails: s.mails.filter((m) => m.id !== id) }));
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("mails_state", JSON.stringify(get().mails)); } catch {}
+    }
+  },
+
+  generateInitialMails: () => {
+    const state = get();
+    if (state.mails.length > 0) return; // déjà des mails
+
+    // Génère 3-4 mails initiaux de clients
+    const dossiersActifs = state.dossiers.filter((d) => d.etat === "en_cours" || d.etat === "surveillance");
+    const samples = dossiersActifs.slice(0, 4);
+    samples.forEach((d, idx) => {
+      const agent = state.agents.find((a) => a.id === d.agent_id);
+      const emailSlug = d.client.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30);
+      setTimeout(() => {
+        get().receiveMail({
+          from: { type: "client", id: d.id, name: `Direction ${d.client}`, email: `direction@${emailSlug}.fr` },
+          subject: idx === 0 ? `Demande de point sur notre dossier` :
+                   idx === 1 ? `Question urgente — déclaration TVA` :
+                   idx === 2 ? `Confirmation de notre RDV` :
+                              `Documents complémentaires à transmettre`,
+          body: idx === 0
+            ? `Bonjour,\n\nJe me permets de vous solliciter pour faire le point sur l'avancement de notre dossier. Pourriez-vous me confirmer la date de signature du bilan ?\n\nNous avons également besoin de précisions sur la provision Bertrand — le commissaire aux comptes nous a contactés directement.\n\nMerci de me tenir informé(e).\n\nCordialement,\nLa Direction`
+            : idx === 1
+              ? `Bonjour,\n\nNotre déclaration de TVA de mai 2026 est en attente. Le délai approche et nous n'avons pas reçu votre validation.\n\nPouvez-vous traiter ce point en priorité ? L'inspecteur des impôts nous a déjà contactés une fois ce trimestre.\n\nBien à vous,\nDirection financière`
+              : idx === 2
+                ? `Bonjour,\n\nJe confirme notre rendez-vous de signature du bilan prévu dans les prochains jours. Pouvez-vous me confirmer l'heure exacte et m'envoyer la liasse définitive à l'avance pour préparation ?\n\nMerci,\nGérance`
+                : `Bonjour,\n\nVoici les éléments complémentaires que vous m'avez demandés : facture Bertrand SAS, contrat de prestation, et attestation bancaire.\n\nMerci de bien vouloir les intégrer au dossier de clôture.\n\nCordialement`,
+          expected_cc_ids: agent ? [agent.id] : [],
+        });
+      }, idx * 100); // étale les timestamps
+    });
+
+    // 1 mail d'un salarié
+    if (state.agents.length > 0) {
+      const a = state.agents[0];
+      setTimeout(() => {
+        get().receiveMail({
+          from: { type: "agent", id: a.id, name: a.nom, email: `${a.nom.toLowerCase().replace(/\s+/g, ".")}@cabinet-morel.fr` },
+          subject: "Point organisation semaine",
+          body: `Bonjour chef,\n\nJ'aimerais qu'on fasse un point sur la répartition de mes dossiers cette semaine. Avec le bilan de Vidal qui arrive, je vais avoir besoin de soulager mon planning.\n\nSerait-il possible de me dégager un créneau cette semaine ?\n\nMerci,\n${a.nom.split(" ")[0]}`,
+        });
+      }, samples.length * 100);
+    }
+
+    set({ last_mail_check_iso: new Date().toISOString() });
+  },
+
+  checkAndGenerateRelances: () => {
+    const state = get();
+    const now = Date.now();
+    const lastCheck = state.last_mail_check_iso ? new Date(state.last_mail_check_iso).getTime() : 0;
+    // Check max 1x toutes les 5 min réelles
+    if (now - lastCheck < 5 * 60 * 1000) return;
+
+    const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+    state.mails.forEach((m) => {
+      if (m.direction !== "in" || m.replied) return;
+      if (m.relance_count >= 2) return; // max 2 relances
+      const sentAt = new Date(m.date_iso).getTime();
+      const since = now - sentAt;
+      const expectedRelances = Math.floor(since / TWO_DAYS_MS);
+      if (expectedRelances > m.relance_count) {
+        // Génère une relance
+        const isClient = m.from.type === "client";
+        get().receiveMail({
+          from: m.from,
+          subject: `[Relance ${m.relance_count + 1}] ${m.subject}`,
+          body: isClient
+            ? `Bonjour,\n\nJe me permets de revenir vers vous concernant mon précédent message resté sans réponse depuis ${m.relance_count + 1 === 1 ? "2 jours" : "plusieurs jours"}.\n\n${m.relance_count >= 1 ? "Je commence à m'inquiéter — pouvez-vous me confirmer la prise en charge ?" : "Pouvez-vous me confirmer la bonne réception et me dire quand vous comptez traiter ce point ?"}\n\nCordialement,\n${m.from.name}`
+            : `Re,\n\nJe relance sur mon mail précédent. Tu as eu l'occasion d'y jeter un œil ?\n\nÇa devient urgent.\n\n${m.from.name.split(" ")[0]}`,
+          expected_cc_ids: m.expected_cc_ids,
+        });
+        // Incrémente le compteur sur l'original
+        set((s) => ({
+          mails: s.mails.map((mm) => mm.id === m.id ? { ...mm, relance_count: mm.relance_count + 1 } : mm),
+        }));
+      }
+    });
+
+    set({ last_mail_check_iso: new Date().toISOString() });
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("mails_state", JSON.stringify(get().mails)); } catch {}
     }
   },
 
@@ -1953,6 +2191,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     } as Agent;
 
     set((s) => ({ agents: [...s.agents, newAgent] }));
+    persistAgents(get());
+
+    // Marque le candidat comme embauché (+ pourvoit la position correspondante si match)
+    get().markCandidateHired(candidat.id, null);
 
     // Message de bienvenue de l'équipe (par Sophie RH)
     const sophie = state.agents.find((a) => a.role.toLowerCase().includes("rh"));
@@ -2154,6 +2396,23 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (formers) {
         const arr = JSON.parse(formers);
         if (Array.isArray(arr)) set({ former_agents: arr });
+      }
+      // Restaure les recrutements RH (postes pourvus + candidats embauchés)
+      const hired = localStorage.getItem("hired_candidates");
+      if (hired) {
+        const arr = JSON.parse(hired);
+        if (Array.isArray(arr)) set({ hired_candidates: arr });
+      }
+      const filled = localStorage.getItem("filled_positions");
+      if (filled) {
+        const arr = JSON.parse(filled);
+        if (Array.isArray(arr)) set({ filled_positions: arr });
+      }
+      // Restaure la boîte mail
+      const mailsStored = localStorage.getItem("mails_state");
+      if (mailsStored) {
+        const arr = JSON.parse(mailsStored);
+        if (Array.isArray(arr)) set({ mails: arr });
       }
 
       // Restaure l'état complet des agents (stress, fatigue, confiance, emotion, arc)
