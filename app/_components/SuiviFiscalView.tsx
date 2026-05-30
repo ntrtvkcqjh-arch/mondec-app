@@ -66,6 +66,8 @@ const STATUT_DETAILLE_STYLE: Record<DetailedStatut, { bg: string; text: string; 
 export function SuiviFiscalView() {
   const store = useGameStore();
   const [view, setView] = useState<"liste" | "calendrier" | "alertes">("liste");
+  const [showDone, setShowDone] = useState<boolean>(false); // affiche-t-on les déposées ?
+  const [openClientId, setOpenClientId] = useState<string | null>(null); // pour drawer client
   const [activeObligation, setActiveObligation] = useState<Obligation | null>(null);
   const [showAffectation, setShowAffectation] = useState<string | null>(null); // client id
 
@@ -230,100 +232,201 @@ export function SuiviFiscalView() {
           </div>
         )}
 
-        {/* VUE LISTE */}
+        {/* VUE LISTE — grille carrée par client */}
         {view === "liste" && (
-          <div className="space-y-3">
-            {Object.entries(parClient).map(([client, obs]) => {
-              const a = store.agents.find((x) => x.id === obs[0].collaborateur_id);
-              return (
-                <div key={client} className="bg-white rounded-[16px] border border-[#E5E5EA]/40 dark:border-[#38383a] overflow-hidden">
-                  <div className="px-4 py-3 bg-gradient-to-r from-[#F5F5F7] to-white border-b border-[#E5E5EA]/40 dark:border-[#38383a] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[14px] font-semibold text-[#1D1D1F] dark:text-white">🏢 {client}</span>
-                      {a && (
-                        <span className="flex items-center gap-1 text-[10px] text-[#86868B]">
-                          <span>Géré par</span>
-                          <div className="w-4 h-4 rounded-full text-white text-[8px] flex items-center justify-center font-semibold" style={{ backgroundColor: a.avatar_color }}>{a.initiales}</div>
-                          <span>{a.nom}</span>
-                        </span>
-                      )}
+          <>
+            {/* Toggle Afficher tout / À traiter */}
+            <div className="flex items-center gap-2 mb-5">
+              <div className="theme-seg">
+                <button onClick={() => setShowDone(false)} className={!showDone ? "active" : ""}>À traiter</button>
+                <button onClick={() => setShowDone(true)} className={showDone ? "active" : ""}>Tout afficher</button>
+              </div>
+              <span className="text-[11px]" style={{ color: "var(--mdec-text-3)" }}>
+                {showDone ? "Toutes les obligations" : "Cache les déposées et OK"}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {Object.entries(parClient).map(([client, obs]) => {
+                // Filtre selon showDone
+                const visibleObs = showDone ? obs : obs.filter((o) => o.statut_detaille !== "Déposée" && o.statut !== "ok");
+                if (visibleObs.length === 0) return null;
+
+                const a = store.agents.find((x) => x.id === visibleObs[0].collaborateur_id);
+                const nbRetard = visibleObs.filter((o) => o.statut === "retard").length;
+                const nbUrgent = visibleObs.filter((o) => o.statut === "j1" || o.statut === "j3").length;
+                const totalDeposees = obs.filter((o) => o.statut_detaille === "Déposée").length;
+
+                return (
+                  <div
+                    key={client}
+                    onClick={() => setOpenClientId(client)}
+                    className="surface-card lift press cursor-pointer rounded-[24px] p-5"
+                  >
+                    {/* Header carte client */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-[15px] font-semibold tracking-[-0.01em] truncate" style={{ color: "var(--mdec-text)" }}>
+                          🏢 {client}
+                        </h3>
+                        {a && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <div className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-semibold" style={{ backgroundColor: a.avatar_color }}>{a.initiales}</div>
+                            <span className="text-[11px]" style={{ color: "var(--mdec-text-3)" }}>{a.nom.split(" ")[0]}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="display-num text-[28px] font-semibold leading-none" style={{ color: nbRetard > 0 ? "var(--mdec-rose)" : nbUrgent > 0 ? "var(--mdec-amber)" : "var(--mdec-text)" }}>
+                          {visibleObs.length}
+                        </div>
+                        <div className="text-[9px] uppercase tracking-wider" style={{ color: "var(--mdec-text-3)" }}>
+                          {showDone ? "obligations" : "à traiter"}
+                        </div>
+                      </div>
                     </div>
-                    <button onClick={() => setShowAffectation(client)}
-                      className="text-[11px] px-2.5 py-1 rounded-[8px] bg-[#007AFF]/10 text-[#007AFF] hover:bg-[#007AFF]/15 font-medium transition-all">
-                      ⚡ Affecter
-                    </button>
-                  </div>
-                  <table className="w-full">
-                    <thead className="bg-[#F5F5F7]/50 dark:bg-[#2c2c2e]/50">
-                      <tr className="text-[10px] text-[#86868B] dark:text-[#98989D] uppercase tracking-wider">
-                        <th className="text-left px-4 py-2">Obligation</th>
-                        <th className="text-left px-2 py-2">Échéance réelle</th>
-                        <th className="text-left px-2 py-2">Statut</th>
-                        <th className="text-left px-2 py-2">Urgence</th>
-                        <th className="text-left px-2 py-2">Collaborateur</th>
-                        <th className="text-right px-2 py-2">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {obs.map((o) => {
-                        const colla = store.agents.find((x) => x.id === o.collaborateur_id);
-                        const c = getStatutColor(o.statut);
+
+                    {/* Indicateurs visuels */}
+                    <div className="flex items-center gap-2 mb-3 text-[10.5px]">
+                      {nbRetard > 0 && <span className="px-1.5 py-0.5 rounded font-bold" style={{ background: "var(--mdec-rose-soft)", color: "var(--mdec-rose)" }}>⚠ {nbRetard} retard{nbRetard > 1 ? "s" : ""}</span>}
+                      {nbUrgent > 0 && <span className="px-1.5 py-0.5 rounded font-bold" style={{ background: "var(--mdec-amber-soft)", color: "var(--mdec-amber)" }}>🔥 {nbUrgent} urgent{nbUrgent > 1 ? "s" : ""}</span>}
+                      {totalDeposees > 0 && <span className="px-1.5 py-0.5 rounded font-medium" style={{ background: "var(--mdec-mint-soft)", color: "var(--mdec-mint)" }}>✓ {totalDeposees} déposée{totalDeposees > 1 ? "s" : ""}</span>}
+                    </div>
+
+                    {/* Liste mini des obligations (3 max visibles) */}
+                    <div className="space-y-1.5 mb-3">
+                      {visibleObs.slice(0, 3).map((o) => {
                         const sd = STATUT_DETAILLE_STYLE[o.statut_detaille];
                         return (
-                          <tr key={o.id} onClick={() => setActiveObligation(o)}
-                            className="border-t border-[#E5E5EA]/30 dark:border-[#38383a] hover:bg-[#F5F5F7]/40 dark:hover:bg-[#2c2c2e]/40 cursor-pointer">
-                            <td className="px-4 py-2.5 text-[12px] font-medium text-[#1D1D1F] dark:text-white">{o.type}</td>
-                            <td className="px-2 py-2.5 text-[11px] text-[#3a3a3c] dark:text-[#d1d1d6] tabular-nums">{o.echeance_date_label}</td>
-                            <td className="px-2 py-2.5">
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${sd.bg} ${sd.text}`}>
-                                <span>{sd.emoji}</span> {o.statut_detaille}
-                              </span>
-                            </td>
-                            <td className="px-2 py-2.5">
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${c.bg} ${c.text}`}>
-                                {getStatutLabel(o.statut)}
-                              </span>
-                            </td>
-                            <td className="px-2 py-2.5 text-[11px] text-[#86868B] dark:text-[#98989D]">
-                              {colla ? colla.nom.split(" ")[0] : "—"}
-                            </td>
-                            <td className="px-2 py-2.5 text-right">
-                              {o.statut_detaille !== "Déposée" ? (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    store.setPendingObligation(o.id, o.type, o.client);
-                                    if (typeof window !== "undefined") {
-                                      window.dispatchEvent(new CustomEvent("switch-tab", { detail: { tab: "tasks" } }));
-                                    }
-                                  }}
-                                  className="text-[10px] font-semibold px-2 py-1 rounded-[8px] bg-[#007AFF]/10 dark:bg-[#0A84FF]/15 text-[#007AFF] dark:text-[#0A84FF] hover:bg-[#007AFF]/20 dark:hover:bg-[#0A84FF]/25"
-                                  title="Ouvrir le cas pratique de validation dans l'onglet Tâches"
-                                >
-                                  📝 Traiter dans Tâches
-                                </button>
-                              ) : (
-                                <span className="text-[10px] text-[#34C759]">
-                                  Validée J{store.fiscal_validations?.[o.id]?.game_day || "?"}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
+                          <div key={o.id} className="flex items-center gap-2 text-[11px]">
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-semibold ${sd.bg} ${sd.text}`}>
+                              {sd.emoji} {o.type}
+                            </span>
+                            <span className="flex-1 truncate" style={{ color: "var(--mdec-text-3)" }}>{o.echeance_date_label}</span>
+                          </div>
                         );
                       })}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })}
+                      {visibleObs.length > 3 && (
+                        <div className="text-[10px] italic" style={{ color: "var(--mdec-text-3)" }}>
+                          +{visibleObs.length - 3} autre{visibleObs.length - 3 > 1 ? "s" : ""}…
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer : voir détail */}
+                    <div className="text-[11px] font-semibold flex items-center gap-1" style={{ color: "var(--mdec-accent)" }}>
+                      Voir le détail
+                      <ChevronRight size={12} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             {Object.keys(parClient).length === 0 && (
-              <div className="text-center py-12 text-[#86868B]">
+              <div className="text-center py-12" style={{ color: "var(--mdec-text-3)" }}>
                 <BarChart3 size={32} className="mx-auto mb-2 opacity-40" />
                 <p className="text-[13px]">Aucune obligation fiscale active</p>
               </div>
             )}
-          </div>
+          </>
         )}
+
+        {/* Drawer détail client : liste des obligations + bouton Traiter */}
+        {openClientId && (() => {
+          const obs = parClient[openClientId] || [];
+          const a = store.agents.find((x) => x.id === obs[0]?.collaborateur_id);
+          const visibleObs = showDone ? obs : obs.filter((o) => o.statut_detaille !== "Déposée" && o.statut !== "ok");
+          return (
+            <div className="fixed inset-0 z-50 flex justify-end animate-in fade-in duration-200">
+              <div className="absolute inset-0 bg-black/15 dark:bg-black/50 backdrop-blur-[2px]" onClick={() => setOpenClientId(null)} />
+              <div className="relative w-full max-w-[560px] bg-white dark:bg-[#14141B] shadow-[-12px_0_48px_rgba(0,0,0,0.08)] dark:shadow-[-12px_0_48px_rgba(0,0,0,0.6)] flex flex-col animate-in slide-in-from-right duration-250">
+                <header className="px-7 pt-8 pb-5 border-b" style={{ borderColor: "var(--mdec-border)" }}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-[26px] font-semibold tracking-[-0.025em] leading-tight" style={{ color: "var(--mdec-text)" }}>🏢 {openClientId}</h2>
+                      {a && (
+                        <p className="mt-1 text-[13px]" style={{ color: "var(--mdec-text-3)" }}>
+                          Géré par <span className="font-medium" style={{ color: "var(--mdec-text-2)" }}>{a.nom}</span> · {visibleObs.length} obligation(s) {showDone ? "" : "à traiter"}
+                        </p>
+                      )}
+                    </div>
+                    <button onClick={() => setOpenClientId(null)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--mdec-active)" }}>
+                      <X size={15} style={{ color: "var(--mdec-text-3)" }} />
+                    </button>
+                  </div>
+                </header>
+                <div className="flex-1 overflow-y-auto px-7 py-6 space-y-3">
+                  {visibleObs.length === 0 ? (
+                    <div className="text-center py-12" style={{ color: "var(--mdec-text-3)" }}>
+                      <p className="text-[13px]">Aucune obligation à traiter pour ce client.</p>
+                      {!showDone && (
+                        <button onClick={() => setShowDone(true)} className="mt-2 text-[12px]" style={{ color: "var(--mdec-accent)" }}>
+                          Afficher les déposées →
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    visibleObs.map((o) => {
+                      const colla = store.agents.find((x) => x.id === o.collaborateur_id);
+                      const c = getStatutColor(o.statut);
+                      const sd = STATUT_DETAILLE_STYLE[o.statut_detaille];
+                      const isDeposee = o.statut_detaille === "Déposée";
+                      return (
+                        <div key={o.id} className="rounded-[16px] p-4 border" style={{ background: "var(--mdec-surface)", borderColor: "var(--mdec-border)" }}>
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="min-w-0">
+                              <div className="text-[14px] font-semibold" style={{ color: "var(--mdec-text)" }}>{o.type}</div>
+                              <div className="text-[11px] tabular-nums mt-0.5" style={{ color: "var(--mdec-text-3)" }}>{o.echeance_date_label}</div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${sd.bg} ${sd.text}`}>
+                                {sd.emoji} {o.statut_detaille}
+                              </span>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${c.bg} ${c.text}`}>
+                                {getStatutLabel(o.statut)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t" style={{ borderColor: "var(--mdec-border)" }}>
+                            <span className="text-[11px]" style={{ color: "var(--mdec-text-3)" }}>
+                              {colla ? `Suivi par ${colla.nom.split(" ")[0]}` : "Non affecté"}
+                            </span>
+                            {!isDeposee ? (
+                              <button
+                                onClick={() => {
+                                  store.setPendingObligation(o.id, o.type, o.client);
+                                  setOpenClientId(null);
+                                  if (typeof window !== "undefined") {
+                                    window.dispatchEvent(new CustomEvent("switch-tab", { detail: { tab: "tasks" } }));
+                                  }
+                                }}
+                                className="text-[11.5px] font-semibold px-3 py-1.5 rounded-full text-white press"
+                                style={{ background: "var(--mdec-accent)" }}
+                                title="Ouvrir le cas pratique dans l'onglet Tâches"
+                              >
+                                📝 Traiter le cas pratique
+                              </button>
+                            ) : (
+                              <span className="text-[11px] font-medium" style={{ color: "var(--mdec-mint)" }}>
+                                ✓ Déposée J{store.fiscal_validations?.[o.id]?.game_day || "?"}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                <footer className="px-7 py-4 border-t bg-[var(--mdec-bg)]" style={{ borderColor: "var(--mdec-border)" }}>
+                  <button onClick={() => { setShowAffectation(openClientId); }}
+                    className="w-full px-3 py-2.5 rounded-[12px] text-[12px] font-semibold press"
+                    style={{ background: "var(--mdec-accent-soft)", color: "var(--mdec-accent)" }}>
+                    ⚡ Réaffecter les obligations
+                  </button>
+                </footer>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* VUE CALENDRIER HEATMAP */}
         {view === "calendrier" && (

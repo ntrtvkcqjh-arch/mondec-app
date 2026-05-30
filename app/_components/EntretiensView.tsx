@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/api-client";
 import { Briefcase, Clock, Send, X, CheckCircle, AlertTriangle, Sparkles, BookOpen, Play, Pause } from "lucide-react";
 import { PageHeader } from "./ui/PageHeader";
 
-type DureeEntretien = 15 | 30 | 45;
+type DureeEntretien = 5 | 15 | 30 | 45;
 type Phase = "list" | "planning" | "session" | "decision" | "correction";
 
 interface Msg {
@@ -208,6 +208,28 @@ export function EntretiensView() {
         legitimite: Math.max(0, Math.min(100, store.legitimite + (opt.impact.legitimite || 0))),
       });
     }
+    // Trace dans l'historique de l'agent — visible dans Équipe + Entretiens
+    const impactBits: string[] = [];
+    if (opt.impact.confiance) impactBits.push(`${opt.impact.confiance > 0 ? "+" : ""}${opt.impact.confiance} Conf`);
+    if (opt.impact.loyaute) impactBits.push(`${opt.impact.loyaute > 0 ? "+" : ""}${opt.impact.loyaute} Loy`);
+    if (opt.impact.stress) impactBits.push(`${opt.impact.stress > 0 ? "+" : ""}${opt.impact.stress} Str`);
+    if (opt.impact.tresorerie) impactBits.push(`${opt.impact.tresorerie > 0 ? "+" : ""}${(opt.impact.tresorerie / 1000).toFixed(1)}k€`);
+    useGameStore.setState((s) => ({
+      agent_player_history: {
+        ...s.agent_player_history,
+        [agent.id]: [
+          { day: s.game_day, hour: s.game_hour, event: `Entretien (${duree}min) — ${opt.label}`, impact: impactBits.join(" · ") },
+          ...(s.agent_player_history[agent.id] || []),
+        ].slice(0, 30),
+      },
+    }));
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("agent_player_history", JSON.stringify(useGameStore.getState().agent_player_history));
+      } catch {}
+    }
+    // Recompute stress immédiatement après l'entretien (charge / état)
+    setTimeout(() => store.recomputeAgentStress(), 100);
     // Demande la correction examinateur
     fetchCorrection(opt);
     setPhase("correction");
@@ -295,21 +317,29 @@ export function EntretiensView() {
                   <AlertTriangle size={11} /> Recommandés en priorité
                 </div>
                 <div className="space-y-2">
-                  {recommandes.map(({ agent: a, reasons, priority }) => (
-                    <div key={a.id} className="bg-white dark:bg-[#1c1c1e] border-l-4 border-[#FF3B30] rounded-[12px] p-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-semibold" style={{ backgroundColor: a.avatar_color }}>
-                        {a.initiales}
+                  {recommandes.map(({ agent: a, reasons, priority }) => {
+                    const lastEntretien = (store.agent_player_history[a.id] || []).find((h) => h.event.startsWith("Entretien"));
+                    return (
+                      <div key={a.id} className="bg-white dark:bg-[#1c1c1e] border-l-4 border-[#FF3B30] rounded-[12px] p-3 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-semibold" style={{ backgroundColor: a.avatar_color }}>
+                          {a.initiales}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{a.nom}</div>
+                          <div className="text-[10px] text-[#86868B] dark:text-[#98989D]">{reasons.join(" · ")}</div>
+                          {lastEntretien && (
+                            <div className="text-[10px] mt-0.5 italic" style={{ color: "var(--mdec-accent)" }}>
+                              Dernière décision (J{lastEntretien.day}) : {lastEntretien.event.replace("Entretien", "")}
+                            </div>
+                          )}
+                        </div>
+                        <button onClick={() => startPlanning(a.id)}
+                          className="px-3 py-1.5 text-[11px] font-semibold rounded-[10px] bg-gradient-to-br from-[#FF3B30] to-[#FF9500] text-white shadow-sm hover:shadow-md">
+                          Convoquer à nouveau
+                        </button>
                       </div>
-                      <div className="flex-1">
-                        <div className="text-[13px] font-semibold text-[#1D1D1F] dark:text-white">{a.nom}</div>
-                        <div className="text-[10px] text-[#86868B] dark:text-[#98989D]">{reasons.join(" · ")}</div>
-                      </div>
-                      <button onClick={() => startPlanning(a.id)}
-                        className="px-3 py-1.5 text-[11px] font-semibold rounded-[10px] bg-gradient-to-br from-[#FF3B30] to-[#FF9500] text-white shadow-sm hover:shadow-md">
-                        Convoquer
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -351,8 +381,8 @@ export function EntretiensView() {
             </div>
             <div className="mb-4">
               <label className="text-[11px] font-semibold uppercase tracking-wider text-[#86868B] dark:text-[#98989D] block mb-2">Durée prévue</label>
-              <div className="grid grid-cols-3 gap-2">
-                {([15, 30, 45] as DureeEntretien[]).map((d) => (
+              <div className="grid grid-cols-4 gap-2">
+                {([5, 15, 30, 45] as DureeEntretien[]).map((d) => (
                   <button
                     key={d}
                     onClick={() => setDuree(d)}

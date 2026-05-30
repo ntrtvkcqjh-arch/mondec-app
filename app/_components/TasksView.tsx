@@ -71,6 +71,39 @@ export function TasksView() {
     setDecisionsAnomalies({});
   }
 
+  // 🔗 AUTO-OPEN : si une obligation fiscale pending arrive, on cherche la tâche
+  // qui correspond (type + client) et on ouvre directement le modal
+  useEffect(() => {
+    if (!store.pending_obligation_id || !store.pending_obligation_meta || active) return;
+    const meta = store.pending_obligation_meta;
+    // Map type fiscal → mots-clés dans le type/titre de la tâche
+    const typeKeywords: Record<string, string[]> = {
+      TVA: ["tva", "ca3"],
+      IS: ["is", "acompte_is", "impôt sur les sociétés"],
+      Liasse: ["liasse", "2065", "2033"],
+      CVAE: ["cvae"],
+      CFE: ["cfe"],
+    };
+    const keywords = typeKeywords[meta.type] || [meta.type.toLowerCase()];
+    const match = pool.find((t) => {
+      const titre = t.titre.toLowerCase();
+      const type = t.type.toLowerCase();
+      const client = t.client.toLowerCase();
+      const matchesType = keywords.some((k) => titre.includes(k) || type.includes(k));
+      const matchesClient = client.includes(meta.client.toLowerCase().split(" ")[0]) || meta.client.toLowerCase().includes(client.split(" ")[0]);
+      return matchesType && matchesClient;
+    }) || pool.find((t) => keywords.some((k) => t.titre.toLowerCase().includes(k) || t.type.toLowerCase().includes(k))); // fallback type seul
+    if (match && store.player_level >= match.niveau_min) {
+      setTimeout(() => open(match), 200);
+    } else if (!match) {
+      // Aucune tâche correspondante — message clair
+      setTimeout(() => {
+        alert(`Aucun cas pratique disponible pour ${meta.type} - ${meta.client}. L'obligation reste en attente. (Niveau actuel : ${store.player_level})`);
+        store.clearPendingObligation();
+      }, 300);
+    }
+  }, [store.pending_obligation_id]);
+
   function toggleLine(idx: number) {
     setFlagged((prev) => {
       const next = new Set(prev);

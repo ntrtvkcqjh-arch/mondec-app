@@ -1747,16 +1747,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     };
     set((s) => ({ mails: [newMail, ...s.mails].slice(0, 200) }));
 
+    let parent: any = null;
     // Si c'est une réponse à un mail, marque le parent comme répondu + applique impact CC
     if (payload.parent_id) {
-      const parent = state.mails.find((m) => m.id === payload.parent_id);
+      parent = state.mails.find((m) => m.id === payload.parent_id);
       if (parent) {
         // Impact relation : si on a oublié de mettre en CC les bons agents/clients → -confiance
         const ccIdsSent = new Set(payload.cc.map((c) => c.id).filter(Boolean) as string[]);
         const expected = parent.expected_cc_ids || [];
-        const missed = expected.filter((id) => !ccIdsSent.has(id));
+        const missed = expected.filter((id: string) => !ccIdsSent.has(id));
         if (missed.length > 0) {
-          // Pénalité légère pour chaque agent oublié en CC
           set((s) => ({
             agents: s.agents.map((a) =>
               missed.includes(a.id) ? { ...a, confiance_joueur: Math.max(0, a.confiance_joueur - 3) } : a
@@ -1772,6 +1772,56 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (typeof window !== "undefined") {
       try { localStorage.setItem("mails_state", JSON.stringify(get().mails)); } catch {}
+    }
+
+    // 📬 RÉPONSE AUTO du destinataire (parent ou destinataire principal) après un délai réaliste
+    // Si tu réponds à un client → il te répond. Si tu écris à un agent → il te répond.
+    // Délai : urgent < 1h, normal 1-24h, info plusieurs jours selon mots-clés
+    const primaryRecipient = payload.to[0] || parent?.from;
+    if (primaryRecipient && primaryRecipient.type !== "self") {
+      const lowerBody = (payload.body + " " + payload.subject).toLowerCase();
+      const urgent = /\b(urgent|asap|imm[ée]diat|tout de suite|aujourd'hui|maintenant)\b/.test(lowerBody);
+      const longTerm = /\b(plus tard|le mois prochain|d'ici (?:\d+|un|deux|trois) mois|fin de mois|trimestre)\b/.test(lowerBody);
+      let delayMs: number;
+      if (urgent) delayMs = 30 * 60 * 1000 + Math.random() * 30 * 60 * 1000;          // 30 min - 1h
+      else if (longTerm) delayMs = 7 * 24 * 60 * 60 * 1000 + Math.random() * 14 * 24 * 60 * 60 * 1000; // 7-21 jours
+      else delayMs = 2 * 60 * 60 * 1000 + Math.random() * 22 * 60 * 60 * 1000;        // 2-24h
+
+      // En mode dev / simulation rapide, on raccourcit drastiquement pour qu'on voie le retour
+      // (le user veut un feedback rapide pendant le jeu, pas attendre 1 mois réel)
+      const accelFactor = 1 / 120; // 1 min réelle = 2h game
+      const realDelayMs = Math.max(15000, delayMs * accelFactor); // au moins 15s réelles
+
+      const replyContext = parent
+        ? `Re: ${parent.subject.replace(/^(Re:|\[Relance \d+\])\s*/g, "")}`
+        : `Re: ${payload.subject}`;
+
+      // Génère le contenu de la réponse selon le contexte
+      const isClient = primaryRecipient.type === "client";
+      const senderShort = primaryRecipient.name.split(" ")[1] || primaryRecipient.name;
+      const accuse = urgent
+        ? `Bien reçu votre mail urgent, je vais regarder ça immédiatement.`
+        : longTerm
+          ? `Bien noté, on a le temps. Je reviens vers vous d'ici quelques semaines.`
+          : `Merci pour votre retour, c'est bien noté.`;
+      const followUp = isClient
+        ? (urgent
+            ? `Je transmets directement à votre interlocuteur dans le cabinet. Vous aurez une réponse technique d'ici la fin de journée.`
+            : `Nous revenons vers vous d'ici peu avec les éléments demandés.`)
+        : (urgent
+            ? `Je m'y mets tout de suite chef, je te tiens au courant dans l'heure.`
+            : `OK chef, c'est noté. Je te fais un point ${urgent ? "ce soir" : "demain ou après-demain"}.`);
+      const body = `${accuse}\n\n${followUp}\n\n${isClient ? "Cordialement,\n" + primaryRecipient.name : senderShort}`;
+
+      setTimeout(() => {
+        const stillExists = get().mails.find((m) => m.id === newMail.id);
+        if (!stillExists) return;
+        get().receiveMail({
+          from: primaryRecipient,
+          subject: replyContext,
+          body,
+        });
+      }, realDelayMs);
     }
   },
 
